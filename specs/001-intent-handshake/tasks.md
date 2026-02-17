@@ -37,31 +37,32 @@ Goal: Implement the `select_active_intent` tool that allows the agent to opt-in 
 
 ## Phase 4: Reasoning Loop Enforcement (User Story 1 & 5)
 
-Goal: Enforce the mandatory handshake by modifying the `Task.ts` execution loop.
+Goal: Enforce the mandatory handshake by implementing the `IntentGateHook` and integrating it into the `Task.ts` execution loop.
 
-- [ ] T016 [US1] Modify `Task.ts` to track `activeIntentId` in session state
-- [ ] T017 [US1] Implement `isIntentActive()` check in `Task.ts`
-- [ ] T018 [US5] Modify `buildNativeToolsArray` (or specific tool builder) to filter OUT all tools EXCEPT `select_active_intent` when `activeIntentId` is null
-- [ ] T019 [US5] Modify `executeTool` in `Task.ts` to hard-block any tool execution (except `select_active_intent`) if `activeIntentId` is null
-- [ ] T020 [US5] Implement informative error message "You must cite a valid active Intent ID" when blocked
+- [ ] T016 [US1] Create `IntentGateHook` class in `src/hooks/pre/IntentGateHook.ts` to encapsulate validation logic
+- [ ] T017 [US1] Implement `isIntentActive()` and `validateToolCall()` methods in `IntentGateHook`
+- [ ] T018 [US1] Modify `Task.ts` to instantiate `IntentGateHook`
+- [ ] T019 [US5] Modify `buildNativeToolsArray` (or specific tool builder) to use `IntentGateHook` filter logic (hide tools when no intent active)
+- [ ] T020 [US5] Modify `executeTool` in `Task.ts` to call `IntentGateHook.validateToolCall()` and block execution if invalid
+- [ ] T021 [US5] Implement informative error message "You must cite a valid active Intent ID" in `IntentGateHook`
 
 ## Phase 5: Prompt Governance (User Story 3 & 4)
 
 Goal: Update system prompt and inject context into LLM payload.
 
-- [ ] T021 [US3] Create `generateGovernancePrompt` helper in `src/core/prompts/sections/governance.ts`
-- [ ] T022 [US3] Modify `SYSTEM_PROMPT` construction in `src/core/prompts/system.ts` to include governance section
-- [ ] T023 [US3] Logic to list available intents in system prompt when no intent is active
-- [ ] T024 [US4] Logic to show ONLY active intent scope/constraints in system prompt when intent IS active
-- [ ] T025 [US4] Pre-load `OrchestrationService` data before generating prompt in `Task.ts`
+- [ ] T022 [US3] Create `generateGovernancePrompt` helper in `src/core/prompts/sections/governance.ts`
+- [ ] T023 [US3] Modify `SYSTEM_PROMPT` construction in `src/core/prompts/system.ts` to include governance section
+- [ ] T024 [US3] Logic to list available intents in system prompt when no intent is active
+- [ ] T025 [US4] Logic to show ONLY active intent scope/constraints in system prompt when intent IS active
+- [ ] T026 [US4] Pre-load `OrchestrationService` data before generating prompt in `Task.ts`
 
 ## Phase 6: Edge Cases & Polish
 
 Goal: Handle edge cases (missing files, invalid IDs) and final verification.
 
-- [ ] T026 [Edge] Implement graceful error handling in `OrchestrationService` for missing `.orchestration` folders
-- [ ] T027 [Edge] Add validation for 'Lock Session' rule (FR-013) - prevent switching intents mid-session
-- [ ] T028 [Edge] Implement 'Strict Scope' validation (FR-014) in `validateScope` (using glob patterns)
-- [ ] T029 [Verification] Manual test: Verify agent is blocked without intent
-- [ ] T030 [Verification] Manual test: Verify agent can select intent and then use tools
-- [ ] T031 [Verification] Manual test: Verify out-of-scope edits are blocked
+- [ ] T027 [Edge] Implement graceful error handling in `OrchestrationService` (log warning, return empty list) when `.orchestration` folder is missing
+- [ ] T028 [Edge] Add validation for 'Lock Session' rule (FR-013) - prevent switching intents mid-session
+- [ ] T029 [Edge] Implement 'Strict Scope' validation (FR-014) in `validateScope` (using glob patterns)
+- [ ] T030 [Verification] Manual test: Verify agent is blocked without intent
+- [ ] T031 [Verification] Manual test: Verify agent can select intent and then use tools
+- [ ] T032 [Verification] Manual test: Verify out-of-scope edits are blocked
