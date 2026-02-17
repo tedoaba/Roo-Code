@@ -77,6 +77,7 @@ import { getModelMaxOutputTokens } from "../../shared/api"
 import { McpHub } from "../../services/mcp/McpHub"
 import { McpServerManager } from "../../services/mcp/McpServerManager"
 import { RepoPerTaskCheckpointService } from "../../services/checkpoints"
+import { OrchestrationService } from "../../services/orchestration/OrchestrationService"
 
 // integrations
 import { DiffViewProvider } from "../../integrations/editor/DiffViewProvider"
@@ -107,6 +108,7 @@ import { NativeToolCallParser } from "../assistant-message/NativeToolCallParser"
 import { manageContext, willManageContext } from "../context-management"
 import { ClineProvider } from "../webview/ClineProvider"
 import { MultiSearchReplaceDiffStrategy } from "../diff/strategies/multi-search-replace"
+import { IntentGateHook } from "../../hooks/pre/IntentGateHook"
 import {
 	type ApiMessage,
 	readApiMessages,
@@ -339,6 +341,11 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	public readonly messageQueueService: MessageQueueService
 	private messageQueueStateChangedHandler: (() => void) | undefined
 
+	// Orchestration
+	public readonly orchestrationService: OrchestrationService
+	public readonly intentGateHook: IntentGateHook
+	public activeIntentId: string | undefined
+
 	// Streaming
 	isWaitingForFirstChunk = false
 	isStreaming = false
@@ -478,6 +485,10 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 		this.instanceId = crypto.randomUUID().slice(0, 8)
 		this.taskNumber = -1
+
+		this.orchestrationService = new OrchestrationService(this.cwd)
+		this.intentGateHook = new IntentGateHook(this.orchestrationService)
+		this.activeIntentId = undefined
 
 		this.rooIgnoreController = new RooIgnoreController(this.cwd)
 		this.rooProtectedController = new RooProtectedController(this.cwd)
@@ -1661,6 +1672,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				disabledTools: state?.disabledTools,
 				modelInfo,
 				includeAllToolsWithRestrictions: false,
+				isIntentActive: this.intentGateHook.isIntentActive(this),
 			})
 			allTools = toolsResult.tools
 		}
@@ -3815,6 +3827,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				undefined, // todoList
 				this.api.getModel().id,
 				provider.getSkillsManager(),
+				this.orchestrationService,
+				this.activeIntentId,
 			)
 		})()
 	}
@@ -3867,6 +3881,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				disabledTools: state?.disabledTools,
 				modelInfo,
 				includeAllToolsWithRestrictions: false,
+				isIntentActive: this.intentGateHook.isIntentActive(this),
 			})
 			allTools = toolsResult.tools
 		}
@@ -4081,6 +4096,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 						disabledTools: state?.disabledTools,
 						modelInfo,
 						includeAllToolsWithRestrictions: false,
+						isIntentActive: this.intentGateHook.isIntentActive(this),
 					})
 					contextMgmtTools = toolsResult.tools
 				}
@@ -4245,6 +4261,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				disabledTools: state?.disabledTools,
 				modelInfo,
 				includeAllToolsWithRestrictions: supportsAllowedFunctionNames,
+				isIntentActive: this.intentGateHook.isIntentActive(this),
 			})
 			allTools = toolsResult.tools
 			allowedFunctionNames = toolsResult.allowedFunctionNames

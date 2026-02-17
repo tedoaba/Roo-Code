@@ -23,7 +23,9 @@ import {
 	addCustomInstructions,
 	markdownFormattingSection,
 	getSkillsSection,
+	getIntentHandshakeSection,
 } from "./sections"
+import { OrchestrationService } from "../../services/orchestration/OrchestrationService"
 
 // Helper function to get prompt component, filtering out empty objects
 export function getPromptComponent(
@@ -55,6 +57,8 @@ async function generatePrompt(
 	todoList?: TodoItem[],
 	modelId?: string,
 	skillsManager?: SkillsManager,
+	orchestrationService?: OrchestrationService,
+	activeIntentId?: string,
 ): Promise<string> {
 	if (!context) {
 		throw new Error("Extension context is required for generating system prompt")
@@ -74,9 +78,10 @@ async function generatePrompt(
 	// Tool calling is native-only.
 	const effectiveProtocol = "native"
 
-	const [modesSection, skillsSection] = await Promise.all([
+	const [modesSection, skillsSection, intentHandshakeSection] = await Promise.all([
 		getModesSection(context),
 		getSkillsSection(skillsManager, mode as string),
+		orchestrationService ? getIntentHandshakeSection(orchestrationService, activeIntentId) : Promise.resolve(""),
 	])
 
 	// Tools catalog is not included in the system prompt.
@@ -97,6 +102,7 @@ ${skillsSection ? `\n${skillsSection}` : ""}
 ${getRulesSection(cwd, settings)}
 
 ${getSystemInfoSection(cwd)}
+${intentHandshakeSection}
 
 ${getObjectiveSection()}
 
@@ -126,6 +132,8 @@ export const SYSTEM_PROMPT = async (
 	todoList?: TodoItem[],
 	modelId?: string,
 	skillsManager?: SkillsManager,
+	orchestrationService?: OrchestrationService,
+	activeIntentId?: string,
 ): Promise<string> => {
 	if (!context) {
 		throw new Error("Extension context is required for generating system prompt")
@@ -154,5 +162,7 @@ export const SYSTEM_PROMPT = async (
 		todoList,
 		modelId,
 		skillsManager,
+		orchestrationService,
+		activeIntentId,
 	)
 }

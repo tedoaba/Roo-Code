@@ -37,6 +37,7 @@ import { generateImageTool } from "../tools/GenerateImageTool"
 import { applyDiffTool as applyDiffToolClass } from "../tools/ApplyDiffTool"
 import { isValidToolName, validateToolUse } from "../tools/validateToolUse"
 import { codebaseSearchTool } from "../tools/CodebaseSearchTool"
+import { selectActiveIntentTool } from "../tools/SelectActiveIntent"
 
 import { formatResponse } from "../prompts/responses"
 import { sanitizeToolUseId } from "../../utils/tool-id"
@@ -234,6 +235,25 @@ export async function presentAssistantMessage(cline: Task) {
 			}
 
 			if (!mcpBlock.partial) {
+				// Enforcement Hook: Intent Gate
+				const validation = await cline.intentGateHook.validateToolCall(
+					cline,
+					`mcp_${mcpBlock.serverName}_${mcpBlock.toolName}`,
+					mcpBlock.arguments,
+				)
+				if (!validation.allowed) {
+					cline.consecutiveMistakeCount++
+					const errorContent = formatResponse.toolError(
+						validation.reason || "Tool execution blocked by Intent Gate.",
+					)
+					cline.pushToolResultToUserContent({
+						type: "tool_result",
+						tool_use_id: sanitizeToolUseId(toolCallId!),
+						content: typeof errorContent === "string" ? errorContent : "(enforcement error)",
+						is_error: true,
+					})
+					break
+				}
 				cline.recordToolUsage("use_mcp_tool") // Record as use_mcp_tool for analytics
 				TelemetryService.instance.captureToolUsage(cline.taskId, "use_mcp_tool")
 			}
@@ -488,6 +508,29 @@ export async function presentAssistantMessage(cline: Task) {
 					cline.userMessageContent.push(...imageBlocks)
 				}
 
+				// Log trace if intent is active
+				if (cline.activeIntentId) {
+					cline.orchestrationService
+						.logTrace({
+							timestamp: new Date().toISOString(),
+							agent_id: "roo-code-agent",
+							intent_id: cline.activeIntentId,
+							action_type: "TOOL_EXECUTION",
+							payload: {
+								tool_name: block.name,
+								tool_input: block.params,
+							},
+							result: {
+								status: "SUCCESS", // We assume success if we got here, errors are handled separately
+								output_summary: resultContent.slice(0, 200) + (resultContent.length > 200 ? "..." : ""),
+							},
+							metadata: {
+								session_id: cline.taskId,
+							},
+						})
+						.catch((err) => console.error("Failed to log trace:", err))
+				}
+
 				hasToolResult = true
 			}
 
@@ -549,6 +592,30 @@ export async function presentAssistantMessage(cline: Task) {
 					"error",
 					`Error ${action}:\n${error.message ?? JSON.stringify(serializeError(error), null, 2)}`,
 				)
+
+				// Log trace if intent is active
+				if (cline.activeIntentId) {
+					cline.orchestrationService
+						.logTrace({
+							timestamp: new Date().toISOString(),
+							agent_id: "roo-code-agent",
+							intent_id: cline.activeIntentId,
+							action_type: "ERROR",
+							payload: {
+								tool_name: block.name,
+								tool_input: block.params,
+							},
+							result: {
+								status: "FAILURE",
+								output_summary: `Error ${action}: ${error.message}`,
+								error_message: error.stack,
+							},
+							metadata: {
+								session_id: cline.taskId,
+							},
+						})
+						.catch((err) => console.error("Failed to log trace:", err))
+				}
 
 				pushToolResult(formatResponse.toolError(errorString))
 			}
@@ -625,6 +692,22 @@ export async function presentAssistantMessage(cline: Task) {
 
 			// Check for identical consecutive tool calls.
 			if (!block.partial) {
+				// Enforcement Hook: Intent Gate
+				const validation = await cline.intentGateHook.validateToolCall(cline, block.name, block.params)
+				if (!validation.allowed) {
+					cline.consecutiveMistakeCount++
+					const errorContent = formatResponse.toolError(
+						validation.reason || "Tool execution blocked by Intent Gate.",
+					)
+					cline.pushToolResultToUserContent({
+						type: "tool_result",
+						tool_use_id: sanitizeToolUseId(toolCallId),
+						content: typeof errorContent === "string" ? errorContent : "(enforcement error)",
+						is_error: true,
+					})
+					break
+				}
+
 				// Use the detector to check for repetition, passing the ToolUse
 				// block directly.
 				const repetitionCheck = cline.toolRepetitionDetector.check(block)
@@ -798,6 +881,13 @@ export async function presentAssistantMessage(cline: Task) {
 					break
 				case "switch_mode":
 					await switchModeTool.handle(cline, block as ToolUse<"switch_mode">, {
+						askApproval,
+						handleError,
+						pushToolResult,
+					})
+					break
+				case "select_active_intent":
+					await selectActiveIntentTool.handle(cline, block as ToolUse<"select_active_intent">, {
 						askApproval,
 						handleError,
 						pushToolResult,
