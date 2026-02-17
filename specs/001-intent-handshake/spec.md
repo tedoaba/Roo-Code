@@ -94,6 +94,14 @@ When the system's pre-processing hook runs before prompt dispatch, it verifies t
 - How does the system behave when the agent's conversation context window is truncated mid-session? The system should re-inject intent context on every LLM call, ensuring context is never lost even after truncation.
 - What happens if the LLM ignores the system prompt and attempts to call tools without selecting an intent? The hard enforcement gate (pre-hook) catches this regardless of LLM compliance.
 
+## Clarifications
+
+### Session 2026-02-17
+
+- **Q:** Should the agent be allowed to switch intents mid-session? → **A:** **Lock Session**. Once an intent is selected, the agent is bound to it for the entire session. To work on a different intent, the agent must start a new session. This enforces a clean "one session = one task" model.
+- **Q:** How should the system handle attempts to write files outside the active intent's scope? → **A:** **Hard Block**. Any attempt to write/edit a file outside the active intent's `owned_scope` is strictly denied by the Hook Engine.
+- **Q:** How is `owned_scope` defined? → **A:** **Explicit Globs**. The intent must explicitly list file paths or glob patterns (e.g., `src/auth/**/*.ts`) in `active_intents.yaml`. Anything not matching is out of scope.
+
 ## Requirements _(mandatory)_
 
 ### Functional Requirements
@@ -110,6 +118,9 @@ When the system's pre-processing hook runs before prompt dispatch, it verifies t
 - **FR-010**: System MUST re-inject intent context on every LLM call to prevent context loss due to conversation truncation or context window limits.
 - **FR-011**: System MUST handle missing or corrupted orchestration state files gracefully, logging the error and informing the agent that orchestration is unavailable.
 - **FR-012**: System MUST update the system prompt governance section to reflect the active intent and its scope boundaries once an intent has been selected, replacing the selection mandate with active-intent guidance.
+- **FR-013**: System MUST enforce a "Lock Session" policy where an agent cannot switch intents once one is selected during a session. Attempts to call `select_active_intent` a second time MUST be rejected with a message instructing to start a new session.
+- **FR-014**: System MUST strictly enforce `owned_scope` boundaries defined by explicit glob patterns in `active_intents.yaml`. Any file mutation targeting a path not matching these patterns MUST be hard-blocked with a "Scope Violation" error.
+- **FR-015**: System MUST treat any file creation or deletion as a scope-checked operation; new files must match an existing positive glob pattern (e.g., `src/components/**`) to be allowed.
 
 ### Key Entities
 
