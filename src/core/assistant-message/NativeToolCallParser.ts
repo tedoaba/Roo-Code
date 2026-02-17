@@ -636,6 +636,14 @@ export class NativeToolCallParser {
 				}
 				break
 
+			case "select_active_intent":
+				if (partialArgs.intent_id !== undefined) {
+					nativeArgs = {
+						intent_id: partialArgs.intent_id,
+					}
+				}
+				break
+
 			default:
 				break
 		}
@@ -796,6 +804,14 @@ export class NativeToolCallParser {
 						nativeArgs = {
 							path: args.path,
 							diff: args.diff,
+						} as NativeArgsFor<TName>
+					}
+					break
+
+				case "select_active_intent":
+					if (args.intent_id) {
+						nativeArgs = {
+							intent_id: args.intent_id,
 						} as NativeArgsFor<TName>
 					}
 					break

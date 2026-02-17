@@ -1,8 +1,8 @@
 # AI-Native IDE — Architecture Notes
 
-> _Technical mapping of the existing Roo Code extension architecture and identification of governance hook insertion points._
+> _Technical mapping of the existing Roo Code extension architecture, privilege separation model, sidecar data model specification, and identification of governance hook insertion points._
 
-**Version**: 1.0.0 | **Authored**: 2026-02-17
+**Version**: 1.1.0 | **Authored**: 2026-02-17 | **Updated**: 2026-02-17
 
 ---
 
@@ -13,60 +13,81 @@
 3. [LLM Request/Response Lifecycle](#3-llm-requestresponse-lifecycle)
 4. [System Prompt Construction Pipeline](#4-system-prompt-construction-pipeline)
 5. [Identified Interception Points](#5-identified-interception-points)
-6. [Proposed Hook Middleware Boundary](#6-proposed-hook-middleware-boundary)
-7. [Orchestration Data Integration Points](#7-orchestration-data-integration-points)
-8. [State Machine Modification Plan](#8-state-machine-modification-plan)
+6. [Privilege Separation & Hook Middleware Boundary](#6-privilege-separation--hook-middleware-boundary)
+7. [Sidecar Data Model (`.orchestration/`)](#7-sidecar-data-model-orchestration)
+8. [Three-State Execution Flow](#8-three-state-execution-flow)
 9. [Concurrency & Safety Injection Points](#9-concurrency--safety-injection-points)
 
 ---
 
 ## 1. Current Extension Architecture Overview
 
-### 1.1 High-Level Component Map
+### 1.1 High-Level Component Map (With Privilege Separation)
 
-The extension follows a standard VS Code Webview Extension architecture with three distinct execution domains:
+The extension follows a VS Code Webview Extension architecture with **four distinct privilege domains**. The Hook Engine acts as a strict middleware boundary between the Extension Host's core logic and all mutating operations:
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                       VS Code Extension Host                     │
-│                                                                  │
-│  ┌──────────────┐  ┌──────────┐  ┌─────────────────────────┐    │
-│  │ extension.ts │──│ activate │──│   ClineProvider          │    │
-│  │  (entry)     │  │ (cmds)   │  │   (webview host)         │    │
-│  └──────────────┘  └──────────┘  └────────┬────────────────┘    │
-│                                            │                     │
-│                                            ▼                     │
-│                                   ┌────────────────┐             │
-│                                   │     Task       │             │
-│                                   │  (core loop)   │             │
-│                                   └───┬────┬───┬───┘             │
-│                                       │    │   │                 │
-│                          ┌────────────┘    │   └──────────┐      │
-│                          ▼                 ▼              ▼      │
-│                   ┌────────────┐   ┌────────────┐  ┌──────────┐ │
-│                   │ API Layer  │   │ Tool Layer │  │ Prompts  │ │
-│                   │ (providers)│   │ (BaseTool) │  │ (system) │ │
-│                   └────────────┘   └────────────┘  └──────────┘ │
-│                                                                  │
-│  ┌───────────────────────────────────────────────────────────┐   │
-│  │ Services: MCP | CodeIndex | Skills | Checkpoints | Glob   │   │
-│  └───────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌───────────────────────────────────────────────────────────┐   │
-│  │ Integrations: Terminal | Editor | Diagnostics | Workspace │   │
-│  └───────────────────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────┘
-        ▲                                              │
-        │  postMessage / onDidReceiveMessage           │
-        ▼                                              ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                       Webview (React UI)                         │
-│  webview-ui/src/                                                 │
-│  ┌───────────────┐  ┌──────────────┐  ┌───────────────────────┐ │
-│  │ Chat View     │  │ Settings     │  │ History / Task List   │ │
-│  │ (messages)    │  │ (config)     │  │ (task management)     │ │
-│  └───────────────┘  └──────────────┘  └───────────────────────┘ │
-└──────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                       VS Code Extension Host                         │
+│                                                                      │
+│  ┌──────────────┐  ┌──────────┐  ┌─────────────────────────┐        │
+│  │ extension.ts │──│ activate │──│   ClineProvider          │        │
+│  │  (entry)     │  │ (cmds)   │  │   (webview host)         │        │
+│  └──────────────┘  └──────────┘  └────────┬────────────────┘        │
+│                                            │                         │
+│                                            ▼                         │
+│                                   ┌────────────────┐                 │
+│                                   │     Task       │                 │
+│                                   │  (core loop)   │                 │
+│                                   └───┬────┬───┬───┘                 │
+│                                       │    │   │                     │
+│                          ┌────────────┘    │   └──────────┐          │
+│                          ▼                 ▼              ▼          │
+│                   ┌────────────┐   ┌────────────┐  ┌──────────┐     │
+│                   │ API Layer  │   │ Tool Layer │  │ Prompts  │     │
+│                   │ (providers)│   │ (BaseTool) │  │ (system) │     │
+│                   └────────────┘   └─────┬──────┘  └──────────┘     │
+│                                          │                           │
+│  ┌───────────────────────────────────────┼───────────────────────┐   │
+│  │ Services: MCP | CodeIndex | Skills |  │  | Checkpoints | Glob │   │
+│  └───────────────────────────────────────┼───────────────────────┘   │
+│  ┌───────────────────────────────────────┼───────────────────────┐   │
+│  │ Integrations: Terminal | Editor |     │  | Diagnostics        │   │
+│  └───────────────────────────────────────┼───────────────────────┘   │
+│                                          │                           │
+│  ════════════════════════════════════════╪═══════════════════════    │
+│  ║              PRIVILEGE BOUNDARY       ║                      ║    │
+│  ════════════════════════════════════════╪═══════════════════════    │
+│                                          │                           │
+│  ┌───────────────────────────────────────┼───────────────────────┐   │
+│  │              HOOK ENGINE (src/hooks/)  │                       │   │
+│  │  ┌─────────────┐    ┌──────────────┐  │  ┌────────────────┐   │   │
+│  │  │ Pre-Hooks   │───▶│  Post-Hooks  │  │  │ Orchestration  │   │   │
+│  │  │ (validate,  │    │  (audit,     │  │  │ State Manager  │   │   │
+│  │  │  enforce,   │    │   hash,      │──┼─▶│ (.orchestration│   │   │
+│  │  │  authorize) │    │   evolve)    │  │  │  /*)           │   │   │
+│  │  └─────────────┘    └──────────────┘  │  └────────────────┘   │   │
+│  └───────────────────────────────────────┴───────────────────────┘   │
+│                                          │                           │
+└──────────────────────────────────────────┼───────────────────────────┘
+        ▲                                  │
+        │  postMessage / onDidReceiveMessage│  fs.writeFile, terminal,
+        ▼                                  ▼  MCP, etc.
+┌──────────────────────────────────────┐  ┌────────────────────────────┐
+│          Webview (React UI)          │  │     Workspace Filesystem    │
+│  webview-ui/src/                     │  │  ┌────────────────────────┐ │
+│  ┌─────────────┐  ┌──────────────┐   │  │  │ .orchestration/        │ │
+│  │ Chat View   │  │ Settings     │   │  │  │  ├── active_intents.yaml│ │
+│  │ (messages)  │  │ (config)     │   │  │  │  ├── agent_trace.jsonl │ │
+│  └─────────────┘  └──────────────┘   │  │  │  ├── intent_map.md     │ │
+│  ┌─────────────────────────────────┐ │  │  │  └── (managed by Hook  │ │
+│  │ History / Task List             │ │  │  │       Engine only)      │ │
+│  │ (task management)               │ │  │  └────────────────────────┘ │
+│  └─────────────────────────────────┘ │  │  ┌────────────────────────┐ │
+│                                      │  │  │ AGENT.md / CLAUDE.md   │ │
+│                                      │  │  │ (The Shared Brain)     │ │
+│                                      │  │  └────────────────────────┘ │
+└──────────────────────────────────────┘  └────────────────────────────┘
 ```
 
 ### 1.2 Webview (UI Layer) Responsibilities
@@ -483,36 +504,61 @@ These are locations where orchestration state can be injected into the LLM conte
 
 ---
 
-## 6. Proposed Hook Middleware Boundary
+## 6. Privilege Separation & Hook Middleware Boundary
 
-### 6.1 Clean Interceptor Pattern
+### 6.1 Three-Domain Privilege Separation
 
-The Hook Engine SHALL be implemented as a middleware layer that wraps existing execution flows without modifying core logic. The pattern follows a pipeline architecture:
+The physical architecture is designed with **strict privilege separation** across three domains:
+
+| Domain                       | Privilege Level            | Capabilities                                                                             | Cannot Do                                                      |
+| ---------------------------- | -------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **Webview (UI)**             | Restricted presentation    | Render UI, emit events via `postMessage`                                                 | Access filesystem, invoke tools, call LLM APIs, read secrets   |
+| **Extension Host (Logic)**   | Core runtime               | API polling, secret management, MCP tool execution, LLM calls                            | Mutate files without Hook Engine approval, bypass scope checks |
+| **Hook Engine (Governance)** | Strict middleware boundary | Intercept all tool execution, enforce HITL authorization, manage `.orchestration/` state | Modify core logic, access Webview directly                     |
+
+The Hook Engine is the **only** component permitted to read/write the `.orchestration/` sidecar directory. All tool execution requests MUST pass through the Hook Engine before reaching the filesystem, terminal, or external services.
+
+### 6.2 Hook Engine Architecture
+
+The Hook Engine SHALL be implemented as a middleware layer that wraps existing execution flows without modifying core logic. It operates at two interception phases:
 
 ```
-                    ┌─────────────────────────────────┐
-                    │         Hook Engine              │
-                    │         src/hooks/               │
-                    │                                  │
- Existing Flow ───▶ │  ┌─────────┐    ┌─────────────┐ │ ───▶ Existing Flow
-                    │  │Pre-Hooks│ ──▶│ Post-Hooks  │ │      (continues)
-                    │  │ Chain   │    │ Chain       │ │
-                    │  └─────────┘    └─────────────┘ │
-                    │       │              │           │
-                    │       ▼              ▼           │
-                    │  ┌──────────────────────────┐    │
-                    │  │  Orchestration State      │    │
-                    │  │  (read/write)             │    │
-                    │  └──────────────────────────┘    │
-                    └─────────────────────────────────┘
+                    ┌─────────────────────────────────────────────┐
+                    │              HOOK ENGINE                     │
+                    │              src/hooks/                      │
+                    │                                              │
+                    │  ┌──────────────────────────────────────┐    │
+                    │  │         PreToolUse Phase              │    │
+ Tool Execution ───▶│  │  • Intent context injection           │    │
+    Request         │  │  • HITL authorization enforcement     │    │
+                    │  │  • Scope validation                   │    │
+                    │  │  • Optimistic lock acquisition        │    │
+                    │  └──────────┬───────────────────────────┘    │
+                    │             │ ALLOW / DENY                   │
+                    │             ▼                                │
+                    │  ┌──────────────────────────────────────┐    │
+                    │  │         PostToolUse Phase             │    │
+                    │  │  • Codebase documentation update      │    │
+                    │  │  • State evolution (.orchestration/)  │    │
+   ◀── Result ──────│  │  • Intent progress tracking           │    │
+                    │  │  • Content hash computation            │    │
+                    │  │  • Agent trace logging                │    │
+                    │  └──────────────────────────────────────┘    │
+                    │                     │                        │
+                    │                     ▼                        │
+                    │  ┌──────────────────────────────────────┐    │
+                    │  │    Orchestration State Manager        │    │
+                    │  │    (.orchestration/* read/write)      │    │
+                    │  └──────────────────────────────────────┘    │
+                    └─────────────────────────────────────────────┘
 ```
 
 **Hook Engine responsibilities:**
 
-- Receive interception calls from instrumented points in core code
-- Execute registered pre-hooks in priority order
-- Allow/deny the operation based on hook results
-- Execute registered post-hooks for logging and state updates
+- Intercept ALL tool execution requests before they reach the filesystem/terminal
+- **PreToolUse:** Enforce intent context injection and Human-in-the-Loop (HITL) authorization
+- **PostToolUse:** Update codebase documentation, state evolution, and intent changes
+- Manage the `.orchestration/` sidecar directory as the sole writer
 - Provide typed interfaces for hook implementations
 
 **Hook interface contract (conceptual):**
@@ -525,23 +571,26 @@ HookContext {
   targetPath:    string | undefined   // File path being operated on
   toolName:      string | undefined   // Tool being invoked
   timestamp:     number               // Operation timestamp
+  vcs:           { revision_id: string } // Current git SHA
   metadata:      Record<string, any>  // Operation-specific data
 }
 
 PreHookResult {
   allow:         boolean              // Whether to proceed
   reason:        string | undefined   // Denial reason (for logging)
+  injectedContext: string | undefined // Deep context to inject into prompt
   modifiedContext: Partial<HookContext> // Optional context modifications
 }
 
 PostHookInput {
   context:       HookContext           // Original operation context
   result:        OperationResult       // Outcome of the operation
+  contentHash:   string | undefined    // SHA-256 of modified content block
   duration:      number                // Execution duration
 }
 ```
 
-### 6.2 Isolation Strategy: `src/hooks/`
+### 6.3 Isolation Strategy: `src/hooks/`
 
 **Location:** `src/hooks/` (currently empty — reserved for governance)
 
@@ -550,31 +599,38 @@ The hooks directory SHALL contain all governance logic, fully isolated from core
 ```
 src/hooks/
   ├── engine/
-  │   ├── HookEngine.ts              # Central hook dispatcher
+  │   ├── HookEngine.ts              # Central hook dispatcher (PreToolUse + PostToolUse)
   │   ├── HookRegistry.ts            # Hook registration and ordering
   │   └── types.ts                   # Hook interfaces and types
   │
   ├── pre/
   │   ├── IntentValidationHook.ts    # Validates active intent exists
-  │   ├── ScopeEnforcementHook.ts    # Validates operation within scope
+  │   ├── ScopeEnforcementHook.ts    # Validates operation within owned_scope
   │   ├── PrivilegeCheckHook.ts      # Validates agent permissions
-  │   └── LockAcquisitionHook.ts     # Acquires file-level locks
+  │   ├── ContextInjectionHook.ts    # Injects deep intent context into prompt
+  │   └── LockAcquisitionHook.ts     # Acquires file-level optimistic locks
   │
   ├── post/
   │   ├── AuditLogHook.ts            # Writes to agent_trace.jsonl
-  │   ├── ContentHashHook.ts         # Computes and records content hashes
+  │   ├── ContentHashHook.ts         # Computes SHA-256 for spatial independence
   │   ├── IntentProgressHook.ts      # Updates intent completion state
+  │   ├── IntentMapHook.ts           # Updates intent_map.md spatial mapping
+  │   ├── SharedBrainHook.ts         # Appends lessons to AGENT.md/CLAUDE.md
   │   └── ScopeDriftDetectionHook.ts # Detects out-of-scope mutations
   │
   ├── state/
-  │   ├── OrchestrationState.ts      # Reads/writes orchestration YAML
+  │   ├── OrchestrationState.ts      # Reads/writes .orchestration/ sidecar
   │   ├── IntentRegistry.ts          # Active intent management
+  │   ├── ContentHasher.ts           # SHA-256 content hash computation
   │   └── AgentIdentity.ts           # Current agent identity resolution
+  │
+  ├── tools/
+  │   └── SelectActiveIntentTool.ts  # The mandatory intent selection tool
   │
   └── index.ts                       # Public API for hook integration
 ```
 
-### 6.3 How Core Logic Remains Untouched
+### 6.4 How Core Logic Remains Untouched
 
 The integration strategy follows the **Decorator Pattern** — core functions are wrapped with hook calls at their boundaries, not modified internally:
 
@@ -588,131 +644,335 @@ BEFORE (current):
 
 AFTER (instrumented):
   WriteToFileTool.execute()
-    → hookEngine.pre("file_write", { path, content, intentId })
+    → hookEngine.preToolUse("file_write", { path, content, intentId })
       → If denied: return rejection result
+      → If allowed: inject context from intent constraints
     → fs.writeFile(path, content)                    [UNCHANGED]
-    → hookEngine.post("file_write", { path, hash, result })
+    → hookEngine.postToolUse("file_write", { path, contentHash, result })
+      → Logs to agent_trace.jsonl with content_hash
+      → Updates intent_map.md if new file mapping
+      → Evolves intent state if acceptance_criteria met
 ```
 
 **Changes to core files are limited to:**
 
 1. Importing the Hook Engine
-2. Adding `hookEngine.pre()` calls before operations
-3. Adding `hookEngine.post()` calls after operations
+2. Adding `hookEngine.preToolUse()` calls before operations
+3. Adding `hookEngine.postToolUse()` calls after operations
 4. Core logic flow, error handling, and data structures remain unchanged
 
 ---
 
-## 7. Orchestration Data Integration Points
+## 7. Sidecar Data Model (`.orchestration/`)
 
-### 7.1 When `active_intents.yaml` Is Read
+The governance system uses a **Sidecar Storage Pattern** in `.orchestration/`. These files are **machine-managed** — created, read, and updated exclusively by the Hook Engine. Human developers may read them for debugging but SHOULD NOT edit them directly.
 
-The orchestration state file (`.orchestration/active_intents.yaml`) SHALL be read at the following points:
+```
+.orchestration/
+  ├── active_intents.yaml     # The Intent Specification (lifecycle state)
+  ├── agent_trace.jsonl       # The Ledger (append-only audit trail)
+  ├── intent_map.md           # The Spatial Map (intent → file mapping)
+  └── (future: SQLite/Zvec)   # Optional high-performance local storage
 
-| Trigger                    | Location                                        | Purpose                                                                                 |
-| -------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------- |
-| **Task start**             | `Task.startTask()`                              | Load active intents. Determine if agent must select intent before proceeding            |
-| **Before each LLM call**   | `Task.recursivelyMakeClineRequests()` via PRE-1 | Verify active intent is still valid. Load scope constraints for system prompt injection |
-| **Before tool execution**  | `presentAssistantMessage()` via PRE-2           | Resolve scope boundaries for the active intent. Validate tool target is within scope    |
-| **On intent state change** | Hook Engine state management                    | When an intent transitions lifecycle state (active → completed, etc.)                   |
+(Project Root)
+  ├── AGENT.md / CLAUDE.md    # The Shared Brain (persistent knowledge base)
+  └── ...
+```
+
+> **Storage Evolution Note:** The initial implementation uses flat files (YAML, JSONL, Markdown). Based on performance requirements and architecture capability, the storage MAY evolve to a high-performance local database (SQLite, Zvec, or similar). The Hook Engine's `OrchestrationState` manager abstracts the storage backend to enable this migration without upstream changes.
+
+### 7.1 `active_intents.yaml` — The Intent Specification
+
+**Purpose:** Tracks the lifecycle of business requirements. Inspired by Spec-Driven Development and AISpec, this file treats the codebase as a collection of formalized intents. Not all code changes are equal — this file tracks _why_ we are working.
+
+**Update Pattern:** Updated via Pre-Hooks (when an agent picks a task) and Post-Hooks (when a task is complete).
+
+**Schema:**
+
+```yaml
+active_intents:
+    - id: "INT-001"
+      name: "JWT Authentication Migration"
+      status: "IN_PROGRESS" # PENDING | IN_PROGRESS | BLOCKED | COMPLETED | ABANDONED
+      # Formal Scope Definition (Crucial for Parallelism)
+      owned_scope:
+          - "src/auth/**"
+          - "src/middleware/jwt.ts"
+      constraints:
+          - "Must not use external auth providers"
+          - "Must maintain backward compatibility with Basic Auth"
+      # The "Definition of Done"
+      acceptance_criteria:
+          - "Unit tests in tests/auth/ pass"
+          - "Integration tests verify backward compatibility"
+      # Agent assignment
+      assigned_agent: "agent-builder-01"
+      # Traceability
+      related_specs:
+          - type: "specification"
+            value: "REQ-001"
+      created_at: "2026-02-16T12:00:00Z"
+      updated_at: "2026-02-17T15:30:00Z"
+```
+
+**When `active_intents.yaml` Is Read:**
+
+| Trigger                    | Location                                        | Purpose                                                                               |
+| -------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **Task start**             | `Task.startTask()`                              | Load active intents. Determine if agent must `select_active_intent` before proceeding |
+| **Reasoning Intercept**    | `select_active_intent` Pre-Hook                 | Query constraints, related files, and recent history for the selected intent          |
+| **Before each LLM call**   | `Task.recursivelyMakeClineRequests()` via PRE-1 | Verify active intent is still valid. Load scope constraints for prompt injection      |
+| **Before tool execution**  | `presentAssistantMessage()` via PRE-2           | Resolve `owned_scope` boundaries. Validate tool target is within scope                |
+| **On intent state change** | Hook Engine state management                    | When an intent transitions lifecycle state (IN_PROGRESS → COMPLETED, etc.)            |
 
 **Read strategy:** The file SHALL be read lazily and cached within the Hook Engine's `OrchestrationState` manager. Cache invalidation occurs on file change (via VS Code `FileSystemWatcher`) or on explicit state transition.
 
-### 7.2 When `agent_trace.jsonl` Is Written
+### 7.2 `agent_trace.jsonl` — The Ledger
 
-The audit trail (`.orchestration/agent_trace.jsonl`) SHALL be written by POST hooks at these points:
+**Purpose:** An append-only, machine-readable history of every mutating action, linking the abstract **Intent** to the concrete **Code Hash**. This is the system's audit trail and the foundation for intent-code traceability.
 
-| Event                    | Trigger Location                  | Trace Record Contents                                        |
-| ------------------------ | --------------------------------- | ------------------------------------------------------------ |
-| **Intent declared**      | Hook Engine (intent registration) | Intent ID, scope, agent ID, timestamp                        |
-| **Intent activated**     | Hook Engine (intent validation)   | Intent ID, validation result, timestamp                      |
-| **Tool invoked**         | POST-3 (after BaseTool.handle)    | Tool name, params, intent ID, agent ID, result, duration     |
-| **File mutated**         | POST-4 (after WriteToFileTool)    | Path, content hash (before), content hash (after), intent ID |
-| **Command executed**     | POST-5 (after ExecuteCommandTool) | Command, exit code, output hash, intent ID                   |
-| **LLM request sent**     | POST-1 (after stream completion)  | Provider, model, token usage, intent ID, response hash       |
-| **Intent completed**     | Hook Engine (intent lifecycle)    | Intent ID, completion status, final scope summary            |
-| **Governance violation** | Any pre-hook denial               | Violation type, denied operation, agent ID, intent ID        |
+**Update Pattern:** Updated via Post-Hook after file writes and other mutating operations.
+
+**Full Agent Trace Specification (with Spatial Independence via Content Hashing):**
+
+```json
+{
+	"id": "uuid-v4",
+	"timestamp": "2026-02-16T12:00:00Z",
+	"event_type": "file_mutation",
+	"vcs": {
+		"revision_id": "git_sha_hash"
+	},
+	"files": [
+		{
+			"relative_path": "src/auth/middleware.ts",
+			"conversations": [
+				{
+					"url": "session_log_id",
+					"contributor": {
+						"entity_type": "AI",
+						"model_identifier": "claude-3-5-sonnet"
+					},
+					"ranges": [
+						{
+							"start_line": 15,
+							"end_line": 45,
+							"content_hash": "sha256:a8f5f167f44f4964e6c998dee827110c"
+						}
+					],
+					"related": [
+						{
+							"type": "specification",
+							"value": "REQ-001"
+						},
+						{
+							"type": "intent",
+							"value": "INT-001"
+						}
+					]
+				}
+			]
+		}
+	]
+}
+```
+
+**Critical Design Properties:**
+
+- **Spatial Independence via Content Hashing:** The `content_hash` (SHA-256) is computed over the **modified code block content**, not the line numbers. If lines move due to upstream edits, the hash remains valid. This decouples the trace from positional instability.
+- **The Golden Thread to SpecKit:** The `related[]` array links each code mutation back to specification requirements (`REQ-*`) and intents (`INT-*`), creating a traceable chain from business requirement → intent → code change.
+- **Contributor Attribution:** Every trace records whether the change was made by an AI agent (with model identifier) or a human, enabling provenance tracking.
+
+**When `agent_trace.jsonl` Is Written:**
+
+| Event                    | Trigger Location                  | Trace Contents                                                         |
+| ------------------------ | --------------------------------- | ---------------------------------------------------------------------- |
+| **Intent declared**      | Hook Engine (intent registration) | Intent ID, scope, agent ID, timestamp                                  |
+| **Intent activated**     | `select_active_intent` Pre-Hook   | Intent ID, injected context summary, validation result                 |
+| **File mutated**         | POST-4 (after WriteToFileTool)    | Full trace record with `files[].conversations[].ranges[].content_hash` |
+| **Command executed**     | POST-5 (after ExecuteCommandTool) | Command, exit code, output hash, intent ID                             |
+| **LLM request sent**     | POST-1 (after stream completion)  | Provider, model, token usage, intent ID, response hash                 |
+| **Intent completed**     | Hook Engine (intent lifecycle)    | Intent ID, completion status, acceptance_criteria results              |
+| **Governance violation** | Any pre-hook denial               | Violation type, denied operation, agent ID, intent ID                  |
 
 **Write strategy:** Append-only. Each line is a self-contained JSON object. The file SHALL NOT be truncated or edited during normal operation.
 
-### 7.3 When `CLAUDE.md` Is Appended
+### 7.3 `intent_map.md` — The Spatial Map
 
-The custom instructions file (`CLAUDE.md` or `.roo/rules`) SHALL be programmatically augmented at these points:
+**Purpose:** Maps high-level business intents to physical files and AST nodes. When a stakeholder asks, "Where is the billing logic?" or "What intent touched the auth middleware?", this file provides the answer.
 
-| Trigger                                | Modification                                                      | Purpose                                                             |
-| -------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------- |
-| **Task start (before first LLM call)** | Append active intent constraints to custom instructions via INJ-1 | Ensure LLM is aware of scope boundaries and governance requirements |
-| **Intent activation**                  | Update custom instructions with new scope definition              | Refresh LLM awareness when intent scope changes                     |
-| **Governance violation detected**      | Append violation feedback to custom instructions                  | Inform LLM of the violation so it can self-correct                  |
+**Update Pattern:** Incrementally updated by the `IntentMapHook` Post-Hook when `INTENT_EVOLUTION` occurs — specifically when files are mutated under an active intent, or when an intent's `owned_scope` changes.
 
-**Strategy note:** Rather than modifying `CLAUDE.md` on disk, the governance layer SHALL inject content dynamically through the `addCustomInstructions()` pipeline at INJ-1. This preserves the original file and allows governance instructions to be computed per-request based on current orchestration state.
+**Schema (Markdown for human readability, machine-parseable):**
+
+```markdown
+# Intent Map
+
+## INT-001: JWT Authentication Migration
+
+- **Status:** IN_PROGRESS
+- **Owned Scope:** `src/auth/**`, `src/middleware/jwt.ts`
+- **Files Touched:**
+    - `src/auth/middleware.ts` (L15-45, hash: sha256:a8f5...)
+    - `src/auth/jwt-provider.ts` (L1-120, hash: sha256:b3c2...)
+    - `src/middleware/jwt.ts` (L30-55, hash: sha256:d4e1...)
+- **Related Specs:** REQ-001
+- **Last Updated:** 2026-02-17T15:30:00Z
+
+## INT-002: Rate Limiting Implementation
+
+- **Status:** PENDING
+- **Owned Scope:** `src/middleware/rate-limit/**`
+- **Files Touched:** (none yet)
+- **Related Specs:** REQ-005
+```
+
+### 7.4 `AGENT.md` / `CLAUDE.md` — The Shared Brain
+
+**Purpose:** A persistent knowledge base shared across parallel agent sessions (Architect, Builder, Tester). Contains "Lessons Learned," project-specific stylistic rules, and architectural decisions. This is how parallel agents maintain shared consciousness without explicit coordination.
+
+**Update Pattern:** Incrementally appended by the `SharedBrainHook` Post-Hook when:
+
+| Trigger                           | What Is Appended                                                          |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| **Verification loop fails**       | Lesson learned: what was tried, why it failed, what worked instead        |
+| **Architectural decision made**   | Decision record: context, options considered, decision, rationale         |
+| **Governance violation resolved** | Pattern to avoid: what triggered the violation, how to prevent recurrence |
+| **Scope conflict detected**       | Coordination note: which intents conflicted, how it was resolved          |
+
+**Strategy note:** Rather than modifying `CLAUDE.md` on disk for every LLM call, the governance layer SHALL:
+
+1. **Read** `AGENT.md`/`CLAUDE.md` from disk as a base knowledge source
+2. **Inject** governance-specific context (active intent constraints, scope boundaries) dynamically through the `addCustomInstructions()` pipeline at INJ-1
+3. **Append** to `AGENT.md`/`CLAUDE.md` on disk only for durable cross-session knowledge (lessons learned, decisions)
+
+This preserves the original file content for human readability while allowing per-request governance instructions to be computed dynamically based on current orchestration state.
 
 ---
 
-## 8. State Machine Modification Plan
+## 8. Three-State Execution Flow
 
-### 8.1 Two-Stage Intent Handshake Integration
+The agent is **not allowed to write code immediately**. It must first "checkout" an intent. Every turn of the conversation follows a mandatory Three-State Execution Flow:
 
-The Intent Handshake introduces a mandatory pre-execution phase into the Task lifecycle. It modifies the state machine as follows:
+### 8.1 The Three States
 
 ```
-CURRENT STATE MACHINE:
+CURRENT EXECUTION MODEL:
 ═══════════════════════════════════════════════
 
   User Message → startTask() → recursivelyMakeClineRequests() → [Loop]
+  (Agent immediately has access to all tools)
 
 
-PROPOSED STATE MACHINE:
+GOVERNED THREE-STATE EXECUTION MODEL:
 ═══════════════════════════════════════════════
 
-  User Message → startTask()
-                    │
-                    ▼
-              ┌──────────────┐
-              │ STAGE 1:     │
-              │ Intent       │  ← Agent MUST call select_active_intent
-              │ Selection    │    before any other tool
-              │              │
-              └──────┬───────┘
-                     │
-                     ▼
-              ┌──────────────┐
-              │ Intent       │  ← Validates intent exists in active_intents.yaml
-              │ Validation   │    Validates scope is well-formed
-              │              │    Validates no scope conflicts
-              └──────┬───────┘
-                     │
-                     ▼ (intent validated)
-              ┌──────────────┐
-              │ STAGE 2:     │
-              │ Governed     │  ← Normal tool loop, but every tool call
-              │ Execution    │    passes through Hook Engine
-              │              │    Scope enforcement active
-              └──────────────┘
+  ┌─────────────────────────────────────────────────────────────┐
+  │  STATE 1: THE REQUEST                                       │
+  │  User prompts: "Refactor the auth middleware."              │
+  └───────────────────────────┬─────────────────────────────────┘
+                              │
+                              ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  STATE 2: THE REASONING INTERCEPT (The Handshake)           │
+  │                                                             │
+  │  1. Agent analyzes the request                              │
+  │  2. Agent identifies intent(s) and calls MANDATORY tool:    │
+  │     → select_active_intent(intent_id: "INT-001")            │
+  │                                                             │
+  │  3. Pre-Hook INTERCEPTS this call. Execution PAUSES.        │
+  │     → Hook queries .orchestration/active_intents.yaml       │
+  │     → Hook loads intent constraints, owned_scope,           │
+  │       related files, and recent history for INT-001          │
+  │     → Hook INJECTS this deep context into the immediate     │
+  │       prompt                                                │
+  │                                                             │
+  │  4. Execution RESUMES with enriched context.                │
+  └───────────────────────────┬─────────────────────────────────┘
+                              │
+                              ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  STATE 3: CONTEXTUALIZED ACTION                             │
+  │                                                             │
+  │  The Agent, now possessing specific intent context:         │
+  │  1. Calls LLM to generate required changes                  │
+  │  2. Calls write_file, execute_command, etc.                  │
+  │                                                             │
+  │  Post-Hook INTERCEPTS each mutation:                         │
+  │  → Computes content_hash (SHA-256) of modified block        │
+  │  → Logs trace to agent_trace.jsonl, linking code            │
+  │    back to intent_id selected in State 2                     │
+  │  → Updates intent_map.md with new file mapping              │
+  │  → Checks acceptance_criteria for intent completion          │
+  └─────────────────────────────────────────────────────────────┘
 ```
 
-### 8.2 How Prompt Modification Enforces `select_active_intent`
+### 8.2 State Transition Mechanics
 
-The governance layer enforces the Two-Stage Handshake by modifying the system prompt and tool availability:
+**State 1 → State 2 (Request → Reasoning Intercept):**
 
-**Stage 1 enforcement (before intent is selected):**
+The governance layer forces the agent into the Reasoning Intercept by controlling the system prompt and tool availability:
 
-1. **System prompt injection (INJ-2):** A governance section is prepended to the system prompt stating:
+1. **System prompt injection (INJ-2):** A governance section is prepended to the system prompt:
 
     - "You MUST call `select_active_intent` before performing any other action"
     - "Any tool call other than `select_active_intent` will be rejected"
-    - Lists available intents from `active_intents.yaml`
+    - Lists available intents from `active_intents.yaml` with their names, constraints, and owned_scope
 
-2. **Tool restriction (INJ-4):** The `buildNativeToolsArray()` output is filtered by the Hook Engine to expose ONLY `select_active_intent` until an intent is active. All other tools are removed from the tools array.
+2. **Tool restriction (INJ-4):** The `buildNativeToolsArray()` output is filtered by the Hook Engine to expose ONLY `select_active_intent` until an intent is active. All other tools are removed from the tools array sent to the LLM.
 
-3. **Pre-hook enforcement (PRE-2):** Even if the LLM attempts to call a non-intent-selection tool, the pre-hook at `presentAssistantMessage()` rejects it and returns a tool_error explaining that intent must be selected first.
+3. **Pre-hook enforcement (PRE-2):** Even if the LLM attempts to call a non-intent-selection tool, the pre-hook at `presentAssistantMessage()` rejects it and returns a `tool_error` explaining that intent must be selected first.
 
-**Stage 2 transition (after intent is selected):**
+**State 2 → State 3 (Reasoning Intercept → Contextualized Action):**
 
-1. The `select_active_intent` tool handler validates the intent and transitions the Hook Engine state
-2. On next `recursivelyMakeClineRequests()` iteration, the full tool set is restored (filtered by scope)
-3. The system prompt governance section updates to reflect the active intent and its scope boundaries
-4. All subsequent tool calls pass through scope validation pre-hooks
+The critical "pause → enrich → resume" flow:
+
+1. Agent calls `select_active_intent(intent_id: "INT-001")`
+2. Pre-Hook **pauses** the execution loop at PRE-2
+3. Pre-Hook queries the Data Model:
+    - Reads `active_intents.yaml` for INT-001's `constraints`, `owned_scope`, `acceptance_criteria`
+    - Reads `agent_trace.jsonl` for recent history of INT-001 (what was already done)
+    - Reads `intent_map.md` for current file mappings
+    - Reads `AGENT.md`/`CLAUDE.md` for relevant lessons learned
+4. Pre-Hook **injects** this deep context into the tool result that flows back to the LLM
+5. Pre-Hook **transitions** the Hook Engine state: intent is now active
+6. Execution **resumes**: on next `recursivelyMakeClineRequests()` iteration, the full tool set is restored (filtered by `owned_scope`)
+7. The system prompt governance section updates to reflect the active intent and its scope boundaries
+8. All subsequent tool calls pass through scope validation pre-hooks
+
+### 8.3 State 3: PostToolUse Mechanics
+
+During Contextualized Action, every mutating tool call triggers PostToolUse processing:
+
+```
+Agent calls write_file("src/auth/middleware.ts", content)
+  │
+  ├── PreToolUse validates:
+  │   ├── "src/auth/middleware.ts" ∈ INT-001.owned_scope ("src/auth/**") ✓
+  │   └── Optimistic lock: content hash matches expected
+  │
+  ├── Core write_file executes [UNCHANGED]
+  │
+  └── PostToolUse processes:
+      ├── Compute content_hash: SHA-256 of modified code block
+      ├── Append to agent_trace.jsonl:
+      │   {
+      │     files: [{
+      │       relative_path: "src/auth/middleware.ts",
+      │       conversations: [{
+      │         contributor: { entity_type: "AI", model_identifier: "..." },
+      │         ranges: [{ start_line: 15, end_line: 45,
+      │                     content_hash: "sha256:a8f5f167..." }],
+      │         related: [{ type: "intent", value: "INT-001" },
+      │                   { type: "specification", value: "REQ-001" }]
+      │       }]
+      │     }]
+      │   }
+      ├── Update intent_map.md: add/update file entry under INT-001
+      ├── Check acceptance_criteria: "Unit tests in tests/auth/ pass"
+      │   └── If all criteria met → transition INT-001.status to COMPLETED
+      └── Optionally append lessons to AGENT.md if verification failed
+```
 
 ---
 

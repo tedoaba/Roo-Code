@@ -2,7 +2,7 @@
 
 > _"A system without declared intent is a system without accountability."_
 
-**Version**: 1.0.0 | **Ratified**: 2026-02-17 | **Last Amended**: 2026-02-17
+**Version**: 1.1.0 | **Ratified**: 2026-02-17 | **Last Amended**: 2026-02-17
 
 ---
 
@@ -55,15 +55,15 @@ Every code mutation SHALL be bound to exactly one declared intent. There SHALL e
 
 ### Invariant 2: Hook Execution Guarantee
 
-All tool invocations, file writes, and state transitions SHALL pass through the Hook Engine. There SHALL exist no execution path — including internal, administrative, or recovery paths — that bypasses the hook pipeline. The Hook Engine is not middleware; it is the **sole execution gateway**.
+All tool invocations, file writes, and state transitions SHALL pass through the Hook Engine (`src/hooks/`). There SHALL exist no execution path — including internal, administrative, or recovery paths — that bypasses the hook pipeline. The Hook Engine operates as a strict middleware boundary between the Extension Host's core logic and all mutating operations (see `ARCHITECTURE_NOTES.md` §6). The Hook Engine is not middleware; it is the **sole execution gateway**.
 
 ### Invariant 3: Immutable Audit Trail
 
-Every mutation event SHALL be recorded in an append-only audit log with, at minimum: a timestamp, the acting agent identity, the originating intent identifier, the target artifact, a cryptographic content hash of the artifact state before and after mutation, and the hook chain result. Audit records SHALL NOT be modified, deleted, or truncated during normal operation.
+Every mutation event SHALL be recorded in the append-only audit ledger (`.orchestration/agent_trace.jsonl`) with, at minimum: a timestamp, the acting agent identity, the originating intent identifier, the target artifact, a cryptographic content hash (SHA-256) of the modified code block, the VCS revision ID, and contributor attribution. Content hashes SHALL be computed over **artifact content, not line numbers**, to achieve spatial independence — ensuring trace validity survives positional shifts from upstream edits (see `ARCHITECTURE_NOTES.md` §7.2). Audit records SHALL NOT be modified, deleted, or truncated during normal operation.
 
 ### Invariant 4: Single Source of Orchestration Truth
 
-There SHALL exist exactly one authoritative orchestration state at any point in time. This state SHALL be the sole arbiter of: which intents are active, which agents are authorized, which scopes are locked, and which operations are permitted. No component SHALL maintain shadow state that contradicts or supplements the orchestration state without synchronization.
+There SHALL exist exactly one authoritative orchestration state at any point in time, stored in the `.orchestration/` sidecar directory. This state — comprising `active_intents.yaml` (intent specifications), `agent_trace.jsonl` (audit ledger), `intent_map.md` (spatial mapping), and `AGENT.md`/`CLAUDE.md` (shared brain) — SHALL be the sole arbiter of: which intents are active, which agents are authorized, which scopes are locked, and which operations are permitted. No component SHALL maintain shadow state that contradicts or supplements the orchestration state without synchronization. Only the Hook Engine SHALL read from or write to the `.orchestration/` directory (see `ARCHITECTURE_NOTES.md` §7).
 
 ### Invariant 5: Agent Isolation
 
@@ -81,6 +81,10 @@ All content hashes SHALL be computed over the full artifact content, not metadat
 
 In any ambiguous, unrecoverable, or undefined state, the system SHALL default to **denial of action** rather than permissive execution. It is always safer to refuse an operation and require human intervention than to permit an ungoverned mutation.
 
+### Invariant 9: Three-State Execution Flow
+
+Every agent interaction SHALL follow the mandatory Three-State Execution Flow: **The Request** (user prompt received) → **The Reasoning Intercept** (agent must call `select_active_intent` to declare and validate its intent before any other action) → **Contextualized Action** (governed tool execution within the validated intent's scope). There SHALL exist no execution path that permits an agent to reach Contextualized Action without first completing the Reasoning Intercept. The Reasoning Intercept SHALL pause execution, enrich the agent's context with intent constraints, scope boundaries, and operational history from the sidecar data model, and resume execution only once a valid intent is active (see `ARCHITECTURE_NOTES.md` §8).
+
 ---
 
 ## Part III — Governance Rules
@@ -89,12 +93,14 @@ In any ambiguous, unrecoverable, or undefined state, the system SHALL default to
 
 #### Law 3.1.1 — Mandatory Intent Declaration
 
-No agent — human or machine — SHALL initiate a code-mutating operation without first declaring an intent through the system's intent registration protocol. An intent declaration SHALL specify, at minimum:
+No agent — human or machine — SHALL initiate a code-mutating operation without first declaring an intent through the system's intent registration protocol (`select_active_intent` tool, enforced by the Reasoning Intercept — see Invariant 9). An intent declaration SHALL specify, at minimum:
 
-- A human-readable purpose statement
-- An enumerated scope boundary (files, directories, or modules)
-- A classification of mutation type (creation, modification, deletion, refactor)
-- An expected completion condition
+- A human-readable purpose statement (`name` field in `active_intents.yaml`)
+- An enumerated scope boundary — files, directories, or glob patterns (`owned_scope` field)
+- Operational constraints that bound the agent's behavior (`constraints` field)
+- Acceptance criteria that define the "Definition of Done" (`acceptance_criteria` field)
+- Agent assignment (`assigned_agent` field)
+- Traceability links to upstream specifications (`related_specs` field)
 
 #### Law 3.1.2 — Intent Validation
 
@@ -107,17 +113,17 @@ All intent declarations SHALL be validated against the current orchestration sta
 
 #### Law 3.1.3 — Intent Lifecycle
 
-An intent SHALL progress through, and only through, the following lifecycle states: `declared` → `validated` → `active` → `completed` | `aborted` | `suspended`. Transitions between states SHALL be logged. Reverse transitions (e.g., `active` → `declared`) are prohibited. An intent that cannot be completed or aborted SHALL be escalated for human resolution.
+An intent SHALL progress through, and only through, the following lifecycle states: `PENDING` → `IN_PROGRESS` → `COMPLETED` | `ABANDONED` | `BLOCKED`. Transitions between states SHALL be logged in `agent_trace.jsonl`. Reverse transitions (e.g., `IN_PROGRESS` → `PENDING`) are prohibited. An intent that enters `BLOCKED` state SHALL be escalated for human resolution. An intent that enters `ABANDONED` state SHALL release all scope locks and record the abandonment reason in the audit trail.
 
 #### Law 3.1.4 — Intent Immutability
 
-Once an intent enters the `active` state, its scope boundaries SHALL NOT be expanded. An agent requiring broader scope SHALL declare a new, supplementary intent and obtain independent validation. The original intent's scope SHALL remain unchanged.
+Once an intent enters the `IN_PROGRESS` state, its `owned_scope` boundaries SHALL NOT be expanded. An agent requiring broader scope SHALL declare a new, supplementary intent and obtain independent validation. The original intent's `owned_scope` SHALL remain unchanged.
 
 ### Chapter 2: Scope Enforcement
 
 #### Law 3.2.1 — Scope as Hard Boundary
 
-The scope declared in an active intent is a **hard boundary**, not a guideline. Any file write, deletion, or rename targeting an artifact outside the active intent's declared scope SHALL be rejected by the Hook Engine before execution.
+The `owned_scope` declared in an active intent is a **hard boundary**, not a guideline. Any file write, deletion, or rename targeting an artifact outside the active intent's `owned_scope` SHALL be rejected by the Hook Engine's `ScopeEnforcementHook` (PreToolUse phase) before execution.
 
 #### Law 3.2.2 — Scope Overlap Resolution
 
@@ -135,7 +141,7 @@ The system SHALL continuously monitor for scope leakage — mutations to artifac
 
 #### Law 3.3.1 — Mutation–Intent Link
 
-Every recorded mutation SHALL carry a foreign-key reference to the intent under whose authority it was executed. Orphaned mutations — those without a valid intent reference — are prohibited.
+Every recorded mutation in `agent_trace.jsonl` SHALL carry a foreign-key reference (via the `related[]` array with `type: "intent"`) to the intent under whose authority it was executed. Orphaned mutations — those without a valid intent reference — are prohibited.
 
 #### Law 3.3.2 — Commit–Intent Binding
 
@@ -143,15 +149,17 @@ Every Git commit produced by the system SHALL reference, in its metadata, the in
 
 #### Law 3.3.3 — Retroactive Tracing
 
-The system SHALL support retroactive querying: given any file, line, or hunk in the current codebase, the system SHALL be capable of returning the chain of intents that produced it, in chronological order, with cryptographic proof of content integrity at each step.
+The system SHALL support retroactive querying: given any file, line, or hunk in the current codebase, the system SHALL be capable of returning the chain of intents that produced it, in chronological order, with cryptographic proof of content integrity at each step. The `intent_map.md` (see `ARCHITECTURE_NOTES.md` §7.3) SHALL provide the spatial mapping from files to intents, while `agent_trace.jsonl` SHALL provide the temporal chain with content hashes for integrity verification.
 
 ---
 
 ## Part IV — Security & Privilege Separation
 
+The system enforces strict privilege separation across three domains: the **Webview** (restricted presentation), the **Extension Host** (core runtime), and the **Hook Engine** (governance middleware boundary). See `ARCHITECTURE_NOTES.md` §6.1 for the full privilege separation model.
+
 ### Law 4.1 — Principle of Least Privilege
 
-Every agent SHALL be granted the minimum set of permissions required to fulfill its declared intent. Permissions SHALL be scoped to specific operations (read, write, execute, delete) on specific artifacts. Blanket permissions are prohibited.
+Every agent SHALL be granted the minimum set of permissions required to fulfill its declared intent. Permissions SHALL be scoped to the `owned_scope` of the agent's active intent. During the Reasoning Intercept (State 2), the agent's tool access is restricted to `select_active_intent` only. During Contextualized Action (State 3), tools are restored but filtered to the intent's `owned_scope`. Blanket permissions are prohibited.
 
 ### Law 4.2 — Privilege Grant Authority
 
@@ -286,16 +294,40 @@ Architectural Invariants (Part II) carry the highest protection level. Amendment
 
 ## Appendix B — Invariant Quick Reference
 
-| #   | Invariant                         | Failure Mode if Violated                   |
-| --- | --------------------------------- | ------------------------------------------ |
-| 1   | Intent–Code Binding               | Cognitive Debt: untraceable code changes   |
-| 2   | Hook Execution Guarantee          | Trust Debt: ungoverned mutations           |
-| 3   | Immutable Audit Trail             | Forensic failure: unverifiable history     |
-| 4   | Single Orchestration Truth        | State corruption: conflicting system views |
-| 5   | Agent Isolation                   | Privilege escalation: unauthorized access  |
-| 6   | Deterministic Conflict Resolution | Data loss: silent overwrites               |
-| 7   | Cryptographic Content Integrity   | Tamper blindness: undetectable corruption  |
-| 8   | Fail-Safe Default                 | Ungoverned execution: trust collapse       |
+| #   | Invariant                         | Failure Mode if Violated                   | Architecture Reference |
+| --- | --------------------------------- | ------------------------------------------ | ---------------------- |
+| 1   | Intent–Code Binding               | Cognitive Debt: untraceable code changes   | §7.1, §7.2             |
+| 2   | Hook Execution Guarantee          | Trust Debt: ungoverned mutations           | §6.2, §6.4             |
+| 3   | Immutable Audit Trail             | Forensic failure: unverifiable history     | §7.2                   |
+| 4   | Single Orchestration Truth        | State corruption: conflicting system views | §7                     |
+| 5   | Agent Isolation                   | Privilege escalation: unauthorized access  | §6.1, §9.2             |
+| 6   | Deterministic Conflict Resolution | Data loss: silent overwrites               | §9.1                   |
+| 7   | Cryptographic Content Integrity   | Tamper blindness: undetectable corruption  | §7.2                   |
+| 8   | Fail-Safe Default                 | Ungoverned execution: trust collapse       | §6.2                   |
+| 9   | Three-State Execution Flow        | Ungoverned action: scope bypass            | §8                     |
+
+---
+
+## Appendix C — Constitutional Law to Architecture Mapping
+
+This appendix maps each constitutional law to its concrete architectural implementation as specified in `ARCHITECTURE_NOTES.md` v1.1.0.
+
+| Constitutional Law                           | Architecture Mechanism                                                      | Architecture Section |
+| -------------------------------------------- | --------------------------------------------------------------------------- | -------------------- |
+| **Invariant 1** (Intent–Code Binding)        | `active_intents.yaml` + `agent_trace.jsonl` `related[]` array               | §7.1, §7.2           |
+| **Invariant 2** (Hook Execution Guarantee)   | Hook Engine `PreToolUse` + `PostToolUse` phases                             | §6.2                 |
+| **Invariant 3** (Immutable Audit Trail)      | `agent_trace.jsonl` with SHA-256 `content_hash`                             | §7.2                 |
+| **Invariant 4** (Single Orchestration Truth) | `.orchestration/` sidecar (4 files)                                         | §7                   |
+| **Invariant 9** (Three-State Execution Flow) | State 1→2→3 with `select_active_intent`                                     | §8.1, §8.2           |
+| **Law 3.1.1** (Mandatory Intent Declaration) | `select_active_intent` tool in `src/hooks/tools/`                           | §6.3, §8.2           |
+| **Law 3.1.3** (Intent Lifecycle)             | `status` field: `PENDING → IN_PROGRESS → COMPLETED \| ABANDONED \| BLOCKED` | §7.1                 |
+| **Law 3.2.1** (Scope as Hard Boundary)       | `ScopeEnforcementHook` in `src/hooks/pre/`                                  | §6.3, §9.2           |
+| **Law 3.3.1** (Mutation–Intent Link)         | `related[]` array in trace records                                          | §7.2                 |
+| **Law 3.3.3** (Retroactive Tracing)          | `intent_map.md` + `agent_trace.jsonl` content hashes                        | §7.3, §7.2           |
+| **Law 4.1** (Least Privilege)                | Three-domain privilege separation + `owned_scope` filtering                 | §6.1, §8.2           |
+| **Law 4.2** (Privilege Grant Authority)      | Hook Engine `OrchestrationState` manager                                    | §6.3                 |
+| **Law 5.2** (Atomic State Transitions)       | Optimistic locking with content hash comparison                             | §9.1                 |
+| **Part VI** (Living Knowledge)               | `AGENT.md`/`CLAUDE.md` Shared Brain pattern                                 | §7.4                 |
 
 ---
 

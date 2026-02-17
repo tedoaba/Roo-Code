@@ -31,6 +31,11 @@ interface BuildToolsOptions {
 	 * to pass all tool definitions while restricting callable tools.
 	 */
 	includeAllToolsWithRestrictions?: boolean
+	/**
+	 * Whether an intent is currently active in the session.
+	 * If false, tools may be restricted to only select_active_intent.
+	 */
+	isIntentActive?: boolean
 }
 
 interface BuildToolsResult {
@@ -142,7 +147,12 @@ export async function buildNativeToolsArrayWithRestrictions(options: BuildToolsO
 	}
 
 	// Combine filtered tools (for backward compatibility and for allowedFunctionNames)
-	const filteredTools = [...filteredNativeTools, ...filteredMcpTools, ...nativeCustomTools]
+	let filteredTools = [...filteredNativeTools, ...filteredMcpTools, ...nativeCustomTools]
+
+	// Enforcement Hook: If no intent is active, only allow select_active_intent
+	if (options.isIntentActive === false) {
+		filteredTools = filteredTools.filter((tool) => getToolName(tool) === "select_active_intent")
+	}
 
 	// If includeAllToolsWithRestrictions is true, return ALL tools but provide
 	// allowed names based on mode filtering
