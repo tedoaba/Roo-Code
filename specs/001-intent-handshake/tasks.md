@@ -52,9 +52,9 @@ Goal: Immutable audit logs with spatial independence via hashing.
 - [x] T021 [US3] Implement automatic SHA-256 computation for all `write_to_file` and `apply_diff` actions
 - [x] T022 [US3] Update `intent_map.md` with the latest file hashes and owning intent IDs after mutations
 - [x] T023 [US3] Ensure all `agent_trace.jsonl` entries include the `related[]` array linking to the active intent
-- [ ] T023b [US3] Implement functional scope extraction (AST nodes) for TS/JS in `OrchestrationService.ts` (Invariant 11)
-- [ ] T024 [US3] Implement "Spatial Independence" test: verify re-linkage of a code block after it is moved
-- [ ] T024b [US3] Implement retroactive provenance resolver service to map hashes and AST nodes to intent history (FR-012)
+- [x] T023b [US3] Implement functional scope extraction (AST nodes) for TS/JS in `OrchestrationService.ts` (Invariant 11)
+- [x] T024 [US3] Implement "Spatial Independence" test: verify re-linkage of a code block after it is moved
+- [x] T024b [US3] Implement retroactive provenance resolver service to map hashes and AST nodes to intent history (FR-012)
 
 ## Phase 4: User Story 4 - Resource Governance & Budgets (P3)
 
@@ -70,9 +70,9 @@ Goal: Enforce execution limits and prevent costly loops.
 Goal: Ensure zero-bypass enforcement and fail-safe defaults.
 
 - [x] T029 Implement Invariant 8: Fail-Safe Default (deny all mutations if `.orchestration/` is missing)
-- [ ] T030 Perform cross-cutting test: verify State 3 completion triggers Shared Brain lesson append
-- [ ] T031 [P] Create `quickstart.md` examples for multi-intent parallel execution
-- [ ] T032 Final documentation update: confirm all constitutional laws (Part III) are implemented
+- [x] T030 Perform cross-cutting test: verify State 3 completion triggers Shared Brain lesson append
+- [x] T031 [P] Create `quickstart.md` examples for multi-intent parallel execution
+- [x] T032 Final documentation update: confirm all constitutional laws (Part III) are implemented
 
 ## Dependencies
 

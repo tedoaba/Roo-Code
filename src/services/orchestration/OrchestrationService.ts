@@ -2,6 +2,7 @@ import * as fs from "fs/promises"
 import * as path from "path"
 import * as crypto from "crypto"
 import * as yaml from "js-yaml"
+import * as vscode from "vscode"
 import { minimatch } from "minimatch"
 import { ActiveIntent, IntentStatus, AgentTraceEntry, IntentContextBlock, ScopeValidationResult } from "./types"
 
@@ -481,5 +482,88 @@ export class OrchestrationService {
 		} catch {
 			return false
 		}
+	}
+
+	// ── T023b: Functional Scope Extraction (Invariant 11) ──
+
+	/**
+	 * Extract functional scope (top-level symbols) from a file using VS Code's DocumentSymbolProvider.
+	 */
+	async extractFunctionalScope(filePath: string): Promise<string[]> {
+		try {
+			const uri = vscode.Uri.file(filePath)
+			// Open document to ensure language server is active
+			try {
+				await vscode.workspace.openTextDocument(uri)
+			} catch {
+				// File might not exist yet or can't be opened
+				return []
+			}
+			// Small delay for language server to warm up/parse (might not be needed but safer)
+			await new Promise((resolve) => setTimeout(resolve, 50))
+
+			const symbols = (await vscode.commands.executeCommand(
+				"vscode.executeDocumentSymbolProvider",
+				uri,
+			)) as vscode.DocumentSymbol[]
+
+			if (!symbols) return []
+
+			const names: string[] = []
+			for (const symbol of symbols) {
+				if (
+					symbol.kind === vscode.SymbolKind.Function ||
+					symbol.kind === vscode.SymbolKind.Method ||
+					symbol.kind === vscode.SymbolKind.Class ||
+					symbol.kind === vscode.SymbolKind.Interface
+				) {
+					names.push(symbol.name)
+				}
+			}
+			return names
+		} catch (error) {
+			console.warn(`Failed to extract symbols for ${filePath}:`, error)
+			return []
+		}
+	}
+
+	// ── T024b: Retroactive Provenance Resolver (FR-012) ──
+
+	/**
+	 * Find intents that produced a specific content hash by scanning the audit trace.
+	 */
+	async findIntentsByHash(hash: string): Promise<string[]> {
+		const targetHash = hash.startsWith("sha256:") ? hash : `sha256:${hash}`
+		const intents = new Set<string>()
+
+		try {
+			const content = await fs.readFile(this.traceFile, "utf8")
+			const lines = content.split("\n").filter((line) => line.trim() !== "")
+
+			for (const line of lines) {
+				try {
+					const entry = JSON.parse(line) as AgentTraceEntry
+					if (entry.result.content_hash === targetHash && entry.intent_id) {
+						intents.add(entry.intent_id)
+					}
+				} catch {
+					// skip malformed lines
+				}
+			}
+		} catch (error: any) {
+			if (error.code !== "ENOENT") throw error
+		}
+
+		return Array.from(intents)
+	}
+
+	/**
+	 * T024: Verify spatial independence by checking if content can be re-linked
+	 * to its original intent using the hash, even if the file moves.
+	 */
+	async verifyRelinkage(content: string): Promise<string | null> {
+		const hash = this.computeHash(content)
+		const intents = await this.findIntentsByHash(hash)
+		return intents.length > 0 ? intents[0] : null
 	}
 }

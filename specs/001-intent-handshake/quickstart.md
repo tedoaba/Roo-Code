@@ -49,3 +49,14 @@ When running the extension in debug mode:
 - **Law 3.2.1 (Scope as Hard Boundary)**: If you haven't declared it in your intent's `owned_scope`, you can't write to it.
 - **Law 3.1.5 (Budgets)**: Long-running agents will be throttled if they exceed their turn or token limits.
 - **Invariant 8 (Fail-Safe)**: If in doubt (e.g., missing orchestration state), the system will block all mutations.
+
+## 5. Multi-Intent Parallel Execution
+
+To work on multiple intents simultaneously (e.g., parallel tasks), you can switch contexts:
+
+1.  **Select Intent A**: `select_active_intent(intent_id='INT-001')`
+2.  Perform actions for Intent A.
+3.  **Select Intent B**: `select_active_intent(intent_id='INT-002')`
+4.  Perform actions for Intent B.
+
+The `HookEngine` ensures that actions in step 2 are logged under INT-001 and scoped to its rules, while actions in step 4 are logged under INT-002.

@@ -44,6 +44,7 @@ export interface AgentTraceEntry {
 		command?: string
 		reasoning?: string
 		hash?: string
+		symbols?: string[]
 	}
 	result: {
 		status: "SUCCESS" | "FAILURE" | "DENIED"

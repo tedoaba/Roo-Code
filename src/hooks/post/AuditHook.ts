@@ -40,6 +40,9 @@ export class AuditHook {
 	): Promise<string> {
 		const hash = this.orchestrationService.computeHash(fileContent)
 
+		// T023b: functional scope extraction
+		const symbols = await this.orchestrationService.extractFunctionalScope(filePath)
+
 		// Log to audit ledger with cryptographic proof
 		await this.orchestrationService.logTrace({
 			timestamp: new Date().toISOString(),
@@ -51,6 +54,7 @@ export class AuditHook {
 				tool_name: toolName,
 				target_files: [filePath],
 				hash: `sha256:${hash}`,
+				symbols: symbols.length > 0 ? symbols : undefined,
 			},
 			result: {
 				status: "SUCCESS",
