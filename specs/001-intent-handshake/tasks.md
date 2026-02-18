@@ -5,67 +5,89 @@
 **Spec**: [spec.md](./spec.md)
 **Plan**: [plan.md](./plan.md)
 
-## Phase 1: Foundation (Setup)
+## Phase 1: Setup (P1)
 
-Goal: Initialize the orchestration environment and install necessary dependencies.
+Goal: Initialize the orchestration environment and sidecar data structures.
 
-- [x] T001 [Setup] Install `js-yaml` dependency for parsing active_intents.yaml
-- [x] T002 [Setup] Install `@types/js-yaml` dev dependency
-- [x] T003 [Setup] Create `.orchestration/` directory structure in workspace root (if not exists)
-- [x] T004 [Setup] Create dummy `.orchestration/active_intents.yaml` with test intents for development
+- [x] T001 Create `.orchestration/` directory in workspace root
+- [x] T002 Initialize `.orchestration/active_intents.yaml` with schema-compliant default state
+- [x] T003 Initialize `.orchestration/agent_trace.jsonl` as an empty append-only ledger
+- [x] T004 Initialize `.orchestration/intent_map.md` with the required markdown table structure
 
-## Phase 2: Orchestration Service (Data Layer)
+## Phase 2: Foundational Hooks & Services (P1)
 
-Goal: Implement the service layer to manage `active_intents.yaml` and `agent_trace.jsonl`.
+Goal: Build the core infrastructure that all user stories depend on.
 
-- [x] T005 [P] Create `OrchestrationService` types in `src/services/orchestration/types.ts` (ActiveIntent, IntentStatus, etc.)
-- [x] T006 [P] Implement `OrchestrationService` class in `src/services/orchestration/OrchestrationService.ts`
-- [x] T007 [P] Implement `getActiveIntents()` method in `OrchestrationService` to read and parse YAML
-- [x] T008 [P] Implement `getIntent(id)` method in `OrchestrationService`
-- [x] T009 [P] Implement `logTrace(entry)` method in `OrchestrationService` to append to JSONL
-- [x] T010 [P] Implement `validateScope(intentId, path)` method in `OrchestrationService` (using minimatch/glob)
+- [x] T005 [P] Create `OrchestrationService.ts` in `src/services/orchestration/` to handle sidecar file I/O
+- [x] T006 [P] Implement `StateMachine.ts` in `src/core/state/` with states: REQUEST, REASONING, ACTION
+- [x] T007 [P] Create `HookEngine.ts` dispatcher in `src/hooks/` to manage pre/post lifecycle stages
+- [x] T008 [P] Implement SHA-256 helper using Node `crypto` in `src/services/orchestration/OrchestrationService.ts`
+- [x] T009 Integrate `HookEngine` into `Task.ts` ensuring all tool calls pass through pre/post hooks
 
-## Phase 3: The Handshake Tool (User Story 1 & 2)
+## Phase 3: User Story 1 - The Reasoning Intercept (P1)
 
-Goal: Implement the `select_active_intent` tool that allows the agent to opt-in to an intent.
+Goal: Enforce tool restriction and transition to State 2.
 
-- [x] T011 [US1] Create `SelectActiveIntent` tool class in `src/core/tools/SelectActiveIntent.ts` implementing `BaseTool`
-- [x] T012 [US2] Implement `run()` method in `SelectActiveIntent` to update session state
-- [x] T013 [US2] update `SelectActiveIntent` to return enriched context (constraints, scope, history) from `OrchestrationService`
-- [x] T014 [US1] Register `SelectActiveIntent` in `src/core/tools/index.ts` (or equivalent tool registry)
-- [x] T015 [US1] Update `Task.ts` to instantiate and hold reference to `OrchestrationService`
+- [x] T010 [US1] Create `select_active_intent` tool definition in `src/hooks/tools/`
+- [x] T011 [US1] Implement tool filtering in `HookEngine.ts` to restrict State 2 to `select_active_intent` only
+- [x] T012 [US1] Update `StateMachine.ts` to transition to State 2 (REASONING) upon initial user request
+- [x] T013 [US1] Implement intent validation in `OrchestrationService.ts` (enforce Max 20 files, reject root-level recursive globs)
+- [x] T014 [US1] Update system prompts to include the list of PENDING/IN_PROGRESS intents from `active_intents.yaml`
 
-## Phase 4: Reasoning Loop Enforcement (User Story 1 & 5)
+## Phase 4: User Story 2 - Context Enrichment (P1)
 
-Goal: Enforce the mandatory handshake by implementing the `IntentGateHook` and integrating it into the `Task.ts` execution loop.
+Goal: Inject scope, constraints, and shared brain data into the agent's context.
 
-- [x] T016 [US1] Create `IntentGateHook` class in `src/hooks/pre/IntentGateHook.ts`
-- [x] T017 [US1] Implement `isIntentActive()` and `validateToolCall()` methods
-- [x] T018 [US1] Modify `Task.ts` to instantiate `IntentGateHook`
-- [x] T019 [US5] Modify `buildNativeToolsArray` filter logic to hide tools when no intent is active
-- [x] T020 [US5] Modify `executeTool` (presentAssistantMessage) to block execution if no intent is active
-- [x] T021 [US5] Implement informative error message for blocked tool callsid active Intent ID" in `IntentGateHook`
+- [x] T015 [US2] Create `ContextEnrichmentHook.ts` in `src/hooks/pre/` to load intent data
+- [x] T016 [P] [US2] Implement scope glob loading from `active_intents.yaml` into Task context
+- [x] T017 [P] [US2] Implement Shared Brain (`AGENT.md`/`CLAUDE.md`) injection into LLM prompts
+- [x] T018 [US2] Implement `ScopeEnforcementHook.ts` to block mutations outside the `owned_scope`
+- [x] T019 [US2] Transition system to State 3 (ACTION) only after a valid intent ID is cited
 
-## Phase 5: Prompt Governance (User Story 3 & 4)
+## Phase 5: User Story 3 - Cryptographic Audit & Provenance (P2)
 
-Goal: Update system prompt and inject context into LLM payload.
+Goal: Immutable audit logs with spatial independence via hashing.
 
-- [ ] T022 [US3] Create `generateGovernancePrompt` helper in `src/core/prompts/sections/governance.ts`
-- [x] T023 [US3] Modify `SYSTEM_PROMPT` to include Intent Handshake instructions
-- [x] T024 [US2] Implement logic to inject active intent context (constraints, history) into the prompt
-- [x] T025 [US1] Update `SelectActiveIntent` tool to trigger a prompt refresh if needed
-- [x] T026 [US1] Handle "no intent" state by presenting available intents in the prompt when intent IS active
-- [ ] T026 [US4] Pre-load `OrchestrationService` data before generating prompt in `Task.ts`
+- [x] T020 [US3] Create `AuditHook.ts` in `src/hooks/post/` to record tool execution results
+- [x] T021 [US3] Implement automatic SHA-256 computation for all `write_to_file` and `apply_diff` actions
+- [x] T022 [US3] Update `intent_map.md` with the latest file hashes and owning intent IDs after mutations
+- [x] T023 [US3] Ensure all `agent_trace.jsonl` entries include the `related[]` array linking to the active intent
+- [x] T023b [US3] Implement functional scope extraction (AST nodes) for TS/JS in `OrchestrationService.ts` (Invariant 11)
+- [x] T024 [US3] Implement "Spatial Independence" test: verify re-linkage of a code block after it is moved
+- [x] T024b [US3] Implement retroactive provenance resolver service to map hashes and AST nodes to intent history (FR-012)
 
-## Phase 6: Edge Cases & Polish
+## Phase 4: User Story 4 - Resource Governance & Budgets (P3)
 
-Goal: Handle edge cases (missing files,- [x] T028 [US1] Handle intent switching (clear old context)
+Goal: Enforce execution limits and prevent costly loops.
 
-- [x] T029 [US4] Implement trace logging for all tool calls in `OrchestrationService`
-- [x] T030 Ensure context is maintained across sessions (if applicable)
-- [x] T031 [US5] Final verification of enforcement logic and error handling
-- [x] T032 [US6] Cleanup and documentation updatefor 'Lock Session' rule (FR-013) - prevent switching intents mid-session
-- [ ] T029 [Edge] Implement 'Strict Scope' validation (FR-014) in `validateScope` (using glob patterns)
-- [ ] T030 [Verification] Manual test: Verify agent is blocked without intent
-- [ ] T031 [Verification] Manual test: Verify agent can select intent and then use tools
-- [ ] T032 [Verification] Manual test: Verify out-of-scope edits are blocked
+- [x] T025 [US4] Create `BudgetHook.ts` in `src/hooks/pre/` to track turn and token consumption
+- [x] T026 [US4] Implement Circuit Breaker logic to trip (deny execution) after 3 identical tool calls
+- [x] T027 [US4] Implement `PreCompactHook.ts` to summarize tool history before context window overflow
+- [x] T028 [US4] Implement "Manual Reset" requirement: intents marked `BLOCKED` stay blocked until human intervention
+
+## Phase 7: Polish & Verification (P2)
+
+Goal: Ensure zero-bypass enforcement and fail-safe defaults.
+
+- [x] T029 Implement Invariant 8: Fail-Safe Default (deny all mutations if `.orchestration/` is missing)
+- [x] T030 Perform cross-cutting test: verify State 3 completion triggers Shared Brain lesson append
+- [x] T031 [P] Create `quickstart.md` examples for multi-intent parallel execution
+- [x] T032 Final documentation update: confirm all constitutional laws (Part III) are implemented
+
+## Dependencies
+
+- Phase 2 (Foundation) must be complete before any User Story tasks.
+- US1 (Reasoning Intercept) must be complete to enable State transitions for US2-US4.
+- US2 (Enrichment) provides the `owned_scope` required for US3 (Audit) validation.
+
+## Parallel Execution Opportunities
+
+- T005, T006, T007, T008 in Phase 2 can be developed simultaneously.
+- T016 and T017 in US2 are independent context injection tasks.
+- T031 and T032 can be finished while final tests are running.
+
+## Implementation Strategy
+
+- **MVP Phase**: Complete US1 (The Intercept) and US2 (Basic Enrichment). This establishes the "Think-Before-Act" flow.
+- **Incremental**: Add US3 (Audit) for accountability and US4 (Budgets) for operational safety.
+- **Fail-Safe**: Invariant 8 enforcement is the final gate for "Production Ready" status.

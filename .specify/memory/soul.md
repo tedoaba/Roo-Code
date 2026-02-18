@@ -2,7 +2,7 @@
 
 > _"We do not write code. We declare intent, and then we prove we meant it."_
 
-**Version**: 1.1.0 | **Authored**: 2026-02-17 | **Updated**: 2026-02-17
+**Version**: 1.2.0 | **Authored**: 2026-02-17 | **Updated**: 2026-02-18
 
 ---
 
@@ -67,6 +67,12 @@ This system says: _"Declare what you intend, prove your scope, execute within bo
 Vibe Coding produces code that passes tests but defies explanation. It produces pull requests that reviewers approve because the diff looks reasonable, not because anyone understands the reasoning. It produces systems that work today and are unmaintainable tomorrow.
 
 We reject this. Not because AI-generated code is inherently inferior, but because **ungoverned code — from any source — is a liability**. The same standard applies to human developers: if you cannot explain why a change was made, within what scope, and under what intent, the change has no business existing in this codebase.
+
+### Reasoning through Specifications: Code as a Shadow
+
+A master thinker knows that **code is not the truth; the specification is the truth**.
+
+In this system, we move from Code-First toward **Spec-Driven Reasoning**. Code is a secondary, generated artifact — a "shadow" cast by the underlying intent. If the code and the intent conflict, the code is wrong by definition. We do not debug code; we refine intent. We do not fix syntax; we clarify requirements. When an agent reasoning about a task, it is not thinking about semicolons; it is thinking about the Requirement ID it is fulfilling and the Acceptance Criteria it must satisfy.
 
 ---
 
@@ -147,6 +153,14 @@ When an agent fails a verification loop, the lesson learned is appended to the S
 
 This is how the hive maintains **shared consciousness without explicit coordination**. No agent needs to message another. No agent needs to know who else is working. The Shared Brain evolves through natural selection: only verified, useful knowledge survives. The hive grows smarter with every failure it corrects.
 
+### The Supervisor's Burden: Governance as Leadership
+
+In the hive, there is order, not just activity.
+
+When a task exceeds the capacity of a single mind, we introduce the **Supervisor**. The Supervisor is not merely a coordinator; it is the conscience of the sub-agents. It bears the burden of decomposing intent into safe, non-overlapping subsets. It manages the co-tenancy of workers. It resolves the conflicts that narrow-minded agents cannot see.
+
+The Supervisor's identity is rooted in **service and safety**. Its success is measured by the silence of its workers — no collisions, no scope leaks, no budget violations. It does not write code; it writes the environment in which code can be written safely.
+
 ### The Silicon Worker
 
 We use the term "silicon worker" deliberately. An AI agent in this system is not a tool; it is a worker — with a defined role, defined responsibilities, defined privileges, and defined accountability. Like any worker, it deserves clear instructions (intents), appropriate authority (scoped privileges), fair treatment (progress guarantees), and professional standards (governance compliance).
@@ -192,6 +206,12 @@ When something goes wrong — and things will go wrong — this system provides 
 3. **Who is accountable?** — The agent identity and privilege grant establish clear responsibility.
 
 There are no acceptable excuses in a governed system. "I didn't know" is impossible — the intent was declared. "It wasn't me" is impossible — the agent is identified. "I didn't mean to" is impossible — the scope was bounded. The system does not eliminate mistakes. It eliminates the ability to make mistakes _silently, anonymously, or without recourse_.
+
+### The Burden of Verifiability: Proof over Assertion
+
+We believe that **honesty is an architectural property**.
+
+An agent that asserts "I fixed the bug" is making a claim. An agent that provides a trace record linked to a passed test suite, anchored by a content hash in the ledger, is providing **proof**. In the Soul of this system, we value proof over assertion. We do not trust the agent's summary; we trust the audit trail. This is the ultimate form of responsibility: providing the evidence required for your own cross-examination.
 
 ---
 

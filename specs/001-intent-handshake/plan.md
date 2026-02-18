@@ -1,73 +1,87 @@
-# Implementation Plan: 001-intent-handshake
+# Implementation Plan: 001-intent-handshake (Reasoning Loop)
 
-**Branch**: `001-intent-handshake` | **Date**: 2026-02-17 | **Spec**: [specs/001-intent-handshake/spec.md](./spec.md)
-**Input**: Feature specification from `specs/001-intent-handshake/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `001-intent-handshake` | **Date**: 2026-02-18 | **Spec**: [specs/001-intent-handshake/spec.md](./spec.md)
 
 ## Summary
 
-This feature implements the "Intent Handshake" protocol, a mandatory reasoning loop that effectively solves the Context Paradox. By forcing the agent to select an active intent (`select_active_intent`) before performing any mutating actions, we ensure the agent is always operating within a declared scope with full context (constraints, history, acceptance criteria) injected into its prompt.
+This feature implements the **Three-State Execution Flow** for agent governance. It replaces the basic handshake with a robust **Hook Engine** that enforces state transitions from **State 1 (Request)** to **State 2 (Reasoning Intercept)** and finally **State 3 (Contextualized Action)**. It ensures zero-bypass execution, cryptographic auditability via SHA-256 hashes, and continuous context health through PreCompact hooks.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.8+
-**Primary Dependencies**: VS Code Extension API, Node.js (fs/path), `@roo-code/types`, `@roo-code/core`
-**Storage**: `.orchestration/` sidecar files (active_intents.yaml, agent_trace.jsonl, intent_map.md)
-**Testing**: Mocha/Chai (Unit/Integration), VS Code Extension Tests
-**Target Platform**: VS Code (Desktop & Web)
-**Project Type**: VS Code Extension
-**Performance Goals**: <2s added latency for handshake; negligible overhead for subsequent turns.
-**Constraints**: Must operate within the existing `Task.ts` loop without blocking the UI thread.
-**Scale/Scope**: Single active intent per session.
+- **System Constitution Compliance**: Invariants 1, 2, 3, 4, 7, 8, 9, 11 and Laws 3.1.1, 3.1.3, 3.1.5, 3.1.6, 3.2.1, 3.3.1, 4.1, 4.6.
+- **Orchestration Layer**: Uses `.orchestration/` sidecar directory for immutable state.
+- **State Machine**:
+    - `REQUEST`: User prompt received.
+    - `REASONING`: Restricted to `select_active_intent` tool only.
+    - `ACTION`: Full tool access constrained by intent scope.
+- **Hook Lifecycle**:
+    - `PreRequest`: Context compaction and budget checking.
+    - `PreToolUse`: Scope enforcement and loop detection.
+    - `PostToolUse`: SHA-256 hashing and audit logging.
 
 ## Constitution Check
 
-_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
+| Invariant   | Requirement                           | Status               |
+| :---------- | :------------------------------------ | :------------------- |
+| Invariant 2 | Hook Engine as sole execution gateway | **Aligned** (FR-001) |
+| Invariant 3 | Immutable Audit Trail with SHA-256    | **Aligned** (FR-006) |
+| Invariant 4 | Single Source of Orchestration Truth  | **Aligned** (FR-004) |
+| Invariant 9 | Three-State Execution Flow            | **Aligned** (FR-002) |
+| Law 3.1.5   | Execution Budgets                     | **Aligned** (FR-011) |
+| Law 4.6     | Circuit Breakers (Loop Detection)     | **Aligned** (FR-009) |
 
-- **Invariant 9 (Three-State Execution Flow)**: ✅ This feature IS the implementation of Invariant 9. It enforces the Request -> Reasoning Intercept -> Contextualized Action flow.
-- **Invariant 2 (Hook Execution Guarantee)**: ✅ The design injects checking logic into `Task.ts` loop, ensuring no tool execution bypasses the intent check.
-- **Invariant 4 (Single Source of Orchestration Truth)**: ✅ The implementation reads/writes exclusively to `.orchestration/`.
-- **Invariant 1 (Intent-Code Binding)**: ✅ By enforcing intent selection, we enable the strict binding of code mutations to intents.
+## Design Architecture
+
+### 1. Hook Engine Middleware (`src/hooks/HookEngine.ts`)
+
+The central dispatcher for all governance checks. Injected into `Task.ts` for zero-bypass enforcement.
+
+### 2. Orchestration Service (`src/services/orchestration/OrchestrationService.ts`)
+
+Handles file I/O for the `.orchestration/` directory, SHA-256 computation, and scope validation.
+
+### 3. State Machine (`src/core/state/StateMachine.ts`)
+
+Manages the `REQUEST -> REASONING -> ACTION` transitions.
+
+### 4. Audit Ledger (`.orchestration/agent_trace.jsonl`)
+
+A high-frequency, append-only log of every mutation and state transition.
 
 ## Project Structure
 
-### Documentation (this feature)
-
-```text
-specs/001-intent-handshake/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
-```
-
-### Source Code (repository root)
-
 ```text
 src/
-├── core/
-│   ├── task/
-│   │   └── Task.ts           # Modified: Inject handshake logic into loop
-│   └── tools/
-│       └── SelectActiveIntent.ts # New: The tool implementation
+├── hooks/
+│   ├── HookEngine.ts         # Main dispatcher
+│   ├── pre/
+│   │   ├── ScopeHook.ts      # Enforces owned_scope
+│   │   ├── BudgetHook.ts     # Enforces turns/tokens
+│   │   └── CompactHook.ts    # Summarizes context
+│   └── post/
+│       └── AuditHook.ts      # Computes SHA-256 and logs trace
 ├── services/
-│   └── orchestration/        # New: Orchestration state management
-│       ├── OrchestrationService.ts
-│       └── types.ts
-└── hooks/
-    └── pre/
-        └── IntentGateHook.ts # New: The enforcement hook
+│   └── orchestration/
+│       └── OrchestrationService.ts
+└── core/
+    └── task/
+        └── Task.ts           # Integrated with HookEngine
 ```
 
-**Structure Decision**: We will add a new `OrchestrationService` to manage the sidecar state and inject the `IntentGateHook` logic into the `Task.ts` execution loop. The new tool `SelectActiveIntent` will be added to the core tools.
+## Phase 0: Outline & Research (Complete)
 
-## Complexity Tracking
+- [x] Research Hook Engine architecture vs inline logic (Decision: Middleware Pattern).
+- [x] Verify SHA-256 performance for real-time hashing (Decision: Native Node `crypto`).
+- [x] Analyze VS Code tool filtering mechanisms (Decision: Dynamic tool array modification).
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+## Phase 1: Design & Contracts (In Progress)
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-| :-------- | :--------- | :----------------------------------- |
-| N/A       |            |                                      |
+- [x] Finalize `data-model.md` (ActiveIntent format, Trace format).
+- [ ] Implement `HookEngine` contract/interface.
+- [ ] Create `quickstart.md` for developer orientation.
+
+## Phase 2: Foundation (Next)
+
+- [ ] Initialize `.orchestration/` directory.
+- [ ] Build key Orchestration Service methods (readActiveIntents, logTrace).
+- [ ] Implement Hook Engine backbone.

@@ -3,9 +3,9 @@
 **Feature**: The Handshake (Reasoning Loop Implementation)
 **Status**: Draft
 
-## Active Intent Log (`.orchestration/active_intents.yaml`)
+## Active Intent Registry (`.orchestration/active_intents.yaml`)
 
-This file stores the active intents being tracked by the orchestration system.
+This file stores the active mandates being tracked by the orchestration system.
 
 ```yaml
 intents:
@@ -19,69 +19,80 @@ intents:
           - <string> # Glob pattern or specific file path
       acceptance_criteria:
           - <string>
-      related_specs:
-          - <string> # Relative path to spec file
-      assigned_agent: <string> # Agent ID or "human"
+      budget:
+          max_turns: <number>
+          max_tokens: <number>
+          consumed_turns: <number>
+          consumed_tokens: <number>
+      assigned_agent: <string> # Contributor model ID
       created_at: <iso8601>
       updated_at: <iso8601>
 ```
 
-## Agent Trace Log (`.orchestration/agent_trace.jsonl`)
+## Audit Ledger (`.orchestration/agent_trace.jsonl`)
 
-This append-only log records every mutating action taken by an agent.
+This append-only cryptographic ledger records every event in the Three-State flow.
 
 ```json
 {
 	"timestamp": "<iso8601>",
 	"agent_id": "<string>",
 	"intent_id": "<uuid | null>",
-	"action_type": "TOOL_EXECUTION | CONTEXT_LOAD | INTENT_SELECTION | SCOPE_VIOLATION | ERROR",
+	"state": "REQUEST | REASONING | ACTION",
+	"action_type": "TOOL_EXECUTION | CONTEXT_LOAD | INTENT_SELECTION | SCOPE_VIOLATION | BUDGET_EXHAUSTED | STATE_TRANSITION",
 	"payload": {
 		"tool_name": "<string (optional)>",
 		"tool_input": "<object (optional)>",
 		"target_files": ["<string (optional)>"],
-		"command": "<string (optional)>"
+		"reasoning": "<string (optional)>",
+		"hash": "<sha256 (mandatory for mutations)>"
 	},
 	"result": {
 		"status": "SUCCESS | FAILURE | DENIED",
 		"output_summary": "<string>",
-		"content_hash": "<sha256 (optional)>",
 		"error_message": "<string (optional)>"
 	},
 	"metadata": {
-		"vcs_ref": "<string (optional)>",
-		"session_id": "<string>"
+		"session_id": "<string>",
+		"contributor": "<string>"
 	}
 }
 ```
 
-## Intent Map (`.orchestration/intent_map.md`)
+## Spatial Map (`.orchestration/intent_map.md`)
 
-Maps physical files to the intents that currently "own" or have modified them.
+Maps physical artifacts to intent provenance with content hashes. **Policy**: Only one active intent can "Own" a file at a time; attempts by other intents to mutate a locked file are blocked.
 
 ```markdown
 # Intent Map
 
-| File Path                   | Owning Intent ID | Last Modified By Intent ID | Content Hash |
-| :-------------------------- | :--------------- | :------------------------- | :----------- |
-| `src/auth/login.ts`         | `intent-123`     | `intent-123`               | `sha256:...` |
-| `src/components/Header.tsx` | `intent-456`     | `intent-456`               | `sha256:...` |
+| File Path                   | Owning Intent ID | Last Hash        | Prov. Locked? |
+| :-------------------------- | :--------------- | :--------------- | :------------ |
+| `src/auth/login.ts`         | `intent-123`     | `sha256:a1b2...` | Yes           |
+| `src/components/Header.tsx` | `intent-456`     | `sha256:c3d4...` | No            |
 ```
 
-## Orchestration Service Interface
+## Hook Engine Interface
 
 ```typescript
+interface HookEngine {
+	// Lifecycle Hooks
+	preToolUse(task: Task, req: ToolRequest): Promise<HookResponse>
+	postToolUse(task: Task, res: ToolResult): Promise<void>
+	preLLMRequest(task: Task, prompt: Prompt): Promise<Prompt>
+
+	// State Management
+	getCurrentState(): ExecutionState
+	transitionTo(state: ExecutionState): void
+}
+
 interface OrchestrationService {
-	// Intent Management
-	getActiveIntents(): Promise<ActiveIntent[]>
-	getIntent(id: string): Promise<ActiveIntent | undefined>
-	updateIntentStatus(id: string, status: IntentStatus): Promise<void>
+	// Intent & Budget
+	getIntent(id: string): Promise<ActiveIntent>
+	updateBudget(id: string, turns: number, tokens: number): Promise<void>
 
-	// Context & Trace
-	getIntentContext(id: string): Promise<IntentContextBlock>
-	logTrace(entry: AgentTraceEntry): Promise<void>
-
-	// Scope Validation
-	validateScope(intentId: string, filePath: string): Promise<ScopeValidationResult>
+	// Audit & Hashing
+	logMutation(intentId: string, filePath: string, content: string): Promise<string>
+	verifyIntegrity(filePath: string): Promise<boolean>
 }
 ```
