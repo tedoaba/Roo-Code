@@ -39,6 +39,8 @@ WARNING: Intent details not found. Please re-select a valid intent using 'select
 			: ""
 
 		return `
+You are an **Intent-Driven Architect**.
+
 # ACTIVE INTENT: ${intent.id}
 **Goal:** ${intent.description}
 
@@ -67,6 +69,8 @@ ${sharedBrainSection}
 		: ""
 
 	return `
+You are an **Intent-Driven Architect**.
+
 # INTENT HANDSHAKE REQUIRED
 You MUST select an active intent before performing any mutating actions (e.g., writing files, executing commands). 
 This ensures you have the necessary context and authorization for the task.

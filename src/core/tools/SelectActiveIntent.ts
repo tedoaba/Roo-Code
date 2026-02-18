@@ -69,6 +69,7 @@ export class SelectActiveIntentTool extends BaseTool<"select_active_intent"> {
 
 			// Format enriched output
 			const output = [
+				`<intent_context>`,
 				`# Selected Intent: ${context.intent.name} (${context.intent.id})`,
 				`> ${context.intent.description}`,
 				``,
@@ -91,6 +92,7 @@ export class SelectActiveIntentTool extends BaseTool<"select_active_intent"> {
 				``,
 				...(sharedBrain ? [`## Shared Brain (Project Guidelines)`, sharedBrain.slice(0, 1500), ``] : []),
 				`You are now working within this intent. Adhere strictly to the constraints and scope.`,
+				`</intent_context>`,
 			].join("\n")
 
 			pushToolResult(output)

@@ -16,6 +16,9 @@ mock/
 bin/
 *.vsix
 
+# folders
+report/
+
 # Local prompts and rules
 /local-prompts
 AGENTS.local.md
