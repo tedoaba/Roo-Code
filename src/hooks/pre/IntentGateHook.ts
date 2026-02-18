@@ -1,6 +1,6 @@
-import { Task } from "../core/task/Task"
+import { Task } from "../../core/task/Task"
 import { ToolName } from "@roo-code/types"
-import { OrchestrationService } from "../services/orchestration/OrchestrationService"
+import { OrchestrationService } from "../../services/orchestration/OrchestrationService"
 
 export class IntentGateHook {
 	private orchestrationService: OrchestrationService

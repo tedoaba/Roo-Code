@@ -109,6 +109,8 @@ import { manageContext, willManageContext } from "../context-management"
 import { ClineProvider } from "../webview/ClineProvider"
 import { MultiSearchReplaceDiffStrategy } from "../diff/strategies/multi-search-replace"
 import { IntentGateHook } from "../../hooks/pre/IntentGateHook"
+import { StateMachine } from "../state/StateMachine"
+import { HookEngine } from "../../hooks/HookEngine"
 import {
 	type ApiMessage,
 	readApiMessages,
@@ -344,6 +346,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	// Orchestration
 	public readonly orchestrationService: OrchestrationService
 	public readonly intentGateHook: IntentGateHook
+	public readonly stateMachine: StateMachine
+	public readonly hookEngine: HookEngine
 	public activeIntentId: string | undefined
 
 	// Streaming
@@ -488,7 +492,14 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 		this.orchestrationService = new OrchestrationService(this.cwd)
 		this.intentGateHook = new IntentGateHook(this.orchestrationService)
+		this.stateMachine = new StateMachine(this.taskId, this.orchestrationService)
+		this.hookEngine = new HookEngine(this.orchestrationService, this.stateMachine)
 		this.activeIntentId = undefined
+
+		// Initialize orchestration directory (idempotent)
+		this.orchestrationService.initializeOrchestration().catch((error) => {
+			console.error("Failed to initialize orchestration directory:", error)
+		})
 
 		this.rooIgnoreController = new RooIgnoreController(this.cwd)
 		this.rooProtectedController = new RooProtectedController(this.cwd)

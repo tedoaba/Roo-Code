@@ -54,4 +54,7 @@ qdrant_storage/
 # Architect plans
 plans/
 
+# Orchestration sidecar (runtime state)
+.orchestration/
+
 roo-cli-*.tar.gz*

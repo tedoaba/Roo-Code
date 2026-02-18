@@ -17,6 +17,7 @@ WARNING: Intent details not found. Please re-select a valid intent using 'select
 		const { intent, history } = context
 		const constraints = intent.constraints.map((c: string) => `- ${c}`).join("\n")
 		const scope = intent.owned_scope.map((s: string) => `- ${s}`).join("\n")
+		const acceptance = intent.acceptance_criteria.map((a: string) => `- ${a}`).join("\n")
 
 		const historyText = history
 			.slice(-5)
@@ -25,6 +26,17 @@ WARNING: Intent details not found. Please re-select a valid intent using 'select
 				return `[${t.timestamp}] ${details}: ${t.result.output_summary}`
 			})
 			.join("\n")
+
+		// T017: Load Shared Brain content
+		const sharedBrain = await orchestrationService.loadSharedBrain()
+		const sharedBrainSection = sharedBrain
+			? `\n## Shared Brain (Project Guidelines):\n${sharedBrain.slice(0, 2000)}\n`
+			: ""
+
+		// Budget info
+		const budgetSection = intent.budget
+			? `\n## Budget:\n- Turns: ${intent.budget.consumed_turns || 0}/${intent.budget.max_turns || "∞"}\n- Tokens: ${intent.budget.consumed_tokens || 0}/${intent.budget.max_tokens || "∞"}\n`
+			: ""
 
 		return `
 # ACTIVE INTENT: ${intent.id}
@@ -36,9 +48,12 @@ ${constraints || "None specified."}
 ## Scope (Allowed files/folders):
 ${scope || "No scope restrictions."}
 
+## Acceptance Criteria:
+${acceptance || "None specified."}
+${budgetSection}
 ## Recent History:
 ${historyText || "No history yet for this intent."}
-
+${sharedBrainSection}
 *Note: You are currently operating within this intent's checkout. All tool calls will be validated against its scope.*
 `
 	}
