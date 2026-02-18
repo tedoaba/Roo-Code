@@ -2,7 +2,7 @@
 
 > _"A system without declared intent is a system without accountability."_
 
-**Version**: 1.1.0 | **Ratified**: 2026-02-17 | **Last Amended**: 2026-02-17
+**Version**: 1.2.0 | **Ratified**: 2026-02-17 | **Last Amended**: 2026-02-18
 
 ---
 
@@ -33,6 +33,7 @@ The following axioms are self-evident truths upon which all subsequent laws are 
 3. **Governance is not optional.** Governance hooks are load-bearing architectural components, not advisory middleware. Bypassing governance is a system violation, not a user preference.
 4. **Machines orchestrate; humans govern.** The system shall manage scheduling, conflict resolution, and state transitions autonomously. Humans define policy, approve escalations, and ratify intent.
 5. **Traceability is a first-class property.** The ability to trace any line of code back to a declared intent, through every intermediate mutation, is not a debugging convenience — it is a structural requirement.
+6. **Efficiency is a governance concern.** Resource exhaustion, context rot, and infinite loops are not just operational failures; they are governance violations. The system SHALL enforce resource budgets as strictly as scope boundaries.
 
 ### Article 3: System Identity
 
@@ -85,6 +86,14 @@ In any ambiguous, unrecoverable, or undefined state, the system SHALL default to
 
 Every agent interaction SHALL follow the mandatory Three-State Execution Flow: **The Request** (user prompt received) → **The Reasoning Intercept** (agent must call `select_active_intent` to declare and validate its intent before any other action) → **Contextualized Action** (governed tool execution within the validated intent's scope). There SHALL exist no execution path that permits an agent to reach Contextualized Action without first completing the Reasoning Intercept. The Reasoning Intercept SHALL pause execution, enrich the agent's context with intent constraints, scope boundaries, and operational history from the sidecar data model, and resume execution only once a valid intent is active (see `ARCHITECTURE_NOTES.md` §8).
 
+### Invariant 10: Hierarchical Responsibility
+
+In multi-agent scenarios, every agent SHALL have a clearly defined place in the hierarchy (e.g., Supervisor or Worker). A Supervisor Agent SHALL be responsible for the governance of its sub-agents, including their intent declarations, scope adherence, and final verification. The failure of a sub-agent is a failure of the Supervisor's orchestration.
+
+### Invariant 11: AST-to-Intent Correlation
+
+The mapping between code and intent SHALL be formalized at the AST level where possible. Every mutation SHALL identify the functional scope (function name, class, or module) affected, enabling a semantic "intent lineage" that survives non-functional code changes (refactoring).
+
 ---
 
 ## Part III — Governance Rules
@@ -119,6 +128,14 @@ An intent SHALL progress through, and only through, the following lifecycle stat
 
 Once an intent enters the `IN_PROGRESS` state, its `owned_scope` boundaries SHALL NOT be expanded. An agent requiring broader scope SHALL declare a new, supplementary intent and obtain independent validation. The original intent's `owned_scope` SHALL remain unchanged.
 
+#### Law 3.1.5 — Execution Budgets
+
+Every active intent SHALL be assigned an execution budget (token count, turn count, and time duration). The Hook Engine SHALL monitor consumption through the `PreToolUse` hook and SHALL halt execution if any budget is exceeded.
+
+#### Law 3.1.6 — Context Compaction
+
+The Hook Engine SHALL implement a `PreCompact` hook to prevent context rot. Before an LLM request (PRE-1), historical tool results or redundant trace data SHALL be summarized or distilled to maintain the "Reasoning Integrity" of the agent without exceeding model context limits.
+
 ### Chapter 2: Scope Enforcement
 
 #### Law 3.2.1 — Scope as Hard Boundary
@@ -129,13 +146,17 @@ The `owned_scope` declared in an active intent is a **hard boundary**, not a gui
 
 When a newly declared intent's scope overlaps with an already-active intent's scope, the system SHALL:
 
-1. Deny activation by default.
-2. Present the overlap to the human operator for explicit co-tenancy authorization.
-3. If co-tenancy is authorized, enforce file-level locking within the overlapping region such that only one agent may mutate a given file at any instant.
+1.  Deny activation by default.
+2.  Present the overlap to the human operator for explicit co-tenancy authorization.
+3.  If co-tenancy is authorized, enforce file-level locking within the overlapping region such that only one agent may mutate a given file at any instant.
 
 #### Law 3.2.3 — Scope Leakage Detection
 
 The system SHALL continuously monitor for scope leakage — mutations to artifacts not covered by any active intent. Scope leakage events SHALL trigger an immediate halt of the offending agent, a log entry classified as a governance violation, and a notification to the human operator.
+
+#### Law 3.2.4 — Hierarchical Co-tenancy
+
+In hierarchical orchestration, sub-agents operating under the same Supervisor MAY be granted co-tenancy in the same scope, provided the Supervisor implements deterministic write-partitioning (partitioning by directory or AST-node).
 
 ### Chapter 3: Traceability Enforcement
 
@@ -176,6 +197,10 @@ Any operation classified as destructive (mass deletion, schema migration, produc
 ### Law 4.5 — Tamper Evidence
 
 All governance-critical state — including the audit log, orchestration state, intent registry, and privilege grants — SHALL be protected by tamper-evident mechanisms. Any unauthorized modification to governance state SHALL be detectable and SHALL trigger a system-level alert.
+
+### Law 4.6 — Circuit Breakers
+
+The Hook Engine SHALL implement circuit breakers that automatically trip (deny execution) if an agent exhibits signs of an infinite loop (e.g., repeating the same tool call with same parameters 3+ times) or attempts privilege escalation (e.g., calling hooks directly).
 
 ---
 
@@ -257,10 +282,10 @@ When an agent exhibits behavior that violates governance rules (scope leakage, u
 
 This Constitution may be amended only through the following process:
 
-1. A formal amendment proposal SHALL be submitted as a governed artifact with a declared intent.
-2. The proposal SHALL include: the specific text to be changed, the rationale for the change, an impact analysis on existing invariants, and a migration plan.
-3. The amendment SHALL be ratified by the human project authority.
-4. Upon ratification, the Constitution version SHALL be incremented, the amendment date updated, and all downstream documents notified of the change.
+1.  A formal amendment proposal SHALL be submitted as a governed artifact with a declared intent.
+2.  The proposal SHALL include: the specific text to be changed, the rationale for the change, an impact analysis on existing invariants, and a migration plan.
+3.  The amendment SHALL be ratified by the human project authority.
+4.  Upon ratification, the Constitution version SHALL be incremented, the amendment date updated, and all downstream documents notified of the change.
 
 ### Law 8.2 — Backward Compatibility
 
@@ -275,7 +300,7 @@ Architectural Invariants (Part II) carry the highest protection level. Amendment
 ## Appendix A — Glossary of Normative Terms
 
 | Term                    | Definition                                                                                                    |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| :---------------------- | :------------------------------------------------------------------------------------------------------------ |
 | **SHALL**               | Absolute requirement. Non-compliance is a system violation.                                                   |
 | **SHALL NOT**           | Absolute prohibition. Compliance is mandatory.                                                                |
 | **SHOULD**              | Strong recommendation. Deviation requires documented justification.                                           |
@@ -305,6 +330,8 @@ Architectural Invariants (Part II) carry the highest protection level. Amendment
 | 7   | Cryptographic Content Integrity   | Tamper blindness: undetectable corruption  | §7.2                   |
 | 8   | Fail-Safe Default                 | Ungoverned execution: trust collapse       | §6.2                   |
 | 9   | Three-State Execution Flow        | Ungoverned action: scope bypass            | §8                     |
+| 10  | Hierarchical Responsibility       | Orchestration chaos: unaccountable agents  | §10.1                  |
+| 11  | AST-to-Intent Correlation         | Cognitive debt: semantic amnesia           | §11                    |
 
 ---
 
@@ -319,6 +346,8 @@ This appendix maps each constitutional law to its concrete architectural impleme
 | **Invariant 3** (Immutable Audit Trail)      | `agent_trace.jsonl` with SHA-256 `content_hash`                             | §7.2                 |
 | **Invariant 4** (Single Orchestration Truth) | `.orchestration/` sidecar (4 files)                                         | §7                   |
 | **Invariant 9** (Three-State Execution Flow) | State 1→2→3 with `select_active_intent`                                     | §8.1, §8.2           |
+| **Invariant 10** (Hierarchical Resp.)        | Supervisor/Sub-agent orchestration pattern                                  | §10.1                |
+| **Invariant 11** (AST Correlation)           | Semantic mapping via content hashes/ranges                                  | §11                  |
 | **Law 3.1.1** (Mandatory Intent Declaration) | `select_active_intent` tool in `src/hooks/tools/`                           | §6.3, §8.2           |
 | **Law 3.1.3** (Intent Lifecycle)             | `status` field: `PENDING → IN_PROGRESS → COMPLETED \| ABANDONED \| BLOCKED` | §7.1                 |
 | **Law 3.2.1** (Scope as Hard Boundary)       | `ScopeEnforcementHook` in `src/hooks/pre/`                                  | §6.3, §9.2           |
