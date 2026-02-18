@@ -61,7 +61,7 @@ This append-only cryptographic ledger records every event in the Three-State flo
 
 ## Spatial Map (`.orchestration/intent_map.md`)
 
-Maps physical artifacts to intent provenance with content hashes.
+Maps physical artifacts to intent provenance with content hashes. **Policy**: Only one active intent can "Own" a file at a time; attempts by other intents to mutate a locked file are blocked.
 
 ```markdown
 # Intent Map
