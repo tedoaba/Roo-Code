@@ -8,7 +8,7 @@ This feature implements the **Three-State Execution Flow** for agent governance.
 
 ## Technical Context
 
-- **System Constitution Compliance**: Invariants 1, 2, 3, 4, 8, 9, 11 and Laws 3.1.1, 3.1.3, 3.1.5, 3.1.6, 3.2.1, 3.3.1, 4.1, 4.6.
+- **System Constitution Compliance**: Invariants 1, 2, 3, 4, 7, 8, 9, 11 and Laws 3.1.1, 3.1.3, 3.1.5, 3.1.6, 3.2.1, 3.3.1, 4.1, 4.6.
 - **Orchestration Layer**: Uses `.orchestration/` sidecar directory for immutable state.
 - **State Machine**:
     - `REQUEST`: User prompt received.

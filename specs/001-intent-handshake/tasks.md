@@ -31,7 +31,7 @@ Goal: Enforce tool restriction and transition to State 2.
 - [ ] T010 [US1] Create `select_active_intent` tool definition in `src/hooks/tools/`
 - [ ] T011 [US1] Implement tool filtering in `HookEngine.ts` to restrict State 2 to `select_active_intent` only
 - [ ] T012 [US1] Update `StateMachine.ts` to transition to State 2 (REASONING) upon initial user request
-- [ ] T013 [US1] Implement intent validation in `OrchestrationService.ts` (deny broad scopes, invalid statuses)
+- [ ] T013 [US1] Implement intent validation in `OrchestrationService.ts` (enforce Max 20 files, reject root-level recursive globs)
 - [ ] T014 [US1] Update system prompts to include the list of PENDING/IN_PROGRESS intents from `active_intents.yaml`
 
 ## Phase 4: User Story 2 - Context Enrichment (P1)
@@ -52,7 +52,9 @@ Goal: Immutable audit logs with spatial independence via hashing.
 - [ ] T021 [US3] Implement automatic SHA-256 computation for all `write_to_file` and `apply_diff` actions
 - [ ] T022 [US3] Update `intent_map.md` with the latest file hashes and owning intent IDs after mutations
 - [ ] T023 [US3] Ensure all `agent_trace.jsonl` entries include the `related[]` array linking to the active intent
+- [ ] T023b [US3] Implement functional scope extraction (AST nodes) for TS/JS in `OrchestrationService.ts` (Invariant 11)
 - [ ] T024 [US3] Implement "Spatial Independence" test: verify re-linkage of a code block after it is moved
+- [ ] T024b [US3] Implement retroactive provenance resolver service to map hashes and AST nodes to intent history (FR-012)
 
 ## Phase 4: User Story 4 - Resource Governance & Budgets (P3)
 

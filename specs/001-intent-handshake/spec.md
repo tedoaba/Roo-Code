@@ -75,9 +75,6 @@ The system monitors the agent's token consumption, turn count, and loop patterns
 - **Circuit Breaker Trip**: If a circuit breaker is triggered due to loop detection (FR-009) or budget exhaustion (FR-011), the intent status MUST be set to `BLOCKED`. Execution cannot resume until a human manually resets the status to `IN_PROGRESS` in `active_intents.yaml`.
 - **Missing Orchestration Directory**: If `.orchestration/` is deleted, the **Hook Engine** must enter **Fail-Safe Default** mode (Invariant 8): deny all mutating actions and halt the system until the state is restored or re-initialized.
 - **Scope Leakage**: If an agent attempts to write to a file `src/secret.ts` when its `owned_scope` is only `src/components/**`, the **ScopeEnforcementHook** must reject the write and log a governance violation.
-- **Circuit Breaker Trip**: If a circuit breaker is triggered due to loop detection (FR-009) or budget exhaustion (FR-011), the intent status MUST be set to `BLOCKED`. Execution cannot resume until a human manually resets the status to `IN_PROGRESS` in `active_intents.yaml`.
-- **Missing Orchestration Directory**: If `.orchestration/` is deleted, the **Hook Engine** must enter **Fail-Safe Default** mode (Invariant 8): deny all mutating actions and halt the system until the state is restored or re-initialized.
-- **Scope Leakage**: If an agent attempts to write to a file `src/secret.ts` when its `owned_scope` is only `src/components/**`, the **ScopeEnforcementHook** must reject the write and log a governance violation.
 - **Stale Intent State**: If an intent is marked `COMPLETED` by a human or supervisor agent, any worker agent still using that ID in an active session must be immediately blocked and forced to State 2 (Reasoning Intercept).
 - **Ownership Contention**: If an agent attempts to mutate a file already "Locked" by another active intent in the `intent_map.md`, the **Hook Engine** MUST deny the action and return an error: `Governance Violation: File owned by Intent [ID]`.
 - **Broad Scope Rejection**: To prevent un-auditable "mega-changes," the **Hook Engine** MUST reject any intent that uses broad root-level globs (e.g., `src/**/*`, `**/*.ts`) or covers more than 20 files.
@@ -94,6 +91,7 @@ The system monitors the agent's token consumption, turn count, and loop patterns
 
 ### Functional Requirements
 
+- **FR-001**: **Hook Engine Middleware**: System MUST implement a `src/hooks/` engine that intercepts all tool calls and LLM requests, acting as the **sole execution gateway** (Invariant 2).
 - **FR-002**: **Three-State State Machine**: System MUST enforce the flow: State 1 (Request) → State 2 (Reasoning Intercept) → State 3 (Contextualized Action).
 - **FR-003**: **Mandatory Handshake Tool**: System MUST define `select_active_intent` as the only tool available during the Reasoning Intercept.
 - **FR-004**: **Orchestration Source of Truth**: System MUST read/write intent and trace state exclusively from the `.orchestration/` sidecar directory (Invariant 4).
