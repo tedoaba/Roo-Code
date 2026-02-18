@@ -2,12 +2,13 @@
 
 > _Technical mapping of the existing Roo Code extension architecture, privilege separation model, sidecar data model specification, and identification of governance hook insertion points._
 
-**Version**: 1.1.0 | **Authored**: 2026-02-17 | **Updated**: 2026-02-17
+**Version**: 1.3.0 | **Authored**: 2026-02-17 | **Updated**: 2026-02-18
 
 ---
 
 ## Table of Contents
 
+0. [Governance Foundation](#0-governance-foundation)
 1. [Current Extension Architecture Overview](#1-current-extension-architecture-overview)
 2. [Tool Execution Loop Mapping](#2-tool-execution-loop-mapping)
 3. [LLM Request/Response Lifecycle](#3-llm-requestresponse-lifecycle)
@@ -17,6 +18,20 @@
 7. [Sidecar Data Model (`.orchestration/`)](#7-sidecar-data-model-orchestration)
 8. [Three-State Execution Flow](#8-three-state-execution-flow)
 9. [Concurrency & Safety Injection Points](#9-concurrency--safety-injection-points)
+10. [Multi-Agent Concurrency & Conflict Resolution](#10-multi-agent-concurrency--conflict-resolution)
+11. [Enterprise Guardrails & Safety](#11-enterprise-guardrails--safety)
+12. [Appendix A: File Reference Map](#appendix-a-file-reference-map)
+13. [Appendix B: Modification Impact Summary](#appendix-b-modification-impact-summary)
+
+---
+
+## 0. Governance Foundation
+
+The extension's operations are governed by a hierarchy of documents:
+
+- **System Constitution** (`.specify/memory/constitution.md`): The supreme law defining invariants and governance axioms. No architectural decision or code mutation may violate the Constitution.
+- **System Soul** (`.specify/memory/soul.md`): The philosophical character and behavioral specifications of system agents. It defines _how_ agents should reason (e.g., Spec-Driven Reasoning).
+- **Architecture Notes** (This document): The technical blueprint mapping governance onto the physical codebase.
 
 ---
 
@@ -540,9 +555,11 @@ The Hook Engine SHALL be implemented as a middleware layer that wraps existing e
                     │  │         PostToolUse Phase             │    │
                     │  │  • Codebase documentation update      │    │
                     │  │  • State evolution (.orchestration/)  │    │
-   ◀── Result ──────│  │  • Intent progress tracking           │    │
+                    │  │  • Intent progress tracking           │    │
                     │  │  • Content hash computation            │    │
+                    │  │    (Murmur3 or SHA-256)               │    │
                     │  │  • Agent trace logging                │    │
+                    │  │  • Context Compaction (PreCompact)    │    │
                     │  └──────────────────────────────────────┘    │
                     │                     │                        │
                     │                     ▼                        │
@@ -556,10 +573,11 @@ The Hook Engine SHALL be implemented as a middleware layer that wraps existing e
 **Hook Engine responsibilities:**
 
 - Intercept ALL tool execution requests before they reach the filesystem/terminal
-- **PreToolUse:** Enforce intent context injection and Human-in-the-Loop (HITL) authorization
-- **PostToolUse:** Update codebase documentation, state evolution, and intent changes
-- Manage the `.orchestration/` sidecar directory as the sole writer
-- Provide typed interfaces for hook implementations
+- **PreToolUse:** Enforce intent context injection, **Context Compaction (PreCompact)**, and Human-in-the-Loop (HITL) authorization (**PreAuthorize**).
+- **PostToolUse:** Update codebase documentation, state evolution, and intent changes.
+- **Guardrails:** Monitor **Execution Budgets** and trigger **Circuit Breakers** for infinite loops or privilege escalation.
+- Manage the `.orchestration/` sidecar directory as the sole writer.
+- Provide typed interfaces for hook implementations.
 
 **Hook interface contract (conceptual):**
 
@@ -1062,6 +1080,59 @@ The current codebase already has safety mechanisms that governance hooks will co
 
 ---
 
+## 10. Multi-Agent Concurrency & Conflict Resolution
+
+As the system evolves toward a **Hive Mind** model, concurrency management moves beyond simple file locks to hierarchical orchestration.
+
+### 10.1 Hierarchical Orchestration (Supervisor Pattern)
+
+Complex tasks are handled via a hierarchy:
+
+- **Supervisor Agent:** Maintains the high-level intent (`active_intents.yaml`), decomposes tasks into sub-intents, and coordinates sub-agents.
+- **Sub-Agents (Workers):** Specialized agents executing narrow intents within restricted `owned_scope`.
+
+**Governance Role:** The Hook Engine ensures that sub-agents never exceed the scope granted by their Supervisor.
+
+### 10.2 Conflict Resolution Strategies
+
+1. **Write Partitioning:** Agents are assigned non-overlapping directory segments (partitioning).
+2. **Optimistic Hash Validation:** Before applying a patch, the Hook Engine verifies that the target AST range hasn't changed (using `content_hash`).
+3. **Hierarchical Lock Promotion:** If a sub-agent needs a file held by another branch of the hive, the request is escalated to the Supervisor for resolution.
+
+---
+
+## 11. Enterprise Guardrails & Safety
+
+To mitigate the risks of autonomous agents, the Hook Engine enforces systemic guardrails:
+
+### 11.1 Execution Budgets
+
+Limits are enforced per intent to prevent runaway costs or resource exhaustion:
+
+- **Token Budgets:** Max cumulative tokens per intent.
+- **Turn Budgets:** Max number of conversation turns.
+- **Time Budgets:** Max execution duration.
+
+### 11.2 Circuit Breakers
+
+The system implements automated self-interruption (Circuit Breaker) for:
+
+- **Infinite Loops:** Detecting repetitive tool calls or cyclic edits.
+- **Context Rot:** Halting when the LLM's context window contains conflicting or stale intent data.
+- **Privilege Escalation:** Blocking attempts to access `.orchestration/` or sensitive hooks.
+
+### 11.3 Context Compaction (The PreCompact Hook)
+
+To maintain prompt efficiency and prevent "reasoning drift," the Hook Engine implements **Context Compaction** during the Pre-Hook phase:
+
+- Merges redundant tool results.
+- Summarizes historical turns within the same intent.
+- Distills `agent_trace.jsonl` entries into a "What's Happened So Far" summary for the prompt.
+
+---
+
+---
+
 ## Appendix A: File Reference Map
 
 | Governance Concern   | Primary Source Files                                                 |
@@ -1086,6 +1157,8 @@ The current codebase already has safety mechanisms that governance hooks will co
 | Editor integration   | `src/integrations/editor/`                                           |
 | Extension entry      | `src/extension.ts`                                                   |
 | Hooks directory      | `src/hooks/` (empty — reserved)                                      |
+| System Constitution  | `.specify/memory/constitution.md`                                    |
+| System Soul          | `.specify/memory/soul.md`                                            |
 
 ---
 
