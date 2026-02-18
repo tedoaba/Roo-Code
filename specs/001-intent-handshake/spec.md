@@ -2,160 +2,112 @@
 
 **Feature Branch**: `001-intent-handshake`  
 **Created**: 2026-02-17  
+**Updated**: 2026-02-18  
 **Status**: Draft  
 **Input**: User description: "The Handshake (Reasoning Loop Implementation) — Solve the Context Paradox. Bridge the synchronous LLM with the asynchronous IDE loop."
 
 ## User Scenarios & Testing _(mandatory)_
 
-### User Story 1 - Agent Must Declare Intent Before Acting (Priority: P1)
+### User Story 1 - The Reasoning Intercept (Priority: P1)
 
-When a user submits a request to the AI agent (e.g., "Refactor the auth middleware"), the agent is unable to immediately write code. Instead, the system forces the agent's first action to be an intent selection step. The agent analyzes the user's request, identifies the relevant business intent, and calls `select_active_intent` with the appropriate intent ID. Only after this "handshake" succeeds — and the agent receives the enriched context about constraints, scope, and history — can it proceed to make changes.
+When a user submits a request to the AI agent (State 1: The Request), the agent enters the **Reasoning Intercept** (State 2). In this state, the agent's privilege boundary is constricted: all mutating tools (file writes, command execution) are disabled, and only the `select_active_intent` tool is available. The agent must analyze the request against the project's **Constitution** and **Soul** and select a valid intent ID from the orchestration registry. This ensures the "Silicon Worker" thinkers before they act.
 
-**Why this priority**: This is the foundational behavioral contract. Without this gate, the entire governance model is bypassed — the agent can write arbitrary code without scope awareness, constraint knowledge, or traceability. Every other feature in the system depends on this handshake occurring first.
+**Why this priority**: Core architectural invariant (Invariant 9). Without this intercept, the system remains a "Vibe Coding" environment subject to cognitive debt and trust debt.
 
-**Independent Test**: Can be fully tested by submitting any user request and verifying that the agent's first tool call is always `select_active_intent`, and that any attempt to call another tool before this is rejected. Delivers the core value of context-aware, intent-driven development.
+**Independent Test**: Verified by submitting a prompt and checking that the agent's tool availability is restricted to `select_active_intent` only, and that any attempt to bypass this state results in a "governance violation" block by the **Hook Engine**.
 
 **Acceptance Scenarios**:
 
-1. **Given** a user submits a coding request and one or more active intents exist, **When** the agent processes the request, **Then** the agent's first action MUST be a call to `select_active_intent` with a valid intent ID.
-2. **Given** the agent attempts to call `write_to_file`, `execute_command`, or any mutation tool before calling `select_active_intent`, **When** the system intercepts that call, **Then** the call is blocked and the agent receives an error message: "You must cite a valid active Intent ID."
-3. **Given** the agent calls `select_active_intent` with an intent ID that does not exist in the active intents registry, **When** the system validates the ID, **Then** the call is rejected with an error identifying the invalid ID and listing available intents.
+1. **Given** the agent is in State 1 (Request received), **When** it attempts to invoke any tool other than `select_active_intent`, **Then** the **Hook Engine** rejects the request with a "State Violation: Reasoning Intercept Required" error.
+2. **Given** an agent session is initialized, **When** the system prompt is assembled, **Then** it must include the current list of available intents from `active_intents.yaml`.
+3. **Given** the agent provides an invalid or completed intent ID, **When** `select_active_intent` is called, **Then** the system returns a validation error and stays in State 2.
 
 ---
 
-### User Story 2 - Context Enrichment on Intent Selection (Priority: P1)
+### User Story 2 - Context Enrichment & Shared Brain Integration (Priority: P1)
 
-When the agent successfully calls `select_active_intent`, the system intercepts this call and reads the orchestration data for the selected intent. It assembles a consolidated context block containing the intent's constraints, owned scope boundaries, acceptance criteria, and relevant recent history. This enriched context is returned to the agent as the tool result, giving the agent full situational awareness before it writes a single line of code.
+Upon successful intent selection, the system transitions to **State 3: Contextualized Action**. The **Hook Engine** intercepts the transition and enriches the agent's context window with the intent's `owned_scope`, constraints, and history from `agent_trace.jsonl`. Crucially, it also injects relevant lessons from the **Shared Brain** (`AGENT.md`/`CLAUDE.md`), allowing the agent to inherit collective wisdom before starting the task.
 
-**Why this priority**: Equal to P1 because intent selection alone is meaningless without context injection. The entire value proposition — solving the "Context Paradox" — depends on the agent receiving rich, targeted context at this moment. Without it, the handshake is just a gate with no payload.
+**Why this priority**: Essential for solving the "Context Paradox." The agent needs to know its boundaries (Scope) and the rules of the house (Constitution/Shared Brain) to operate safely.
 
-**Independent Test**: Can be fully tested by triggering `select_active_intent` for a known intent and verifying the returned context block contains the correct constraints, scope, acceptance criteria, and recent history entries. Delivers the value of bridging synchronous LLM reasoning with asynchronous project state.
+**Independent Test**: Verified by calling `select_active_intent` for a specific intent and checking that the returned tool result contains the correct scope globs, constraint list, and recent "Shared Brain" entries relevant to the task domain.
 
 **Acceptance Scenarios**:
 
-1. **Given** the agent calls `select_active_intent` with a valid intent ID, **When** the system intercepts the call, **Then** it reads the orchestration state for that intent and returns a structured context block containing: intent name, status, constraints, owned scope, acceptance criteria, and related specification references.
-2. **Given** the selected intent has prior agent trace history (previous edits, commands executed), **When** the context block is assembled, **Then** it includes a summary of recent actions taken under this intent so the agent does not repeat or conflict with prior work.
-3. **Given** the selected intent has entries in the spatial map (intent-to-file mappings), **When** the context block is assembled, **Then** it includes the list of files already touched and their current state hashes.
+1. **Given** a valid intent ID is selected, **When** the context is returned, **Then** it MUST contain the `owned_scope` (explicit globs) and `constraints` from the `active_intents.yaml`.
+2. **Given** relevant history exists in `agent_trace.jsonl`, **When** the context is enriched, **Then** it MUST provide a summary of recent mutations and their rationale.
+3. **Given** the **Shared Brain** contains architectural guidelines, **When** the agent starts the task, **Then** those guidelines are injected as high-priority constraints.
 
 ---
 
-### User Story 3 - System Prompt Enforcement of Protocol (Priority: P2)
+### User Story 3 - Cryptographic Audit & Provenance (Priority: P2)
 
-Before any prompt is sent to the LLM, the system modifies the agent's instructions to include the handshake protocol. The system prompt clearly states that the agent is an "Intent-Driven Architect," that its first action must be to analyze the user request and select an active intent, and that code writing is prohibited until intent selection is complete. This ensures the agent understands the protocol at the instruction level, not just at the enforcement level.
+As the agent executes mutations (State 3), every file write or terminal execution is intercepted by the **Hook Engine**. Each mutation is recorded in the **Audit Ledger** (`agent_trace.jsonl`) with a SHA-256 content hash of the affected code block. This binds the code change to the intent ID with cryptographic proof, enabling "Retroactive Tracing" — the ability to explain why any line of code exists.
 
-**Why this priority**: P2 because the behavioral enforcement (P1 stories above) already guarantees compliance through hard gating. System prompt engineering is the "soft" complement — it ensures the agent cooperates willingly rather than fighting the constraints, improving response quality and reducing wasted LLM turns.
+**Why this priority**: Eliminates "Trust Debt." It provides architectural assurance that the agent stayed within its mandate (Law 4.5: Tamper Evidence).
 
-**Independent Test**: Can be tested by inspecting the system prompt sent to the LLM before any request and verifying it contains the intent-driven protocol instructions, the mandate to call `select_active_intent` first, and the prohibition on immediate code writing.
+**Independent Test**: Perform a file write under an active intent, then verify that a new entry appears in `agent_trace.jsonl` with the correct intent ID, timestamp, contributor model, and a SHA-256 hash that matches the new file content.
 
 **Acceptance Scenarios**:
 
-1. **Given** the system is preparing a prompt for the LLM, **When** the prompt assembly pipeline runs, **Then** the system prompt includes a governance section stating: "You are an Intent-Driven Architect. You CANNOT write code immediately. Your first action MUST be to analyze the user request and call select_active_intent to load the necessary context."
-2. **Given** active intents exist in the orchestration state, **When** the system prompt is assembled, **Then** the governance section lists available intents with their names and brief descriptions so the agent can make an informed selection.
-3. **Given** an intent has already been selected for the current session, **When** the system prompt is assembled for subsequent LLM calls, **Then** the governance section reflects the active intent and its scope boundaries rather than repeating the selection mandate.
+1. **Given** a `write_to_file` call is permitted, **When** the write completes, **Then** the **PostToolUse** hook MUST compute the SHA-256 hash and update the ledger.
+2. **Given** a line of code is later moved within the file, **When** a "provenance check" is run, **Then** the system MUST successfully re-link the code to its intent using the content hash (Spatial Independence).
 
 ---
 
-### User Story 4 - Context Pre-Loading Before Prompt Dispatch (Priority: P2)
+### User Story 4 - Resource Governance & Execution Budgets (Priority: P3)
 
-Before the extension sends a prompt to the LLM, the system intercepts the outgoing payload. It reads the orchestration state (active intents, agent trace entries for the active intent) and prepares a consolidated intent context. This pre-loaded context is injected into the prompt so the LLM always has awareness of the current project state, without the agent needing to manually query for it.
+The system monitors the agent's token consumption, turn count, and loop patterns. If an agent enters an infinite loop or exceeds its allocated **Execution Budget** for an intent, the **Hook Engine** trips a **Circuit Breaker**, halting execution and requesting human intervention. This prevents resource exhaustion and "Context Rot."
 
-**Why this priority**: P2 because while P1 handles the initial handshake, this story ensures that subsequent LLM calls (in the same session, after intent selection) also carry forward the intent context. This prevents context loss across the multi-turn conversation loop.
+**Why this priority**: Law 3.1.5: Efficiency is a governance concern. Prevents runaway agents from incurring excessive costs or corrupting local state through repeated failures.
 
-**Independent Test**: Can be tested by inspecting the prompt payload before it is sent to the LLM on any turn after intent selection, and verifying it includes the pre-loaded intent context block with current constraints, scope, and recent history.
-
-**Acceptance Scenarios**:
-
-1. **Given** an intent is active for the current session, **When** a prompt is about to be sent to the LLM, **Then** the system injects the active intent's constraints and scope into the prompt payload.
-2. **Given** the agent has made changes under the active intent in prior turns, **When** the next prompt is sent, **Then** the injected context includes an updated summary of actions taken so far under this intent.
-
----
-
-### User Story 5 - Gatekeeper Blocks Unvalidated Execution (Priority: P3)
-
-When the system's pre-processing hook runs before prompt dispatch, it verifies that the agent has declared a valid intent ID for the current session. If no valid intent is active — either because the agent never selected one, or the selected intent has been completed or abandoned — the system blocks execution entirely and returns a clear error message instructing the agent to select an intent.
-
-**Why this priority**: P3 because U1 and U2 handle the primary enforcement path. This story addresses the edge case of session state corruption, intent lifecycle transitions mid-session, or implementation bugs where the gatekeeper provides a final safety net.
-
-**Independent Test**: Can be tested by simulating a session where no intent has been selected (or where the previously selected intent has been marked as COMPLETED) and verifying that the system blocks all LLM requests with an appropriate error.
+**Independent Test**: Simulate an agent loop (3+ identical tool calls) and verify that the Hook Engine automatically denies the 4th call and terminates the session with a loop detection error.
 
 **Acceptance Scenarios**:
 
-1. **Given** no intent has been selected in the current session, **When** the system's pre-hook runs before prompt dispatch, **Then** execution is blocked and the agent receives: "You must cite a valid active Intent ID."
-2. **Given** the previously selected intent has transitioned to COMPLETED status, **When** the agent attempts to continue working without selecting a new intent, **Then** the system blocks execution and prompts the agent to select a new active intent.
-3. **Given** the agent provides an intent ID that has been marked ABANDONED, **When** the system validates the intent, **Then** the call is rejected with an error explaining the intent is no longer active.
+1. **Given** an active intent has a turn limit, **When** the limit is reached, **Then** the **PreToolUse** hook denies further actions and marks the intent as `BLOCKED`.
+2. **Given** the **PreCompact** hook detects potential context rot, **When** an LLM request is prepared, **Then** it summarizes historical trace data to maintain the reasoning integrity of the agent.
 
 ---
 
 ### Edge Cases
 
-- What happens when no active intents exist in the orchestration state? The system should inform the agent that no intents are available and guide toward intent creation.
-- How does the system handle the agent selecting an intent that is currently assigned to another agent? The system should either deny the selection with a conflict message or allow it based on configurable policy (default: deny).
-- What happens if the orchestration state file is missing or corrupted? The system should fail gracefully, log the error, and inform the agent that orchestration state is unavailable.
-- How does the system behave when the agent's conversation context window is truncated mid-session? The system should re-inject intent context on every LLM call, ensuring context is never lost even after truncation.
-- What happens if the LLM ignores the system prompt and attempts to call tools without selecting an intent? The hard enforcement gate (pre-hook) catches this regardless of LLM compliance.
-
-## Clarifications
-
-### Session 2026-02-17
-
-- **Q:** Should the agent be allowed to switch intents mid-session? → **A:** **Lock Session**. Once an intent is selected, the agent is bound to it for the entire session. To work on a different intent, the agent must start a new session. This enforces a clean "one session = one task" model.
-- **Q:** How should the system handle attempts to write files outside the active intent's scope? → **A:** **Hard Block**. Any attempt to write/edit a file outside the active intent's `owned_scope` is strictly denied by the Hook Engine.
-- **Q:** How is `owned_scope` defined? → **A:** **Explicit Globs**. The intent must explicitly list file paths or glob patterns (e.g., `src/auth/**/*.ts`) in `active_intents.yaml`. Anything not matching is out of scope.
+- **Missing Orchestration Directory**: If `.orchestration/` is deleted, the **Hook Engine** must enter **Fail-Safe Default** mode (Invariant 8): deny all mutating actions and halt the system until the state is restored or re-initialized.
+- **Scope Leakage**: If an agent attempts to write to a file `src/secret.ts` when its `owned_scope` is only `src/components/**`, the **ScopeEnforcementHook** must reject the write and log a governance violation.
+- **Stale Intent State**: If an intent is marked `COMPLETED` by a human or supervisor agent, any worker agent still using that ID in an active session must be immediately blocked and forced to State 2 (Reasoning Intercept).
 
 ## Requirements _(mandatory)_
 
 ### Functional Requirements
 
-- **FR-001**: System MUST define a tool called `select_active_intent` that accepts an intent ID parameter and returns enriched context for the selected intent.
-- **FR-002**: System MUST block all mutating tool calls (file writes, command execution, file edits) until the agent has successfully called `select_active_intent` with a valid intent ID.
-- **FR-003**: System MUST intercept the `select_active_intent` call, read the orchestration state for the specified intent, and return a structured context block containing the intent's name, status, constraints, owned scope, acceptance criteria, related specifications, and recent agent trace history.
-- **FR-004**: System MUST modify the system prompt before every LLM request to include a governance section enforcing the intent-driven protocol, stating the agent must select an intent before acting.
-- **FR-005**: System MUST list available active intents (with names and descriptions) in the system prompt governance section so the agent can make an informed selection.
-- **FR-006**: System MUST inject the active intent's context (constraints, scope, recent history) into the prompt payload on every LLM call after intent selection, ensuring context persistence across turns.
-- **FR-007**: System MUST validate the intent ID provided to `select_active_intent` against the current orchestration state, rejecting invalid, completed, or abandoned intents with descriptive error messages.
-- **FR-008**: System MUST restrict the tools available to the LLM to only `select_active_intent` until an intent has been successfully selected, restoring the full tool set afterward.
-- **FR-009**: System MUST return a clear, actionable error message ("You must cite a valid active Intent ID.") when the agent attempts any tool call without an active intent.
-- **FR-010**: System MUST re-inject intent context on every LLM call to prevent context loss due to conversation truncation or context window limits.
-- **FR-011**: System MUST handle missing or corrupted orchestration state files gracefully, logging the error and informing the agent that orchestration is unavailable.
-- **FR-012**: System MUST update the system prompt governance section to reflect the active intent and its scope boundaries once an intent has been selected, replacing the selection mandate with active-intent guidance.
-- **FR-013**: System MUST enforce a "Lock Session" policy where an agent cannot switch intents once one is selected during a session. Attempts to call `select_active_intent` a second time MUST be rejected with a message instructing to start a new session.
-- **FR-014**: System MUST strictly enforce `owned_scope` boundaries defined by explicit glob patterns in `active_intents.yaml`. Any file mutation targeting a path not matching these patterns MUST be hard-blocked with a "Scope Violation" error.
-- **FR-015**: System MUST treat any file creation or deletion as a scope-checked operation; new files must match an existing positive glob pattern (e.g., `src/components/**`) to be allowed.
+- **FR-001**: **Hook Engine Middleware**: System MUST implement a `src/hooks/` engine that intercepts all tool calls and LLM requests, acting as the **sole execution gateway** (Invariant 2).
+- **FR-002**: **Three-State State Machine**: System MUST enforce the flow: State 1 (Request) → State 2 (Reasoning Intercept) → State 3 (Contextualized Action).
+- **FR-003**: **Mandatory Handshake Tool**: System MUST define `select_active_intent` as the only tool available during the Reasoning Intercept.
+- **FR-004**: **Orchestration Source of Truth**: System MUST read/write intent and trace state exclusively from the `.orchestration/` sidecar directory (Invariant 4).
+- **FR-005**: **Scope Enforcement**: System MUST hard-block any mutation (PreToolUse) targeting an artifact outside the active intent's `owned_scope` globs (Law 3.2.1).
+- **FR-006**: **Cryptographic Audit Log**: System MUST append mutation records to `agent_trace.jsonl` with **SHA-256 Content Hashes** for spatial independence (Invariant 7).
+- **FR-007**: **State-Aware System Prompts**: System MUST dynamically build the system prompt to reflect the current state (listing available intents in State 2, or displaying active scope/constraints in State 3).
+- **FR-008**: **Context Compaction (PreCompact)**: System MUST implement a hook to summarize tool history before LLM requests to prevent context limit exhaustion (Law 3.1.6).
+- **FR-009**: **Circuit Breakers**: System MUST halt agents that repeat identical tool calls 3+ times (Law 4.6).
+- **FR-010**: **Shared Brain Sync**: System MUST append significant lessons/failures to `AGENT.md`/`CLAUDE.md` after State 3 completion.
+- **FR-011**: **Execution Budgets**: System MUST enforce turn/token limits per intent as defined in `active_intents.yaml`.
+- **FR-012**: **Retroactive Linkage**: System MUST maintain `intent_map.md` to map files to intents semantically.
 
 ### Key Entities
 
-- **Active Intent**: A registered business requirement or task with a unique ID, lifecycle status (PENDING, IN_PROGRESS, BLOCKED, COMPLETED, ABANDONED), constraints, owned file scope, and acceptance criteria. Stored in the orchestration state.
-- **Intent Context Block**: A structured data package assembled at the moment of intent selection, containing the intent's constraints, owned scope, acceptance criteria, related specifications, and recent history. Returned to the agent as the tool result of `select_active_intent`.
-- **Agent Trace Entry**: A record in the audit trail linking a specific agent action (file mutation, command execution) to the active intent ID. Used to build the "recent history" component of the Intent Context Block.
-- **Orchestration State**: The collective state managed by the governance layer, including all active intents, the audit trail, and the spatial map. Read before every LLM call and every tool execution.
-- **Governance Prompt Section**: A dynamically generated section of the system prompt that enforces the intent-driven protocol, lists available intents, and conveys active intent scope after selection.
+- **Hook Engine**: The governance boundary (middleware) that intercepts and validates all operations.
+- **Active Intent**: A machine-readable requirement (ID, Name, Status, Scope, Constraints, Acceptance Criteria).
+- **Audit Ledger (`agent_trace.jsonl`)**: The append-only record of mutations tied to intents with cryptographic hashes.
+- **Spatial Map (`intent_map.md`)**: The bridge between files and the intents that produced them.
+- **Shared Brain (`AGENT.md`)**: The persistent knowledge base shared across all agent sessions.
 
 ## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of agent sessions begin with an intent selection step — no mutating action occurs before intent selection, verified across all test scenarios.
-- **SC-002**: The intent context block returned to the agent contains all required fields (name, status, constraints, scope, acceptance criteria, related specs, recent history) in 100% of successful selections.
-- **SC-003**: All attempts to call mutating tools before intent selection are blocked with the correct error message, with zero false negatives (zero bypass occurrences).
-- **SC-004**: The system prompt contains the governance section in 100% of LLM requests, with correct content reflecting the current session state (pre-selection mandate OR active intent guidance).
-- **SC-005**: Context injection persists across all turns in a multi-turn conversation — the agent never loses awareness of the active intent's constraints and scope, even after 10+ turns.
-- **SC-006**: Invalid intent IDs (non-existent, completed, abandoned) are rejected with descriptive error messages in 100% of cases.
-- **SC-007**: The system recovers gracefully from missing or corrupted orchestration state files without crashing, in 100% of error scenarios.
-- **SC-008**: The end-to-end handshake flow (request → intent selection → context enrichment → contextualized action) completes within 2 seconds of additional latency compared to the ungoverne baseline.
-
-## Assumptions
-
-- The `.orchestration/active_intents.yaml` file and associated orchestration state (agent trace, intent map) already exist or will be initialized as a prerequisite before this feature is used in production. This feature does not handle the initial creation or population of intents — it consumes them.
-- The agent trace data (`agent_trace.jsonl`) is available in the expected format and location. This feature reads trace entries but does not define the trace-writing mechanism (that belongs to the PostToolUse hooks).
-- The existing tool execution pipeline (BaseTool, presentAssistantMessage) supports interception points where pre-hook logic can be inserted with minimal modification to core files.
-- The system prompt construction pipeline (generatePrompt, addCustomInstructions) supports the addition of new dynamic sections injected at build time.
-- Only one intent can be active per agent session at a time. Multi-intent concurrent work by a single agent is out of scope.
-- The LLM providers support the tool restriction mechanism — specifically, that removing tools from the tools array sent to the LLM effectively prevents the LLM from calling them.
-- Human users interacting with the IDE are not directly affected by the handshake mechanism — it governs AI agent behavior only.
-
-## Dependencies
-
-- **Orchestration State (`.orchestration/` sidecar)**: The active intents YAML file and agent trace must exist and be readable. Intent creation and lifecycle management are prerequisites.
-- **Hook Engine Infrastructure**: The pre-hook and post-hook interception points described in the architecture must be available. If the Hook Engine is not yet implemented, it must be built first or in parallel.
-- **System Prompt Pipeline**: The prompt construction pipeline must support dynamic section injection for the governance prompt section.
-- **Tool Builder**: The `buildNativeToolsArray` function must support conditional filtering based on governance state (intent selected vs. not selected).
+- **SC-001**: **Zero-Bypass Enforcement**: 100% of mutating tool calls are blocked by the Hook Engine if no valid intent is active.
+- **SC-002**: **Cryptographic Completeness**: 100% of recorded mutations in the ledger contain a valid SHA-256 content hash and a foreign-key link to an intent.
+- **SC-003**: **Reasoning Integrity**: The context returned to the agent after the handshake includes 100% of the constraints and scope boundaries defined for that intent.
+- **SC-004**: **Spatial Independence**: The system can successfully map a moved code block back to its original intent using only its content hash in the audit ledger.
+- **SC-005**: **Fail-Safe Default**: System successfully enters "Denial of Action" mode within 100ms of detecting a corrupted or missing orchestration state.
+- **SC-006**: **Efficiency**: Handshake latency (State 2) adds no more than 1 second to the total initial response time compared to an ungoverned agent.

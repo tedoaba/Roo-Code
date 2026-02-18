@@ -1,72 +1,77 @@
-# Implementation Plan: 001-intent-handshake
+# Implementation Plan: 001-intent-handshake (Reasoning Loop)
 
-**Branch**: `001-intent-handshake` | **Date**: 2026-02-17 | **Spec**: [specs/001-intent-handshake/spec.md](./spec.md)
-**Input**: Feature specification from `specs/001-intent-handshake/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `001-intent-handshake` | **Date**: 2026-02-18 | **Spec**: [specs/001-intent-handshake/spec.md](./spec.md)
 
 ## Summary
 
-This feature implements the "Intent Handshake" protocol, a mandatory reasoning loop that effectively solves the Context Paradox. By forcing the agent to select an active intent (`select_active_intent`) before performing any mutating actions, we ensure the agent is always operating within a declared scope with full context (constraints, history, acceptance criteria) injected into its prompt.
+This feature implements the **Three-State Execution Flow** for agent governance. It replaces the simple handshake with a robust **Hook Engine** that enforces state transitions from **State 1 (Request)** to **State 2 (Reasoning Intercept)** and finally **State 3 (Contextualized Action)**. It ensures zero-bypass execution, cryptographic auditability via SHA-256 hashes, and continuous context health through PreCompact hooks.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.8+
-**Primary Dependencies**: VS Code Extension API, Node.js (fs/path), `@roo-code/types`, `@roo-code/core`
-**Storage**: `.orchestration/` sidecar files (active_intents.yaml, agent_trace.jsonl, intent_map.md)
-**Testing**: Mocha/Chai (Unit/Integration), VS Code Extension Tests
-**Target Platform**: VS Code (Desktop & Web)
-**Project Type**: VS Code Extension
-**Performance Goals**: <2s added latency for handshake; negligible overhead for subsequent turns.
-**Constraints**: Must operate within the existing `Task.ts` loop without blocking the UI thread.
-**Scale/Scope**: Single active intent per session.
+- **Language**: TypeScript 5.8+
+- **Core Component**: `src/hooks/HookEngine.ts` (The central middleware).
+- **Storage**: `.orchestration/` (Sidecar directory).
+    - `active_intents.yaml`: Registry of active mandates.
+    - `agent_trace.jsonl`: Cryptographic audit ledger.
+    - `intent_map.md`: Spatial intent-to-file mapping.
+- **Security**: SHA-256 content hashing for mutation verification.
+- **Constraints**: 100% bypass blocking; Turn/Token execution budgets.
 
 ## Constitution Check
 
-_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
+- **Invariant 9 (Execution Flow)**: ✅ Enforced by the State Machine in `HookEngine`.
+- **Invariant 2 (Hook Engine)**: ✅ All tool calls and LLM requests must pass through `HookEngine`.
+- **Invariant 3 (Immutable Audit)**: ✅ Every mutation recorded with SHA-256.
+- **Law 3.1.6 (Context Compaction)**: ✅ Implemented via `PreCompact` hook.
+- **Law 4.1 (Least Privilege)**: ✅ During State 2, only `select_active_intent` tool is available.
 
-- **Invariant 9 (Three-State Execution Flow)**: ✅ This feature IS the implementation of Invariant 9. It enforces the Request -> Reasoning Intercept -> Contextualized Action flow.
-- **Invariant 2 (Hook Execution Guarantee)**: ✅ The design injects checking logic into `Task.ts` loop, ensuring no tool execution bypasses the intent check.
-- **Invariant 4 (Single Source of Orchestration Truth)**: ✅ The implementation reads/writes exclusively to `.orchestration/`.
-- **Invariant 1 (Intent-Code Binding)**: ✅ By enforcing intent selection, we enable the strict binding of code mutations to intents.
+## Design Architecture
+
+### Phase 1: Hook Engine & State Machine
+
+Implement the central `HookEngine` class using the Middleware pattern. It will manage the transition from State 1 -> 2 -> 3.
+
+- **PreToolUse Hook**: Validates state and scope.
+- **PostToolUse Hook**: Records mutation and computes SHA-256 hashes.
+- **PreLLMRequest Hook**: Performs context compaction and prompt assembly.
+
+### Phase 2: Orchestration & Audit Ledger
+
+Enhance `OrchestrationService` to support:
+
+- Cryptographic logging to `agent_trace.jsonl`.
+- Managing execution budgets (turn counts).
+- Shared Brain (`AGENT.md`) synchronization.
+
+### Phase 3: State-Aware Prompt Engineering
+
+Update the prompt construction pipeline to dynamically restrict toolsets and inject intent/scope context based on the current execution state.
 
 ## Project Structure
 
-### Documentation (this feature)
-
-```text
-specs/001-intent-handshake/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
-```
-
-### Source Code (repository root)
-
 ```text
 src/
+├── hooks/
+│   ├── HookEngine.ts         # Central Dispatcher
+│   ├── lifecycle/
+│   │   ├── PreToolUse.ts     # Scope/State validation
+│   │   ├── PostToolUse.ts    # Audit/SHA-256/Trace
+│   │   └── PreCompact.ts     # Context Compaction
 ├── core/
-│   ├── task/
-│   │   └── Task.ts           # Modified: Inject handshake logic into loop
-│   └── tools/
-│       └── SelectActiveIntent.ts # New: The tool implementation
+│   ├── state/
+│   │   └── StateMachine.ts   # States: REQUEST, REASONING, ACTION
+│   ├── tools/
+│   │   └── SelectActiveIntent.ts
 ├── services/
-│   └── orchestration/        # New: Orchestration state management
+│   └── orchestration/
 │       ├── OrchestrationService.ts
-│       └── types.ts
-└── hooks/
-    └── pre/
-        └── IntentGateHook.ts # New: The enforcement hook
+│       └── AuditLedger.ts    # SHA-256 hash logic
+└── prompts/
+    └── sections/
+        └── Governance.ts     # State-aware instructions
 ```
 
-**Structure Decision**: We will add a new `OrchestrationService` to manage the sidecar state and inject the `IntentGateHook` logic into the `Task.ts` execution loop. The new tool `SelectActiveIntent` will be added to the core tools.
-
 ## Complexity Tracking
-
-> **Fill ONLY if Constitution Check has violations that must be justified**
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 | :-------- | :--------- | :----------------------------------- |
