@@ -4,75 +4,84 @@
 
 ## Summary
 
-This feature implements the **Three-State Execution Flow** for agent governance. It replaces the simple handshake with a robust **Hook Engine** that enforces state transitions from **State 1 (Request)** to **State 2 (Reasoning Intercept)** and finally **State 3 (Contextualized Action)**. It ensures zero-bypass execution, cryptographic auditability via SHA-256 hashes, and continuous context health through PreCompact hooks.
+This feature implements the **Three-State Execution Flow** for agent governance. It replaces the basic handshake with a robust **Hook Engine** that enforces state transitions from **State 1 (Request)** to **State 2 (Reasoning Intercept)** and finally **State 3 (Contextualized Action)**. It ensures zero-bypass execution, cryptographic auditability via SHA-256 hashes, and continuous context health through PreCompact hooks.
 
 ## Technical Context
 
-- **Language**: TypeScript 5.8+
-- **Core Component**: `src/hooks/HookEngine.ts` (The central middleware).
-- **Storage**: `.orchestration/` (Sidecar directory).
-    - `active_intents.yaml`: Registry of active mandates.
-    - `agent_trace.jsonl`: Cryptographic audit ledger.
-    - `intent_map.md`: Spatial intent-to-file mapping.
-- **Security**: SHA-256 content hashing for mutation verification.
-- **Constraints**: 100% bypass blocking; Turn/Token execution budgets.
+- **System Constitution Compliance**: Invariants 1, 2, 3, 4, 8, 9, 11 and Laws 3.1.1, 3.1.3, 3.1.5, 3.1.6, 3.2.1, 3.3.1, 4.1, 4.6.
+- **Orchestration Layer**: Uses `.orchestration/` sidecar directory for immutable state.
+- **State Machine**:
+    - `REQUEST`: User prompt received.
+    - `REASONING`: Restricted to `select_active_intent` tool only.
+    - `ACTION`: Full tool access constrained by intent scope.
+- **Hook Lifecycle**:
+    - `PreRequest`: Context compaction and budget checking.
+    - `PreToolUse`: Scope enforcement and loop detection.
+    - `PostToolUse`: SHA-256 hashing and audit logging.
 
 ## Constitution Check
 
-- **Invariant 9 (Execution Flow)**: ✅ Enforced by the State Machine in `HookEngine`.
-- **Invariant 2 (Hook Engine)**: ✅ All tool calls and LLM requests must pass through `HookEngine`.
-- **Invariant 3 (Immutable Audit)**: ✅ Every mutation recorded with SHA-256.
-- **Law 3.1.6 (Context Compaction)**: ✅ Implemented via `PreCompact` hook.
-- **Law 4.1 (Least Privilege)**: ✅ During State 2, only `select_active_intent` tool is available.
+| Invariant   | Requirement                           | Status               |
+| :---------- | :------------------------------------ | :------------------- |
+| Invariant 2 | Hook Engine as sole execution gateway | **Aligned** (FR-001) |
+| Invariant 3 | Immutable Audit Trail with SHA-256    | **Aligned** (FR-006) |
+| Invariant 4 | Single Source of Orchestration Truth  | **Aligned** (FR-004) |
+| Invariant 9 | Three-State Execution Flow            | **Aligned** (FR-002) |
+| Law 3.1.5   | Execution Budgets                     | **Aligned** (FR-011) |
+| Law 4.6     | Circuit Breakers (Loop Detection)     | **Aligned** (FR-009) |
 
 ## Design Architecture
 
-### Phase 1: Hook Engine & State Machine
+### 1. Hook Engine Middleware (`src/hooks/HookEngine.ts`)
 
-Implement the central `HookEngine` class using the Middleware pattern. It will manage the transition from State 1 -> 2 -> 3.
+The central dispatcher for all governance checks. Injected into `Task.ts` for zero-bypass enforcement.
 
-- **PreToolUse Hook**: Validates state and scope.
-- **PostToolUse Hook**: Records mutation and computes SHA-256 hashes.
-- **PreLLMRequest Hook**: Performs context compaction and prompt assembly.
+### 2. Orchestration Service (`src/services/orchestration/OrchestrationService.ts`)
 
-### Phase 2: Orchestration & Audit Ledger
+Handles file I/O for the `.orchestration/` directory, SHA-256 computation, and scope validation.
 
-Enhance `OrchestrationService` to support:
+### 3. State Machine (`src/core/state/StateMachine.ts`)
 
-- Cryptographic logging to `agent_trace.jsonl`.
-- Managing execution budgets (turn counts).
-- Shared Brain (`AGENT.md`) synchronization.
+Manages the `REQUEST -> REASONING -> ACTION` transitions.
 
-### Phase 3: State-Aware Prompt Engineering
+### 4. Audit Ledger (`.orchestration/agent_trace.jsonl`)
 
-Update the prompt construction pipeline to dynamically restrict toolsets and inject intent/scope context based on the current execution state.
+A high-frequency, append-only log of every mutation and state transition.
 
 ## Project Structure
 
 ```text
 src/
 ├── hooks/
-│   ├── HookEngine.ts         # Central Dispatcher
-│   ├── lifecycle/
-│   │   ├── PreToolUse.ts     # Scope/State validation
-│   │   ├── PostToolUse.ts    # Audit/SHA-256/Trace
-│   │   └── PreCompact.ts     # Context Compaction
-├── core/
-│   ├── state/
-│   │   └── StateMachine.ts   # States: REQUEST, REASONING, ACTION
-│   ├── tools/
-│   │   └── SelectActiveIntent.ts
+│   ├── HookEngine.ts         # Main dispatcher
+│   ├── pre/
+│   │   ├── ScopeHook.ts      # Enforces owned_scope
+│   │   ├── BudgetHook.ts     # Enforces turns/tokens
+│   │   └── CompactHook.ts    # Summarizes context
+│   └── post/
+│       └── AuditHook.ts      # Computes SHA-256 and logs trace
 ├── services/
 │   └── orchestration/
-│       ├── OrchestrationService.ts
-│       └── AuditLedger.ts    # SHA-256 hash logic
-└── prompts/
-    └── sections/
-        └── Governance.ts     # State-aware instructions
+│       └── OrchestrationService.ts
+└── core/
+    └── task/
+        └── Task.ts           # Integrated with HookEngine
 ```
 
-## Complexity Tracking
+## Phase 0: Outline & Research (Complete)
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-| :-------- | :--------- | :----------------------------------- |
-| N/A       |            |                                      |
+- [x] Research Hook Engine architecture vs inline logic (Decision: Middleware Pattern).
+- [x] Verify SHA-256 performance for real-time hashing (Decision: Native Node `crypto`).
+- [x] Analyze VS Code tool filtering mechanisms (Decision: Dynamic tool array modification).
+
+## Phase 1: Design & Contracts (In Progress)
+
+- [x] Finalize `data-model.md` (ActiveIntent format, Trace format).
+- [ ] Implement `HookEngine` contract/interface.
+- [ ] Create `quickstart.md` for developer orientation.
+
+## Phase 2: Foundation (Next)
+
+- [ ] Initialize `.orchestration/` directory.
+- [ ] Build key Orchestration Service methods (readActiveIntents, logTrace).
+- [ ] Implement Hook Engine backbone.
