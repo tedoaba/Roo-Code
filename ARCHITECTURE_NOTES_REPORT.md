@@ -8,7 +8,7 @@
 
 ## Table of Contents
 
-0. [Governance Foundation](#0-governance-foundation)
+0. [Foundation](#0-foundation)
 1. [Current Extension Architecture Overview](#1-current-extension-architecture-overview)
 2. [Tool Execution Loop Mapping](#2-tool-execution-loop-mapping)
 3. [LLM Request/Response Lifecycle](#3-llm-requestresponse-lifecycle)
@@ -25,7 +25,65 @@
 
 ---
 
-## 0. Governance Foundation
+## 0. Foundation
+
+### **Roo Code Extension for Visual Studio Code**
+
+Roo Code is an open-source, AI-powered coding assistant built as an extension for Visual Studio Code. It integrates large language models directly into the editor, effectively acting like an AI-powered development team inside the IDE.
+
+With Roo Code, developers can issue plain-English requests through a sidebar panel to generate code, refactor existing files, write documentation, run tests, and more. Key capabilities include multi-file editing, automated debugging, and context-aware Q\&A about the codebase. As an open-source tool, Roo Code is free to use, and costs only arise from external LLM API usage if cloud providers are selected.
+
+#### **Features**
+
+##### **Natural-language code generation**
+
+Roo Code can produce new code from plain-English descriptions or specifications. For example, a request such as “create a REST API endpoint in Python” results in generated implementation code. It works across multiple files and understands project context.
+
+##### **Refactoring and debugging**
+
+It can modify or refactor existing code across multiple files, not just provide inline suggestions. Roo Code can trace issues, suggest debug logs, and help isolate root causes. This behavior is agent-like and goes beyond traditional autocomplete tools.
+
+##### **Documentation and Q\&A**
+
+The extension can write or update documentation and answer questions about the code. Developers can ask it to explain how a function works or summarize a module, using the full context of the repository.
+
+##### **Multiple modes**
+
+Roo Code provides specialized modes tailored to different tasks:
+
+- Code Mode for everyday coding, edits, and file operations
+- Ask Mode for quick Q\&A, explanations, and documentation writing
+- Architect Mode for high-level planning, system design, and specifications
+- Debug Mode for identifying bugs, adding logs, and isolating errors
+- Custom Modes that teams can define for specific workflows
+- Roomote Control for managing local VS Code tasks remotely
+
+Switching modes changes Roo Code’s behavior and tool usage, keeping context aligned with the task.
+
+##### **Automation and tools**
+
+Beyond editing text, Roo Code can automate repetitive tasks and invoke tools. It can run terminal commands such as npm install or test suites and can open a browser for integration testing, always requiring user approval.
+
+It integrates with external tools through its Model Context Protocol, enabling connections to databases, APIs, or custom scripts when needed.
+
+##### **Model-agnostic and multi-language**
+
+Roo Code works with a wide range of LLM providers, including:
+
+- OpenAI models such as GPT-4o and GPT-4
+- Anthropic models such as Claude
+- Google Gemini models
+- Local or self-hosted LLMs like Ollama based
+
+It supports many programming languages including Python, Java, C\#, JavaScript, TypeScript, Go, and Rust, depending on the underlying model capabilities.
+
+##### **Privacy and control**
+
+Because Roo Code runs as a local VS Code extension, code remains on the machine unless explicitly sent to a cloud model. All proposed file changes and command executions require user approval before execution.
+
+Sensitive files can be excluded using a .rooignore file. Teams can also use fully local models for maximum privacy and compliance.
+
+### Governance
 
 The extension's operations are governed by a hierarchy of documents:
 
@@ -41,44 +99,7 @@ The extension's operations are governed by a hierarchy of documents:
 
 The extension follows a VS Code Webview Extension architecture with **four distinct privilege domains**. The Hook Engine acts as a strict middleware boundary between the Extension Host's core logic and all mutating operations:
 
-```mermaid
-graph TD
-    subgraph VS_Code_Extension_Host [VS Code Extension Host]
-        entry[extension.ts] --> act[activate]
-        act --> CP[ClineProvider]
-        CP --> Task[Task Core Loop]
-
-        subgraph Core_Runtime
-            Task --> API[API Layer]
-            Task --> Tool[Tool Layer]
-            Task --> Prompt[Prompts]
-        end
-
-        subgraph Hook_Engine [HOOK ENGINE]
-            Pre[Pre-Hooks] --> Post[Post-Hooks]
-            Post --> SM[State Manager]
-        end
-
-        Tool <==> Hook_Engine
-    end
-
-    subgraph UI_Layer [Webview Layer]
-        WV[React UI]
-    end
-
-    subgraph Storage [Workspace Storage]
-        subgraph Sidecar [.orchestration/]
-            AI[active_intents.yaml]
-            AT[agent_trace.jsonl]
-            IM[intent_map.md]
-        end
-        Brain[AGENT.md / CLAUDE.md]
-    end
-
-    WV <==> CP
-    Hook_Engine <==> Sidecar
-    Tool --> Files[Target Files]
-```
+![High-Level Component Map](assets/high_level_component_map.png)
 
 ### 1.2 Webview (UI Layer) Responsibilities
 
@@ -143,94 +164,25 @@ The project uses a monorepo structure with isolated packages:
 
 The following describes the exact lifecycle of a tool invocation from LLM response to UI feedback:
 
-```mermaid
-sequenceDiagram
-    participant T as Task
-    participant A as ApiHandler
-    participant P as presentAssistantMessage
-    participant B as BaseTool/SpecificTool
-    participant W as Webview
-
-    Note over T, A: Phase 1: LLM Response Streaming
-    T->>A: createMessage(systemPrompt, messages, metadata)
-    A-->>T: ApiStream (async generator of chunks)
-    loop For each chunk
-        T->>T: Accumulate text, tool use (NativeToolCallParser), usage/reasoning
-    end
-    T->>P: moves to Phase 2
-
-    Note over P, B: Phase 2: Assistant Message Presentation
-    loop For each content block
-        alt TEXT block
-            P->>W: task.say("text", content)
-        else TOOL_USE block
-            P->>P: Extracts & Validates (Tool Name, Mode)
-            P->>B: handle(task, block, callbacks)
-        end
-    end
-
-    Note over B: Phase 3: Tool Execution
-    B->>B: execute(params, task, callbacks)
-    B-->>P: askApproval() / pushToolResult() / handleError()
-
-    Note over T: Phase 4: Loop Continuation
-    P-->>T: userMessageContent (tool_results)
-    T->>T: Append history & Save to disk
-    T->>T: Recurse: recursivelyMakeClineRequests(userContent)
-```
+![Complete Tool Call Lifecycle](assets/Complete_Tool_Call_Lifecycle.png)
 
 ### 2.2 Write Operations: `write_to_file` Flow
 
 **Location:** `src/core/tools/WriteToFileTool.ts`
 
-```mermaid
-graph TD
-    Start[WriteToFileTool.execute] --> Extract[Extract path, content]
-    Extract --> Resolve[Resolve absolute path]
-    Resolve --> Exist{File exists?}
-    Exist -- Yes --> Read[Read current content]
-    Read --> Diff[Compute unified diff]
-    Diff --> Approval[askApproval 'tool', diffDisplay]
-    Exist -- No --> Approval
-    Approval --> Approved{Approved?}
-    Approved -- Yes --> Write[fs.writeFile]
-    Write --> Track[Track file content]
-    Track --> Success[pushToolResult success]
-    Approved -- No --> Reject[pushToolResult rejection]
-```
+![Write Operations](assets/Write_to_file_flow.png)
 
 ### 2.3 Command Execution: `execute_command` Flow
 
 **Location:** `src/core/tools/ExecuteCommandTool.ts`
 
-```mermaid
-graph TD
-    Start[ExecuteCommandTool.execute] --> Extract[Extract command, cwd]
-    Extract --> Resolve[Resolve working directory]
-    Resolve --> Approval[askApproval 'command', commandDisplay]
-    Approval --> Approved{Approved?}
-    Approved -- Yes --> Exec[executeCommandInTerminal]
-    Exec --> Terminal[Create VS Code Terminal]
-    Terminal --> Send[Send command via shell integration]
-    Send --> Capture[Capture output via OutputInterceptor]
-    Capture --> Success[pushToolResult output]
-    Approved -- No --> Reject[pushToolResult rejection]
-```
+![Command Execution Flow](assets/execute_command_flow.png)
 
 ### 2.4 Response Propagation to UI
 
 Tool results propagate back to the Webview through a defined chain:
 
-```mermaid
-graph LR
-    Tool[Tool.execute] --> Push[callbacks.pushToolResult]
-    Push --> Block[Anthropic.ToolResultBlockParam]
-    Block --> Present[presentAssistantMessage]
-    Present --> Recurse[recursivelyMakeClineRequests]
-    Recurse --> Add[task.addToClineMessages]
-    Add --> Save[Save to disk]
-    Save --> Webview[Webview receives state update]
-```
+![Response Propagation to UI](assets/response_propagation_to_ui.png)
 
 ---
 
@@ -238,51 +190,11 @@ graph LR
 
 ### 3.1 Complete Request Flow
 
-```mermaid
-graph TD
-    Start[Task.recursivelyMakeClineRequests] --> Step1[1. BUILD SYSTEM PROMPT]
-    Step1 --> Assemble[Assemble sections: role, format, tools, guidelines, etc.]
-    Assemble --> Step2[2. BUILD TOOLS ARRAY]
-    Step2 --> Filter[Native + MCP tools filtered by mode]
-    Filter --> Step3[3. CONSTRUCT MESSAGES]
-    Step3 --> History[Conversation history + current userContent]
-    History --> Step4[4. CALL API]
-    Step4 --> Provider[Provider-specific createMessage]
-    Provider --> Step5[5. PROCESS STREAM]
-    Step5 --> Accum[Accumulate text, tools, usage, reasoning]
-    Accum --> Step6[6. POST-STREAM PROCESSING]
-    Step6 --> Present[presentAssistantMessage -> dispatches tools]
-    Present --> Save[Save conversation & Checkpoint]
-    Save --> Step7[7. RECURSE OR TERMINATE]
-    Step7 --> Result{tool_results?}
-    Result -- Yes --> Start
-    Result -- No --> Completion{attempt_completion?}
-    Completion -- Yes --> End[Task completes]
-    Completion -- No --> Abort[Task aborts]
-```
+![Complete Request Flow](assets/complete_request_flow.png)
 
 ### 3.2 Provider Abstraction
 
-```mermaid
-classDiagram
-    class ApiHandler {
-        <<interface>>
-        +createMessage(systemPrompt, messages, metadata) ApiStream
-        +getModel() ModelDetails
-        +countTokens(content) number
-    }
-    class buildApiHandler {
-        <<factory>>
-    }
-    buildApiHandler ..> ApiHandler : creates
-    ApiHandler <|-- AnthropicHandler
-    ApiHandler <|-- OpenAiHandler
-    ApiHandler <|-- GeminiHandler
-    ApiHandler <|-- AwsBedrockHandler
-    ApiHandler <|-- VertexHandler
-    ApiHandler <|-- NativeOllamaHandler
-    ApiHandler <|-- OpenRouterHandler
-```
+![Provider Abstraction](assets/provider_abstraction.png)
 
 ---
 
@@ -294,25 +206,7 @@ classDiagram
 
 The system prompt is assembled from modular sections. Each section is a function that returns a string fragment:
 
-```mermaid
-graph TD
-    SP[SYSTEM_PROMPT] --> GP[generatePrompt]
-    GP --> Role[roleDefinition]
-    GP --> Markdown[markdownFormattingSection]
-    GP --> Shared[getSharedToolUseSection]
-    GP --> Guidelines[getToolUseGuidelinesSection]
-    GP --> Cap[getCapabilitiesSection]
-    GP --> Modes[getModesSection]
-    GP --> Skills[getSkillsSection]
-    GP --> Rules[getRulesSection]
-    GP --> Info[getSystemInfoSection]
-    GP --> Obj[getObjectiveSection]
-    GP --> Custom[addCustomInstructions]
-    Custom --> RooRules[Read .roo/rules-]
-    Custom --> Clinerules[Read .clinerules]
-    Custom --> ClaudeMD[Read CLAUDE.md]
-    Custom --> Global[Global custom instructions]
-```
+![Prompt Assembly Chain](assets/prompt_assembly_chain.png)
 
 ### 4.2 Prompt Section Sources
 
@@ -416,35 +310,7 @@ The Hook Engine is the **only** component permitted to read/write the `.orchestr
 
 The Hook Engine SHALL be implemented as a middleware layer that wraps existing execution flows without modifying core logic. It operates at two interception phases:
 
-```mermaid
-graph TD
-    subgraph Hook_Engine [HOOK ENGINE — src/hooks/]
-        subgraph PreToolUse_Phase [PreToolUse Phase]
-            A1[Intent context injection]
-            A2[HITL authorization enforcement]
-            A3[Scope validation]
-            A4[Optimistic lock acquisition]
-        end
-
-        subgraph PostToolUse_Phase [PostToolUse Phase]
-            B1[Codebase documentation update]
-            B2[State evolution .orchestration/]
-            B3[Intent progress tracking]
-            B4[Content hash computation]
-            B5[Agent trace logging]
-            B6[Context Compaction]
-        end
-
-        subgraph OSM [Orchestration State Manager]
-            C1[.orchestration/* read/write]
-        end
-
-        PreToolUse_Phase -->|ALLOW / DENY| PostToolUse_Phase
-        PostToolUse_Phase --> OSM
-    end
-
-    Execution_Request[Tool Execution Request] --> PreToolUse_Phase
-```
+![Hook Engine Architecture](assets/hook_engine_architecture.png)
 
 **Hook Engine responsibilities:**
 
@@ -490,39 +356,7 @@ PostHookInput {
 
 The hooks directory SHALL contain all governance logic, fully isolated from core extension code. The isolation boundary is strict:
 
-```mermaid
-graph TD
-    Hooks[src/hooks/] --> Engine[engine/]
-    Hooks --> Pre[pre/]
-    Hooks --> Post[post/]
-    Hooks --> State[state/]
-    Hooks --> Tools[tools/]
-    Hooks --> Index[index.ts]
-
-    Engine --> HE[HookEngine.ts]
-    Engine --> HR[HookRegistry.ts]
-    Engine --> HT[types.ts]
-
-    Pre --> IV[IntentValidationHook.ts]
-    Pre --> SE[ScopeEnforcementHook.ts]
-    Pre --> PC[PrivilegeCheckHook.ts]
-    Pre --> CI[ContextInjectionHook.ts]
-    Pre --> LA[LockAcquisitionHook.ts]
-
-    Post --> AL[AuditLogHook.ts]
-    Post --> CH[ContentHashHook.ts]
-    Post --> IP[IntentProgressHook.ts]
-    Post --> IM[IntentMapHook.ts]
-    Post --> SB[SharedBrainHook.ts]
-    Post --> SD[ScopeDriftDetectionHook.ts]
-
-    State --> OS[OrchestrationState.ts]
-    State --> IR[IntentRegistry.ts]
-    State --> CH2[ContentHasher.ts]
-    State --> AI[AgentIdentity.ts]
-
-    Tools --> SAI[SelectActiveIntentTool.ts]
-```
+![Hook Isolation Strategy](assets/hook_isolation_strategy.png)
 
 ### 6.4 How Core Logic Remains Untouched
 
@@ -532,22 +366,7 @@ The integration strategy follows the **Decorator Pattern** — core functions ar
 
 **Instrumentation pattern (conceptual flow, not code):**
 
-```mermaid
-graph TD
-    subgraph BEFORE [Current Flow]
-        B_Tool[WriteToFileTool.execute] --> B_FS[fs.writeFile]
-    end
-
-    subgraph AFTER [Instrumented Flow]
-        A_Tool[WriteToFileTool.execute] --> A_Pre[hookEngine.preToolUse]
-        A_Pre -- Allowed --> A_FS[fs.writeFile]
-        A_Pre -- Denied --> A_Reject[Return rejection]
-        A_FS --> A_Post[hookEngine.postToolUse]
-        A_Post --> A_Trace[Logs to agent_trace.jsonl]
-        A_Post --> A_Map[Updates intent_map.md]
-        A_Post --> A_Evolve[Evolves intent state]
-    end
-```
+![Instrumentation Pattern](assets/instrumentation_pattern.png)
 
 **Changes to core files are limited to:**
 
@@ -562,15 +381,7 @@ graph TD
 
 The governance system uses a **Sidecar Storage Pattern** in `.orchestration/`. These files are **machine-managed** — created, read, and updated exclusively by the Hook Engine. Human developers may read them for debugging but SHOULD NOT edit them directly.
 
-```mermaid
-graph TD
-    Sidecar[.orchestration/] --> AI[active_intents.yaml]
-    Sidecar --> AT[agent_trace.jsonl]
-    Sidecar --> IM[intent_map.md]
-    Sidecar --> SQL[future: SQLite/Zvec]
-
-    Root[Project Root] --> Brain[AGENT.md / CLAUDE.md]
-```
+![Sidecar Data Model](assets/sidecar_data_model.png)
 
 > **Storage Evolution Note:** The initial implementation uses flat files (YAML, JSONL, Markdown). Based on performance requirements and architecture capability, the storage MAY evolve to a high-performance local database (SQLite, Zvec, or similar). The Hook Engine's `OrchestrationState` manager abstracts the storage backend to enable this migration without upstream changes.
 
@@ -749,34 +560,7 @@ The agent is **not allowed to write code immediately**. It must first "checkout"
 
 ### 8.1 The Three States
 
-```mermaid
-graph TD
-    subgraph CURRENT_MODEL [Current Execution Model]
-        CM_Start[User Message] --> CM_StartTask[startTask]
-        CM_StartTask --> CM_Recurse[recursivelyMakeClineRequests]
-        CM_Recurse --> CM_Loop[[Loop: Direct Tool Access]]
-    end
-
-    subgraph GOVERNED_MODEL [Governed Three-State Model]
-        S1[STATE 1: THE REQUEST] -- "User prompts" --> S2
-
-        subgraph S2 [STATE 2: THE REASONING INTERCEPT]
-            S2_Analyze[1. Agent analyzes request] --> S2_Call[2. Agent calls select_active_intent]
-            S2_Call --> S2_Hook[3. Pre-Hook INTERCEPTS & PAUSES]
-            S2_Hook --> S2_Query[Query Data Model: active_intents, constraints, scope]
-            S2_Query --> S2_Inject[Enrich prompt with deep context]
-            S2_Inject --> S2_Resume[4. Execution RESUMES]
-        end
-
-        S2 --> S3
-
-        subgraph S3 [STATE 3: CONTEXTUALIZED ACTION]
-            S3_Generate[1. LLM generates changes] --> S3_Mutate[2. Agent calls mutating tools]
-            S3_Mutate --> S3_Hook[Post-Hook INTERCEPTS]
-            S3_Hook --> S3_Process[Compute Hash, Log Trace, Update Map, Check Criteria]
-        end
-    end
-```
+![The Three States](assets/the_three_state_execution_flow.png)
 
 ### 8.2 State Transition Mechanics
 
@@ -815,23 +599,7 @@ The critical "pause → enrich → resume" flow:
 
 During Contextualized Action, every mutating tool call triggers PostToolUse processing:
 
-```mermaid
-graph TD
-    Start[Agent calls write_file] --> Pre[PreToolUse validates]
-    Pre --> Scope{In scope?}
-    Scope -- Yes --> Lock{Lock/Hash valid?}
-    Lock -- Yes --> Write[Core write_file executes]
-    Write --> Post[PostToolUse processes]
-    Post --> Hash[Compute SHA-256 Hash]
-    Hash --> Trace[Append to agent_trace.jsonl]
-    Trace --> Map[Update intent_map.md]
-    Map --> Criteria[Check acceptance_criteria]
-    Criteria -- Met --> Complete[Transition to COMPLETED]
-    Criteria -- Not Met --> Lessons[Optional: Append lessons if failed]
-
-    Scope -- No --> Deny[DENY]
-    Lock -- No --> Deny
-```
+![PostToolUse Mechanics](assets/post_tool_use_mechanics.png)
 
 ---
 
@@ -851,21 +619,7 @@ Optimistic locking prevents concurrent agents from silently overwriting each oth
 
 **Optimistic locking flow:**
 
-```mermaid
-graph TD
-    subgraph Agent_A [Agent A Workflow]
-        A1[PRE-4 reads current hash: hash_A] --> A2[Agent A proceeds with write]
-        A2 --> A3[POST-4 computes hash_B, records transition]
-    end
-
-    subgraph Agent_B [Agent B Concurrent Workflow]
-        B1[PRE-4 reads actual hash: hash_B] --> B2{hash_B == expected_hash?}
-        B2 -- No/Mismatch --> B3[PRE-4 DENIES write: conflict error]
-        B3 --> B4[Conflict logged to agent_trace.jsonl]
-    end
-
-    A3 -.-> B1
-```
+![Optimistic Locking Flow](assets/optimistic_locking_flow.png)
 
 ### 9.2 Where Scope Validation Will Occur
 
@@ -883,23 +637,7 @@ Scope validation ensures agents only operate within their declared intent bounda
 
 **Scope validation flow:**
 
-```mermaid
-graph TD
-    Start[Tool invocation at PRE-2/PRE-3] --> Active{Active intent?}
-    Active -- No --> Deny[DENY: Intent Handshake not completed]
-    Active -- Yes --> Extract[Extract target path/CWD from params]
-    Extract --> Absolute[Resolve to absolute paths]
-    Absolute --> Valid{Path in scope?}
-    Valid -- Yes --> Continue[ALLOW operation]
-    Valid -- No --> Deny2[DENY: Scope violation]
-
-    subgraph Scope_Check [Scope Definition Match]
-        Files[exact file match]
-        Dirs[directory prefix match]
-        Globs[glob pattern match]
-    end
-    Valid -.-> Scope_Check
-```
+![Scope Validation Flow](assets/scope_validation_flow.png)
 
 ### 9.3 Existing Safety Mechanisms (Preserved)
 
