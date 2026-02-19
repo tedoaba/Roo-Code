@@ -17,9 +17,9 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create directory structure for `.orchestration/` and `src/utils/orchestration/`
-- [ ] T002 [P] Finalize `AgentTraceEntry` (including `attribution`) and `ILedgerManager` interfaces in `src/contracts/AgentTrace.ts`
-- [ ] T002a [P] Add benchmark utility to verify <50ms write target in `src/utils/orchestration/__tests__/performance.bench.ts`
+- [x] T001 Create directory structure for `.orchestration/` and `src/utils/orchestration/`
+- [x] T002 [P] Finalize `AgentTraceEntry` (including `attribution`) and `ILedgerManager` interfaces in `src/contracts/AgentTrace.ts`
+- [x] T002a [P] Add benchmark utility to verify <50ms write target in `src/utils/orchestration/__tests__/performance.test.ts`
 
 ---
 
@@ -29,9 +29,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Implement `LedgerManager` with atomic append logic in `src/utils/orchestration/LedgerManager.ts`
-- [ ] T004 [P] Create unit tests for `LedgerManager` in `src/utils/orchestration/__tests__/LedgerManager.test.ts`
-- [ ] T005 [P] Setup SHA-256 hashing integration using existing utilities in `src/utils/orchestration/LedgerManager.ts`
+- [x] T003 Implement `LedgerManager` with atomic append logic in `src/utils/orchestration/LedgerManager.ts`
+- [x] T004 [P] Create unit tests for `LedgerManager` in `src/utils/orchestration/__tests__/LedgerManager.test.ts`
+- [x] T005 [P] Setup SHA-256 hashing integration using existing utilities in `src/utils/orchestration/LedgerManager.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -45,14 +45,14 @@
 
 ### Tests for User Story 1
 
-- [ ] T006 [P] [US1] Create unit tests for `AgentTraceHook` in `src/hooks/post/__tests__/AgentTraceHook.test.ts`
-- [ ] T007 [P] [US1] Create integration test for end-to-end trace logging in `tests/integration/AgentTrace.integration.test.ts`
+- [x] T006 [P] [US1] Create unit tests for `AgentTraceHook` in `src/hooks/post/__tests__/AgentTraceHook.test.ts`
+- [x] T007 [P] [US1] Create integration test for end-to-end trace logging in `src/test/integration/AgentTrace.integration.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implement `AgentTraceHook` in `src/hooks/post/AgentTraceHook.ts` using `LedgerManager`
-- [ ] T009 [US1] Register `AgentTraceHook` in the `HookEngine` registry to trigger on `PostToolUse`
-- [ ] T010 [US1] Add validation in `AgentTraceHook` to ensure no duplicate entries per mutation event
+- [x] T008 [US1] Implement `AgentTraceHook` in `src/hooks/post/AgentTraceHook.ts` using `LedgerManager`
+- [x] T009 [US1] Register `AgentTraceHook` in the `HookEngine` registry to trigger on `PostToolUse`
+- [x] T010 [US1] Add validation in `AgentTraceHook` to ensure no duplicate entries per mutation event
 
 **Checkpoint**: User Story 1 fully functional and testable independently.
 
@@ -62,9 +62,9 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T011 [P] Ensure `.orchestration/agent_trace.jsonl` is correctly handled in gitignore or system exclusions
-- [ ] T012 Run quickstart.md validation scenarios to confirm ledger persistence across sessions
-- [ ] T013 [P] Document ledger format and rotation considerations (if any) in `specs/007-agent-trace-ledger/research.md`
+- [x] T011 [P] Ensure `.orchestration/agent_trace.jsonl` is correctly handled in gitignore or system exclusions
+- [x] T012 Run quickstart.md validation scenarios to confirm ledger persistence across sessions
+- [x] T013 [P] Document ledger format and rotation considerations (if any) in `specs/007-agent-trace-ledger/research.md`
 
 ---
 

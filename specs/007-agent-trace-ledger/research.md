@@ -29,6 +29,12 @@
 **Decision**: Re-use the `hashing.ts` utility (from feature 005) to compute hashes of modified artifacts.
 **Rationale**: Maintains consistency across features and adheres to Constitution Invariant 7.
 
+### 5. Log Rotation and Retention
+
+**Decision**: No automatic rotation implemented in MVP.
+**Rationale**: Given the audit trail requirements of Invariant 3, the ledger should be preserved. However, for long-running projects, manual archiving of `.orchestration/agent_trace.jsonl` to `.orchestration/agent_trace.1.jsonl` may be necessary.
+**Scale**: At ~1KB per entry, 10,000 mutations result in a ~10MB file, which is easily manageable by modern file systems and JSONL parsers.
+
 ## Decision Summary
 
 | Component          | Choice                   |
