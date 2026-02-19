@@ -69,9 +69,9 @@ src/
 │   │   ├── engines/
 │   │   │   ├── BaseEngine.ts          # Extensible base for languages
 │   │   │   └── TypeScriptEngine.ts    # TS/JS Implementation
-│   │   └── types.ts                    # AST_REFACTOR, INTENT_EVOLUTION types
+│   │   └── types.ts                    # Internal interface definitions
 └── shared/
-    └── types.ts                        # Shared mutation constants
+    └── types.ts                        # Shared MutationClass and data entities
 
 src/core/mutation/__tests__/
 └── MutationClassifier.test.ts          # Unit tests

@@ -21,7 +21,7 @@ The data required to perform a classification.
 | :---------------- | :------- | :----------------------------------------- |
 | `previousContent` | `string` | The code content before mutation.          |
 | `newContent`      | `string` | The code content after mutation.           |
-| `fileExtension`   | `string` | Used to select the appropriate AST engine. |
+| `filename`        | `string` | Used to select the appropriate AST engine. |
 
 ### `MutationClassificationResult` (Output)
 
@@ -31,4 +31,5 @@ The result of the comparison.
 | :--------------- | :-------------- | :--------------------------------------------------------- |
 | `classification` | `MutationClass` | Either `AST_REFACTOR` or `INTENT_EVOLUTION`.               |
 | `reason`         | `string`        | (Optional) Brief description of why this label was chosen. |
-| `timestamp`      | `number`        | Unix timestamp of when the check was performed.            |
+| `timestamp`      | `number`        | Unix timestamp (ms) when the check was performed.          |
+| `durationMs`     | `number`        | Execution time in milliseconds for budget tracking.        |

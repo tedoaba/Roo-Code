@@ -57,7 +57,7 @@ As a system administrator, I want to ensure that the same pair of code changes a
 
 ### Functional Requirements
 
-- **FR-001**: The system MUST accept two string inputs: `previous_content` and `new_content`.
+- **FR-001**: The system MUST accept a `MutationComparisonRequest` containing `previous_content`, `new_content`, and `filename`.
 - **FR-002**: The system MUST return exactly one of two constants: `AST_REFACTOR` or `INTENT_EVOLUTION`.
 - **FR-003**: The classification logic MUST be deterministic (no random seeds or probabilistic AI models).
 - **FR-004**: The system MUST use an extensible Abstract Syntax Tree (AST) comparison or structured diffing architecture that supports multiple languages, with TypeScript/JavaScript as the initial implementation.

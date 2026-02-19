@@ -55,6 +55,7 @@ description: "Task list for Semantic Mutation Classifier implementation"
 - [ ] T008 [P] [US1] Add test cases for whitespace/formatting changes (AST_REFACTOR)
 - [ ] T009 [P] [US1] Add test cases for variable/function renames (AST_REFACTOR)
 - [ ] T010 [P] [US1] Add test cases for adding logic branches or new functions (INTENT_EVOLUTION)
+- [ ] T010b [P] [US1] Add test cases for edge cases: empty files (AST_REFACTOR) and file deletion (INTENT_EVOLUTION)
 
 ### Implementation for User Story 1
 
