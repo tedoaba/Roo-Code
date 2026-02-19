@@ -25,7 +25,7 @@ description: "Tasks for Post-Write Trace Hook"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Initialize contracts file `src/contracts/AgentTrace.ts` mapping the definitions from `specs/006-post-write-trace-hook/contracts/PostWriteTraceHook.ts`
+- [x] T001 Initialize contracts file `src/contracts/AgentTrace.ts` mapping the definitions from `specs/006-post-write-trace-hook/contracts/PostWriteTraceHook.ts`
 
 ---
 
@@ -35,9 +35,9 @@ description: "Tasks for Post-Write Trace Hook"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Implement SHA-256 hash generator in `src/utils/crypto/hashing.ts` checking for existence of paths before hashing.
-- [ ] T003 [P] Write unit tests for robust file hashing in `tests/utils/hashing.test.ts`.
-- [ ] T004 Define empty `AgentTraceHook` class structure implementing the contract interface in `src/hooks/post/AgentTraceHook.ts`.
+- [x] T002 Implement SHA-256 hash generator in `src/utils/crypto/hashing.ts` checking for existence of paths before hashing.
+- [x] T003 [P] Write unit tests for robust file hashing in `tests/utils/hashing.test.ts`.
+- [x] T004 Define empty `AgentTraceHook` class structure implementing the contract interface in `src/hooks/post/AgentTraceHook.ts`.
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
 
@@ -53,11 +53,11 @@ description: "Tasks for Post-Write Trace Hook"
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T005 [P] [US1] Create unit test verifying minimum trace fields (agent, path, timestamp, mutation_class) in `tests/hooks/AgentTraceHook.test.ts`.
+- [x] T005 [P] [US1] Create unit test verifying minimum trace fields (agent, path, timestamp, mutation_class) in `tests/hooks/AgentTraceHook.test.ts`.
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Implement trace capture logic and basic object instantiation writing directly to ledger internally in `src/hooks/post/AgentTraceHook.ts` (ensure native `fs.appendFile` or existing ledger synchronization utilities are utilized during write to avoid concurrency race conditions).
+- [x] T006 [US1] Implement trace capture logic and basic object instantiation writing directly to ledger internally in `src/hooks/post/AgentTraceHook.ts` (ensure native `fs.appendFile` or existing ledger synchronization utilities are utilized during write to avoid concurrency race conditions).
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently.
 
@@ -71,12 +71,12 @@ description: "Tasks for Post-Write Trace Hook"
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T007 [P] [US2] Update `tests/hooks/AgentTraceHook.test.ts` to verify valid intent mapping (`related` array) and structural content hash integrity.
+- [x] T007 [P] [US2] Update `tests/hooks/AgentTraceHook.test.ts` to verify valid intent mapping (`related` array) and structural content hash integrity.
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Extend `src/hooks/post/AgentTraceHook.ts` to assemble and inject the `related` ID tracking arrays.
-- [ ] T009 [US2] Integrate `hashing.ts` into `src/hooks/post/AgentTraceHook.ts` to actively compute and set the `content_hash` payload field.
+- [x] T008 [US2] Extend `src/hooks/post/AgentTraceHook.ts` to assemble and inject the `related` ID tracking arrays.
+- [x] T009 [US2] Integrate `hashing.ts` into `src/hooks/post/AgentTraceHook.ts` to actively compute and set the `content_hash` payload field.
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently.
 
@@ -90,11 +90,11 @@ description: "Tasks for Post-Write Trace Hook"
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T010 [P] [US3] Append test cases to `tests/hooks/AgentTraceHook.test.ts` to simulate internal failures from invalid structures and assert safe resolution.
+- [x] T010 [P] [US3] Append test cases to `tests/hooks/AgentTraceHook.test.ts` to simulate internal failures from invalid structures and assert safe resolution.
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Wrap internal `execute` logic inside `src/hooks/post/AgentTraceHook.ts` with a non-blocking `try-catch` logging handler.
+- [x] T011 [US3] Wrap internal `execute` logic inside `src/hooks/post/AgentTraceHook.ts` with a non-blocking `try-catch` logging handler.
 
 **Checkpoint**: All user stories should now be independently functional.
 
@@ -104,8 +104,8 @@ description: "Tasks for Post-Write Trace Hook"
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T012 Register `AgentTraceHook` conditionally within the primary Hook Engine pipeline (post-write tool boundary) inside `src/hooks/HookEngine.ts`, explicitly filtering to apply only for write tools.
-- [ ] T013 Verify e2e integration per `quickstart.md` scenario by triggering manual write operations and confirming `.orchestration/agent_trace.jsonl` footprint.
+- [x] T012 Register `AgentTraceHook` conditionally within the primary Hook Engine pipeline (post-write tool boundary) inside `src/hooks/HookEngine.ts`, explicitly filtering to apply only for write tools.
+- [x] T013 Verify e2e integration per `quickstart.md` scenario by triggering manual write operations and confirming `.orchestration/agent_trace.jsonl` footprint.
 
 ---
 
