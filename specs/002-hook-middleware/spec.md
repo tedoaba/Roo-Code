@@ -5,6 +5,14 @@
 **Status**: Draft  
 **Input**: User description: "Goal: Architect the Hook Engine that wraps all tool execution requests and enforce formal boundaries. Command Classification: Classify commands as Safe (read) or Destructive (write, delete, execute). UI-Blocking Authorization: Identify existing logic to pause the Promise chain. Your hook will trigger vscode.window.showWarningMessage with 'Approve/Reject' to update core intent evolution. Your architecture should allow defining .intentignore like file to exclude changes to certain intents. A simple model to adopt is a codebase is a collection of intents as much as it is a collection of organized code files linked by imports. You may need to develop or adopt a simple intent language see the following references https://arxiv.org/abs/2406.09757 https://github.com/cbora/aispec http://sunnyday.mit.edu/papers/intent-tse.pdf and those that build formal intent specification structures on top of GitHub speckit. Autonomous Recovery: If rejected, send a standardized JSON tool-error back to the LLM so it can self-correct without crashing. Scope Enforcement: In the write_file Pre-Hook, check if the target file matches the owned_scope of the active intent. If valid: Proceed. If invalid: Block and return: 'Scope Violation: REQ-001 is not authorized to edit [filename]. Request scope expansion.'"
 
+## Clarifications
+
+### Session 2026-02-19
+
+- Q: Should the system "Fail-Close" or "Fail-Open" when scope is undefined? → A: Fail-Close (Deny by Default). Edits are blocked unless explicitly allowed in the intent scope.
+- Q: How should .intentignore interact with the owned_scope? → A: Additive Override. A file is editable only if it is in the owned_scope AND NOT matched by patterns in .intentignore.
+- Q: How should the system behave if no intent is active? → A: Block and Force Handshake. All destructive tools are denied with an error instructing the agent to select an intent first.
+
 ## User Scenarios & Testing _(mandatory)_
 
 <!--
@@ -73,9 +81,10 @@ As a developer, I want the agent to receive structured errors when a command is 
 - **FR-002**: The system MUST classify every intercepted command as either "Safe" (e.g., read_file, search) or "Destructive" (e.g., write_to_file, run_command).
 - **FR-003**: For all "Destructive" commands, the system MUST pause execution and prompt the user for "Approve" or "Reject".
 - **FR-004**: If the user rejects a command, the system MUST return a standardized JSON error to the agent to enable self-correction.
-- **FR-005**: The system MUST enforce scope boundaries by checking the target file of a `write_to_file` operation against the `owned_scope` of the currently active intent.
+- **FR-005**: The system MUST enforce scope boundaries by checking the target file of a `write_to_file` operation against the `owned_scope` of the currently active intent. If no scope is defined, the modification MUST be denied by default (Fail-Close).
 - **FR-006**: If a file is outside the active intent's scope, the system MUST block the operation and return the error: "Scope Violation: REQ-001 is not authorized to edit [filename]. Request scope expansion."
-- **FR-007**: The system MUST support an `.intentignore` file (or similar mechanism) to explicitly exclude certain files or patterns from modification by specific intents.
+- **FR-007**: The system MUST support an `.intentignore` file (or similar mechanism) to explicitly exclude certain files or patterns from modification. Patterns in `.intentignore` MUST take precedence over `owned_scope` (Additive Override).
+- **FR-008**: The Hook Engine MUST block all "Destructive" tool requests if no active intent is present in the orchestration state, returning an error: "Error: No active intent. Please execute select_active_intent before modifying code."
 
 ### Key Entities _(include if feature involves data)_
 
