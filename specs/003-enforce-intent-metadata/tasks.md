@@ -1,4 +1,4 @@
-# Tasks: Enforce Intent Metadata in write_file Tool
+# Tasks: Enforce Intent Metadata in write_to_file Tool
 
 **Input**: Design documents from `/specs/003-enforce-intent-metadata/`
 **Prerequisites**: plan.md (required), spec.md (required), data-model.md, quickstart.md
@@ -28,7 +28,7 @@
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
 - [ ] T002 Update tool prompt schema definition in `src/core/prompts/tools/native-tools/write_to_file.ts` to include `intent_id` and `mutation_class` as required fields
-- [ ] T003 Update `WriteToFileParams` type definition in `src/core/tools/WriteToFileTool.ts` to include metadata fields
+- [ ] T003 Update `WriteToFileParams` type definition in `src/core/tools/WriteToFileTool.ts` to include metadata fields and ensure no legacy optionality remains
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -38,7 +38,7 @@
 
 **Goal**: Every file write is associated with a specific intent and mutation class for traceability.
 
-**Independent Test**: Successfully call `write_file` with valid `intent_id` and `mutation_class` and verify file creation.
+**Independent Test**: Successfully call `write_to_file` with valid `intent_id` and `mutation_class` and verify file creation.
 
 ### Tests for User Story 1
 
@@ -58,7 +58,7 @@
 
 **Goal**: Block any attempt to write files that lacks the necessary traceability metadata.
 
-**Independent Test**: Call `write_file` without `intent_id` or with an empty string and verify rejection.
+**Independent Test**: Call `write_to_file` without `intent_id` or with an empty string and verify rejection.
 
 ### Tests for User Story 2
 
@@ -77,7 +77,7 @@
 
 **Goal**: Ensure code changes are only categorized into allowed enum classes.
 
-**Independent Test**: Call `write_file` with an invalid `mutation_class` and verify rejection with allowed values listed.
+**Independent Test**: Call `write_to_file` with an invalid `mutation_class` and verify rejection with allowed values listed.
 
 ### Tests for User Story 3
 
@@ -97,7 +97,7 @@
 
 - [ ] T011 Verify all scenarios in `specs/003-enforce-intent-metadata/quickstart.md` manually
 - [ ] T012 [P] Update agent context using `.specify/scripts/powershell/update-agent-context.ps1 -AgentType agy`
-- [ ] T013 Run full test suite in `src/core/tools/__tests__/writeToFileTool.spec.ts` to ensure zero regressions
+- [ ] T013 Run full test suite in `src/core/tools/__tests__/writeToFileTool.spec.ts` to ensure zero regressions and verify validation overhead is <10ms
 
 ---
 

@@ -1,10 +1,10 @@
-# Implementation Plan: Enforce Intent Metadata in write_file Tool
+# Implementation Plan: Enforce Intent Metadata in write_to_file Tool
 
 **Branch**: `003-enforce-intent-metadata` | **Date**: 2026-02-19 | **Spec**: [spec.md](./spec.md)
 
 ## Summary
 
-Implement a schema upgrade for the `write_file` (canonical name: `write_to_file`) tool to enforce mutation traceability. This requires adding `intent_id` and `mutation_class` as mandatory fields and implementing strict validation to block any writes lacking this metadata.
+Implement a schema upgrade for the `write_to_file` (canonical name: `write_to_file`) tool to enforce mutation traceability. This requires adding `intent_id` and `mutation_class` as mandatory fields and implementing strict validation to block any writes lacking this metadata.
 
 ## Technical Context
 

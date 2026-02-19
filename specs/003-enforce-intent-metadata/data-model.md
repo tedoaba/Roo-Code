@@ -1,6 +1,6 @@
 # Data Model: Mutation Metadata
 
-This document defines the data structures used for enforcing mutation traceability in the `write_file` tool.
+This document defines the data structures used for enforcing mutation traceability in the `write_to_file` tool.
 
 ## Enumerations
 

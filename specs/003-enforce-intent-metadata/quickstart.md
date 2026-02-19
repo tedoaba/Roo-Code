@@ -1,6 +1,6 @@
 # Quickstart: Enforced Intent Metadata
 
-The `write_file` tool now requires metadata for auditing and traceability. Governance rules block any call missing these fields.
+The `write_to_file` tool now requires metadata for auditing and traceability. Governance rules block any call missing these fields.
 
 ## Valid Request Example
 
