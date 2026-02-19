@@ -1,4 +1,4 @@
-export { HookEngine, type ToolRequest, type ToolResult } from "./HookEngine"
+export { HookEngine, COMMAND_CLASSIFICATION, type ToolRequest, type ToolResult } from "./HookEngine"
 export { IntentGateHook } from "./pre/IntentGateHook"
 export { ContextEnrichmentHook } from "./pre/ContextEnrichmentHook"
 export { ScopeEnforcementHook } from "./pre/ScopeEnforcementHook"

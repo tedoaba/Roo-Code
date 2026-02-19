@@ -1,6 +1,6 @@
 import { OrchestrationService } from "../services/orchestration/OrchestrationService"
 import { StateMachine } from "../core/state/StateMachine"
-import { HookResponse } from "../services/orchestration/types"
+import { HookResponse, CommandClassification } from "../services/orchestration/types"
 
 /**
  * Hook Engine - The Sole Execution Gateway (T007)
@@ -38,6 +38,39 @@ interface ToolCallRecord {
 }
 
 const CIRCUIT_BREAKER_THRESHOLD = 3
+
+/**
+ * Command Classification Mapping (data-model.md §3)
+ * Defines which tools are DESTRUCTIVE (require approval + scope check)
+ * and which are SAFE (read-only, no approval needed).
+ */
+export const COMMAND_CLASSIFICATION: Record<string, CommandClassification> = {
+	// Destructive (file-mutating, require scope check)
+	write_to_file: "DESTRUCTIVE",
+	apply_diff: "DESTRUCTIVE",
+	edit: "DESTRUCTIVE",
+	search_and_replace: "DESTRUCTIVE",
+	search_replace: "DESTRUCTIVE",
+	edit_file: "DESTRUCTIVE",
+	apply_patch: "DESTRUCTIVE",
+	delete_file: "DESTRUCTIVE",
+	// Destructive (non-file, user approval only)
+	execute_command: "DESTRUCTIVE",
+	new_task: "DESTRUCTIVE",
+	// Safe (read-only)
+	read_file: "SAFE",
+	list_files: "SAFE",
+	list_code_definition_names: "SAFE",
+	search_files: "SAFE",
+	codebase_search: "SAFE",
+	ask_followup_question: "SAFE",
+	select_active_intent: "SAFE",
+	switch_mode: "SAFE",
+	update_todo_list: "SAFE",
+	read_command_output: "SAFE",
+	access_mcp_resource: "SAFE",
+	attempt_completion: "SAFE",
+}
 
 export class HookEngine {
 	private orchestrationService: OrchestrationService
@@ -96,15 +129,43 @@ export class HookEngine {
 			return { action: "DENY", reason: stateCheck.reason }
 		}
 
+		// Classify the tool
+		const classification = this.classifyTool(req.toolName)
+
 		// select_active_intent is always allowed past this point
 		if (req.toolName === "select_active_intent") {
-			return { action: "CONTINUE" }
+			return { action: "CONTINUE", classification }
 		}
 
-		// 3. Scope enforcement for mutating tools
-		if (req.intentId && this.isMutatingTool(req.toolName)) {
+		// T007/T015: No Active Intent block (FR-008)
+		// All destructive tools are denied if no intent is active
+		if (!req.intentId && this.isDestructiveTool(req.toolName)) {
+			return {
+				action: "DENY",
+				classification,
+				reason: "Error: No active intent. Please execute select_active_intent before modifying code.",
+				details: `Tool '${req.toolName}' requires an active intent but none is selected.`,
+				recovery_hint:
+					"Use the 'select_active_intent' tool to select or create an intent before performing destructive operations.",
+			}
+		}
+
+		// 3. Scope enforcement for file-based destructive tools
+		if (req.intentId && this.isFileDestructiveTool(req.toolName)) {
 			const filePath = req.params.path || req.params.file_path || req.params.cwd
 			if (filePath) {
+				// Check .intentignore first (highest precedence)
+				if (this.orchestrationService.isIntentIgnored(filePath)) {
+					return {
+						action: "DENY",
+						classification,
+						reason: `File '${filePath}' is excluded by .intentignore. This file is globally protected.`,
+						details: `${req.intentId} attempted to modify a protected file.`,
+						recovery_hint:
+							"This file cannot be modified by any intent. Try a different file or update .intentignore.",
+					}
+				}
+
 				const scopeResult = await this.orchestrationService.validateScope(req.intentId, filePath)
 				if (!scopeResult.allowed) {
 					// Log scope violation
@@ -128,7 +189,14 @@ export class HookEngine {
 						})
 						.catch(() => {})
 
-					return { action: "DENY", reason: scopeResult.reason }
+					return {
+						action: "DENY",
+						classification,
+						reason: "Scope Violation",
+						details: scopeResult.reason || "File is outside the active intent's scope.",
+						recovery_hint:
+							"Cite a different file within the intent's owned_scope, or use 'select_active_intent' to expand scope.",
+					}
 				}
 
 				// Check file ownership contention
@@ -136,7 +204,11 @@ export class HookEngine {
 				if (owningIntent) {
 					return {
 						action: "DENY",
-						reason: `Governance Violation: File owned by Intent [${owningIntent}]. Cannot mutate files locked by another active intent.`,
+						classification,
+						reason: "File Ownership Contention",
+						details: `File owned by Intent [${owningIntent}]. Cannot mutate files locked by another active intent.`,
+						recovery_hint:
+							"Wait for the owning intent to release the file, or select the owning intent to make changes.",
 					}
 				}
 			}
@@ -165,7 +237,11 @@ export class HookEngine {
 
 				return {
 					action: "HALT",
-					reason: budgetResult.reason || "Execution budget exceeded. Intent marked BLOCKED.",
+					classification,
+					reason: "Budget Exceeded",
+					details: budgetResult.reason || "Execution budget exceeded. Intent marked BLOCKED.",
+					recovery_hint:
+						"Select a different intent with remaining budget, or request budget expansion for this intent.",
 				}
 			}
 		}
@@ -173,10 +249,16 @@ export class HookEngine {
 		// 5. Circuit breaker (T026): Detect identical tool call loops
 		const circuitResult = this.checkCircuitBreaker(req)
 		if (!circuitResult.allowed) {
-			return { action: "HALT", reason: circuitResult.reason }
+			return {
+				action: "HALT",
+				classification,
+				reason: "Circuit Breaker Tripped",
+				details: circuitResult.reason || "Identical tool calls detected in a loop.",
+				recovery_hint: "Break the loop by trying a different approach or different parameters.",
+			}
 		}
 
-		return { action: "CONTINUE" }
+		return { action: "CONTINUE", classification }
 	}
 
 	// ── PostToolUse Hook ──
@@ -192,8 +274,8 @@ export class HookEngine {
 	async postToolUse(result: ToolResult): Promise<void> {
 		if (!result.intentId) return
 
-		// For file-mutating tools, compute hash and update intent map
-		if (result.success && result.filePath && result.fileContent && this.isMutatingTool(result.toolName)) {
+		// For file-destructive tools, compute hash and update intent map
+		if (result.success && result.filePath && result.fileContent && this.isDestructiveTool(result.toolName)) {
 			await this.orchestrationService.logMutation(result.intentId, result.filePath, result.fileContent)
 		}
 
@@ -278,20 +360,30 @@ export class HookEngine {
 		}
 	}
 
-	private isMutatingTool(toolName: string): boolean {
-		const mutatingTools = [
-			"write_to_file",
-			"apply_diff",
-			"edit",
-			"search_and_replace",
-			"search_replace",
-			"edit_file",
-			"apply_patch",
-			"execute_command",
-			"delete_file",
-			"new_task",
-		]
-		return mutatingTools.includes(toolName)
+	/**
+	 * Classify a tool as SAFE or DESTRUCTIVE using the COMMAND_CLASSIFICATION map.
+	 * Defaults to DESTRUCTIVE for unknown tools (Fail-Close).
+	 */
+	classifyTool(toolName: string): CommandClassification {
+		return COMMAND_CLASSIFICATION[toolName] || "DESTRUCTIVE"
+	}
+
+	/**
+	 * Check if a tool is classified as DESTRUCTIVE.
+	 * Uses COMMAND_CLASSIFICATION constant from data-model.md §3.
+	 */
+	isDestructiveTool(toolName: string): boolean {
+		return this.classifyTool(toolName) === "DESTRUCTIVE"
+	}
+
+	/**
+	 * Check if a destructive tool operates on files (vs non-file like execute_command).
+	 * File-based destructive tools are subject to automated scope enforcement.
+	 * Non-file destructive tools only require user approval.
+	 */
+	isFileDestructiveTool(toolName: string): boolean {
+		const nonFileDestructive = ["execute_command", "new_task"]
+		return this.isDestructiveTool(toolName) && !nonFileDestructive.includes(toolName)
 	}
 
 	/**

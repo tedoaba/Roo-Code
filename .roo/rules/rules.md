@@ -22,3 +22,11 @@
     - Use Tailwind CSS classes instead of inline style objects for new markup
     - VSCode CSS variables must be added to webview-ui/src/index.css before using them in Tailwind classes
     - Example: `<div className="text-md text-vscode-descriptionForeground mb-2" />` instead of style objects
+
+4. Governance & Hook Rules:
+
+    - **Intent Handshake Mandatory**: You MUST call `select_active_intent` before using any destructive tool (`write_to_file`, `apply_diff`, `execute_command`, etc.).
+    - **Scope Enforcement**: All mutations MUST be within the `owned_scope` of the active intent.
+    - **Exclusion Precedence**: Patterns in `.intentignore` always block edits, even if the file is in the intent's `owned_scope`.
+    - **User Approval Required**: Every destructive tool execution will trigger an "Approve/Reject" dialog. Wait for user confirmation.
+    - **Standardized Error Handling**: If blocked by scope or policy, you will receive a JSON error. Use this information to correct your path or request scope expansion.

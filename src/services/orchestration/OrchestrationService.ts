@@ -4,6 +4,7 @@ import * as crypto from "crypto"
 import * as yaml from "js-yaml"
 import * as vscode from "vscode"
 import { minimatch } from "minimatch"
+import ignore, { Ignore } from "ignore"
 import { ActiveIntent, IntentStatus, AgentTraceEntry, IntentContextBlock, ScopeValidationResult } from "./types"
 
 interface ActiveIntentsFile {
@@ -22,6 +23,9 @@ export class OrchestrationService {
 	private intentMapFile: string
 	private orchestrationDir: string
 	private workspaceRoot: string
+	private intentIgnoreFile: string
+	private intentIgnoreInstance: Ignore | null = null
+	private intentIgnoreWatcher: vscode.Disposable | null = null
 
 	constructor(workspaceRoot: string) {
 		this.workspaceRoot = workspaceRoot
@@ -29,6 +33,74 @@ export class OrchestrationService {
 		this.intentsFile = path.join(this.orchestrationDir, "active_intents.yaml")
 		this.traceFile = path.join(this.orchestrationDir, "agent_trace.jsonl")
 		this.intentMapFile = path.join(this.orchestrationDir, "intent_map.md")
+		this.intentIgnoreFile = path.join(workspaceRoot, ".intentignore")
+		// Load .intentignore and start watching
+		this.loadIntentIgnore().catch(() => {})
+		this.watchIntentIgnore()
+	}
+
+	// ── .intentignore Loading & Watching (T004) ──
+
+	/**
+	 * Load and parse the .intentignore file from the workspace root.
+	 * Uses the `ignore` library (gitignore syntax).
+	 */
+	async loadIntentIgnore(): Promise<void> {
+		try {
+			const content = await fs.readFile(this.intentIgnoreFile, "utf8")
+			this.intentIgnoreInstance = ignore().add(content)
+		} catch (error: any) {
+			if (error.code === "ENOENT") {
+				// No .intentignore file — no restrictions
+				this.intentIgnoreInstance = null
+			} else {
+				console.warn("Failed to load .intentignore:", error.message)
+				this.intentIgnoreInstance = null
+			}
+		}
+	}
+
+	/**
+	 * Watch the .intentignore file for changes and reload automatically.
+	 */
+	private watchIntentIgnore(): void {
+		try {
+			const watcher = vscode.workspace.createFileSystemWatcher(
+				new vscode.RelativePattern(this.workspaceRoot, ".intentignore"),
+			)
+			watcher.onDidChange(() => this.loadIntentIgnore())
+			watcher.onDidCreate(() => this.loadIntentIgnore())
+			watcher.onDidDelete(() => {
+				this.intentIgnoreInstance = null
+			})
+			this.intentIgnoreWatcher = watcher
+		} catch {
+			// VS Code API may not be available in all contexts
+		}
+	}
+
+	/**
+	 * Check if a file path is excluded by .intentignore patterns.
+	 * Returns true if the file SHOULD BE BLOCKED.
+	 */
+	isIntentIgnored(filePath: string): boolean {
+		if (!this.intentIgnoreInstance) return false
+		let relativePath = filePath
+		if (path.isAbsolute(filePath)) {
+			relativePath = path.relative(this.workspaceRoot, filePath)
+		}
+		relativePath = relativePath.split(path.sep).join("/")
+		return this.intentIgnoreInstance.ignores(relativePath)
+	}
+
+	/**
+	 * Dispose of the .intentignore file watcher.
+	 */
+	disposeIntentIgnoreWatcher(): void {
+		if (this.intentIgnoreWatcher) {
+			this.intentIgnoreWatcher.dispose()
+			this.intentIgnoreWatcher = null
+		}
 	}
 
 	async getActiveIntents(): Promise<ActiveIntent[]> {
@@ -81,6 +153,15 @@ export class OrchestrationService {
 		// Normalize slashes
 		relativePath = relativePath.split(path.sep).join("/")
 
+		// T005: .intentignore takes HIGHEST precedence (Additive Override)
+		// If a path matches .intentignore, it is ALWAYS blocked regardless of owned_scope
+		if (this.isIntentIgnored(relativePath)) {
+			return {
+				allowed: false,
+				reason: `File '${relativePath}' is excluded by .intentignore. This file is globally protected and cannot be modified by any intent.`,
+			}
+		}
+
 		if (!intent.owned_scope || intent.owned_scope.length === 0) {
 			return { allowed: false, reason: `Intent ${intentId} has no defined scope.` }
 		}
@@ -93,7 +174,7 @@ export class OrchestrationService {
 
 		return {
 			allowed: false,
-			reason: `File '${relativePath}' is not in scope for intent '${intentId}'. Allowed scopes: ${intent.owned_scope.join(", ")}`,
+			reason: `Scope Violation: ${intentId} is not authorized to edit '${relativePath}'. Request scope expansion. Allowed scopes: ${intent.owned_scope.join(", ")}`,
 		}
 	}
 

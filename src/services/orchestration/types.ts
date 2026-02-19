@@ -72,7 +72,12 @@ export interface ScopeValidationResult {
 	reason?: string
 }
 
+export type CommandClassification = "SAFE" | "DESTRUCTIVE"
+
 export interface HookResponse {
 	action: "CONTINUE" | "DENY" | "HALT"
+	classification?: CommandClassification
 	reason?: string
+	details?: string
+	recovery_hint?: string
 }
