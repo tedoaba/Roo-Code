@@ -17,8 +17,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Initialize `src/hooks/HookEngine.ts` with class skeleton (`preToolUse`, `postToolUse` stubs) and register in `Task.ts`
-- [ ] T002 Ensure `ignore` library is available for `.intentignore` pattern matching
+- [x] T001 Initialize `src/hooks/HookEngine.ts` with class skeleton (`preToolUse`, `postToolUse` stubs) and register in `Task.ts`
+- [x] T002 Ensure `ignore` library is available for `.intentignore` pattern matching
 
 ---
 
@@ -26,11 +26,11 @@
 
 **Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
 
-- [ ] T003 Define `HookResponse` interface and `CommandClassification` constant in `src/hooks/HookEngine.ts`
-- [ ] T004 Implement `.intentignore` loading and watching in `src/services/orchestration/OrchestrationService.ts`
-- [ ] T005 Update `OrchestrationService.validateScope` to enforce `.intentignore` precedence over `owned_scope`
-- [ ] T006 Implement Turn Budget enforcement (Law 3.1.5) in `HookEngine.preToolUse` (check `consumed_turns` vs `max_turns`)
-- [ ] T007 [P] Deprecate `IntentGateHook` and unify all existing gatekeeper logic into `HookEngine` to ensure a single execution gateway (Invariant 2)
+- [x] T003 Define `HookResponse` interface and `CommandClassification` constant in `src/hooks/HookEngine.ts`
+- [x] T004 Implement `.intentignore` loading and watching in `src/services/orchestration/OrchestrationService.ts`
+- [x] T005 Update `OrchestrationService.validateScope` to enforce `.intentignore` precedence over `owned_scope`
+- [x] T006 Implement Turn Budget enforcement (Law 3.1.5) in `HookEngine.preToolUse` (check `consumed_turns` vs `max_turns`)
+- [x] T007 [P] Deprecate `IntentGateHook` and unify all existing gatekeeper logic into `HookEngine` to ensure a single execution gateway (Invariant 2)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -44,12 +44,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implement `HookEngine.isDestructiveTool` matching the "Destructive" classification in `src/hooks/HookEngine.ts`
-- [ ] T009 [US1] Implement `HookEngine.preToolUse` to classify tools and determine if rejection or approval is required
-- [ ] T010 [US1] Integrate `HookEngine.preToolUse` into the execution loop in `src/core/assistant-message/presentAssistantMessage.ts`
-- [ ] T011 [US1] Implement UI-Blocking "Approve/Reject" trigger in `src/core/assistant-message/presentAssistantMessage.ts` using `askApproval` callback
-- [ ] T012 [US1] Implement `HookEngine.postToolUse` with SHA-256 cryptographic hashing of modified code blocks for audit logging in `src/hooks/HookEngine.ts`
-- [ ] T013 [US1] Integrate `HookEngine.postToolUse` into the execution loop in `src/core/assistant-message/presentAssistantMessage.ts`
+- [x] T008 [US1] Implement `HookEngine.isDestructiveTool` matching the "Destructive" classification in `src/hooks/HookEngine.ts`
+- [x] T009 [US1] Implement `HookEngine.preToolUse` to classify tools and determine if rejection or approval is required
+- [x] T010 [US1] Integrate `HookEngine.preToolUse` into the execution loop in `src/core/assistant-message/presentAssistantMessage.ts`
+- [x] T011 [US1] Implement UI-Blocking "Approve/Reject" trigger in `src/core/assistant-message/presentAssistantMessage.ts` using `askApproval` callback
+- [x] T012 [US1] Implement `HookEngine.postToolUse` with SHA-256 cryptographic hashing of modified code blocks for audit logging in `src/hooks/HookEngine.ts`
+- [x] T013 [US1] Integrate `HookEngine.postToolUse` into the execution loop in `src/core/assistant-message/presentAssistantMessage.ts`
 
 **Checkpoint**: User Story 1 (Secure Command Execution) is fully functional as an MVP.
 
@@ -63,9 +63,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T014 [P] [US2] Update `HookEngine.preToolUse` to call `OrchestrationService.validateScope` for file-mutating tools
-- [ ] T015 [US2] Implement "No Active Intent" block in `HookEngine.preToolUse` to deny destructive tools if no intent is active
-- [ ] T016 [US2] Implement logic to distinguish between file-based destructive tools and non-file destructive tools using mapping from `data-model.md` §3
+- [x] T014 [P] [US2] Update `HookEngine.preToolUse` to call `OrchestrationService.validateScope` for file-mutating tools
+- [x] T015 [US2] Implement "No Active Intent" block in `HookEngine.preToolUse` to deny destructive tools if no intent is active
+- [x] T016 [US2] Implement logic to distinguish between file-based destructive tools and non-file destructive tools using mapping from `data-model.md` §3
 
 **Checkpoint**: User Story 2 (Scope Enforcement) is functional.
 
@@ -79,9 +79,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Implement standardized JSON error formatting for hook denials in `src/core/assistant-message/presentAssistantMessage.ts`
-- [ ] T018 [US3] Add `details` and `recovery_hint` fields to `HookResponse` in `src/hooks/HookEngine.ts` to populate JSON errors
-- [ ] T019 [US3] Update `HookEngine` to return specific error reasons for "Scope Violation", "No Active Intent", and "Budget Exceeded"
+- [x] T017 [US3] Implement standardized JSON error return format in `presentAssistantMessage.ts`
+- [x] T018 [US3] Add `details` and `recovery_hint` fields to `HookResponse` interface in `src/services/orchestration/types.ts` to populate JSON errors
+- [x] T019 [US3] Implement specific error reasons for "Scope Violation", "No Active Intent", and "Budget Exceeded" in `HookEngine.preToolUse`
 
 ---
 
@@ -89,8 +89,8 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T020 Documentation updates in `quickstart.md`, `README.md`, and `ARCHITECTURE_NOTES.md`
-- [ ] T021 [P] Perform final validation against all user scenarios and Invariants in `spec.md` and `constitution.md`
+- [x] T020 Documentation updates in `quickstart.md`, `README.md`, and `ARCHITECTURE_NOTES.md`
+- [x] T021 [P] Perform final validation against all user scenarios and Invariants in `spec.md` and `constitution.md`
 
 ---
 
@@ -126,3 +126,11 @@
 3. User Story 2: Automated safety (Scope enforcement).
 4. User Story 3: Resilience (JSON recovery).
 5. Polish: Final cleanup.
+
+---
+
+## Completion Record
+
+- **Status**: All tasks in this document completed.
+- **Completed On**: 2026-02-19
+- **Notes**: Tasks were verified and marked complete in the repo task tracker; implementation work completed on branch `002-hook-middleware`.
