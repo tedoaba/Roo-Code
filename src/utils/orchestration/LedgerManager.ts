@@ -75,6 +75,7 @@ export class LedgerManager implements ILedgerManager {
 			},
 			vcsRevision: params.vcsRevision,
 			attribution: params.attribution,
+			related: [params.intentId],
 			metadata: params.metadata,
 		}
 

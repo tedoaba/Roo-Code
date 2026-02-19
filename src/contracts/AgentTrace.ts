@@ -30,6 +30,12 @@ export interface AgentTraceEntry {
 	/** Identity of the contributor (human or system process) - Invariant 3 */
 	attribution: string
 
+	/**
+	 * Array of related requirement identifiers (e.g., ['REQ-123']).
+	 * Enforces Law 3.3.1 (Mutation-Intent Link).
+	 */
+	related: string[]
+
 	/** Optional metadata, such as tool names or execution stats */
 	metadata?: Record<string, any>
 }
