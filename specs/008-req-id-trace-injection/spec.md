@@ -5,6 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "REQ-ID Injection Enforcement Title: Enforce Requirement Trace Injection Implement enforcement logic to guarantee requirement-level traceability. Requirements Extract REQ-ID from execution context. Inject into trace object: related: [REQ-ID] If REQ-ID missing: Block write. Return explicit error. Ensure REQ-ID format validation (e.g., REQ-###). Success Criteria Every trace contains REQ-ID. No mutation allowed without requirement linkage."
 
+## Clarifications
+
+### Session 2026-02-20
+
+- Q: To which tools should REQ-ID enforcement apply? → A: All Destructive Tools: Enforce REQ-ID for any tool that can modify the filesystem (e.g., write_to_file, replace_file_content).
+- Q: At what stage should the missing REQ-ID block the operation? → A: Pre-execution Block: The tool execution itself is halted before any changes are attempted if the REQ-ID is invalid or missing.
+- Q: How should the system signal a blocked operation due to missing REQ-ID? → A: Custom Exception: Throw a specific TraceabilityError (or similar) that is caught and formatted as a tool error.
+- Q: What is the primary source for the REQ-ID? → A: Primary Session Intent: Extract from a specific header or context field (e.g., intent.id or requirement.id) provided by the orchestration layer.
+- Q: How strict should the REQ-ID format validation be? → A: Flexible Alphanumeric: Must start with REQ- followed by 1 or more alphanumeric characters or hyphens.
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Secure Mutation with Requirement Traceability (Priority: P1)
@@ -55,9 +65,9 @@ As a system administrator, I want to ensure that only properly formatted require
 
 - **FR-001**: System MUST extract the REQ-ID from the current execution context before any mutation-class tool execution.
 - **FR-002**: System MUST inject the REQ-ID into the trace object as `related: [REQ-ID]`.
-- **FR-003**: System MUST block any file write or destructive operation if the REQ-ID is missing from the context.
-- **FR-004**: System MUST return an explicit error string identifying the missing or invalid REQ-ID when an operation is blocked.
-- **FR-005**: System MUST validate that the REQ-ID follows the pattern `REQ-[A-Z0-9]+` (flexible alphanumeric after prefix).
+- **FR-003**: System MUST block the tool execution (Pre-execution) if the REQ-ID is missing or malformed in the context.
+- **FR-004**: System MUST throw a `TraceabilityError` identifying the missing or invalid REQ-ID when an operation is blocked.
+- **FR-005**: System MUST validate that the REQ-ID starts with `REQ-` followed by one or more alphanumeric characters or hyphens (e.g., `REQ-123`, `REQ-AUTH-01`).
 
 ### Key Entities _(include if feature involves data)_
 

@@ -31,5 +31,9 @@
 
 ## Notes
 
-- All items passed. Initial assumptions documented.
-- Metadata injection logic is clearly defined from a functional perspective.
+- All items passed. Clarification session resolved 5 key ambiguities:
+    - Enforcement applies to all destructive tools.
+    - Blocking occurs pre-execution.
+    - Errors signaled via custom `TraceabilityError`.
+    - REQ-ID sourced from primary session intent in orchestration context.
+    - REQ-ID format set to flexible prefix `REQ-`.
