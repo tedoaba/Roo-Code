@@ -5,6 +5,12 @@
 **Status**: Draft  
 **Input**: User description: "Agent Trace Ledger (Append-Only) Title: Implement Append-Only agent_trace.jsonl Ledger Create a persistent append-only semantic trace ledger. Requirements File: agent_trace.jsonl Format: JSON Lines Behavior: Create file if missing. Append exactly one JSON object per mutation. Never overwrite existing entries. Ensure atomic append operation. Tests Multiple writes -> multiple lines. File remains valid JSONL. No duplicate entries per mutation. Success Criteria Ledger persists across sessions. Each mutation creates one trace entry."
 
+## Clarifications
+
+### Session 2026-02-20
+
+- Q: Ledger File Location → A: It's in .orchestration/ folder
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Create and Append to Ledger (Priority: P1)
@@ -25,7 +31,7 @@ As a system process, I want to append a semantic trace to the agent trace ledger
 
 ### Edge Cases
 
-- What happens if the file lock is unavailable or writing permissions are denied?
+- What happens if the file lock is unavailable or writing permissions is denied?
 - How does the system handle writing a trace when the disk is full?
 - What happens if the JSON serialization fails for a trace object?
 
@@ -33,7 +39,7 @@ As a system process, I want to append a semantic trace to the agent trace ledger
 
 ### Functional Requirements
 
-- **FR-001**: System MUST create the `agent_trace.jsonl` file if it does not already exist upon the first write operation.
+- **FR-001**: System MUST create the `agent_trace.jsonl` file in the `.orchestration/` directory if it does not already exist upon the first write operation.
 - **FR-002**: System MUST write the trace in JSON Lines format (JSONL), appending exactly one valid JSON object per mutation.
 - **FR-003**: System MUST NEVER overwrite existing data within the trace ledger file under any circumstances.
 - **FR-004**: System MUST ensure atomic append operations so concurrent writes do not interleave or corrupt individual JSON lines.
