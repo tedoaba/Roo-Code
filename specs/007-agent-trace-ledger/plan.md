@@ -76,7 +76,7 @@ src/
         └── LedgerManager.ts     # Atomic append implementation
 ```
 
-**Structure Decision**: Single Project structure. Implementing the ledger manager as a utility and integrating it via the existing hook system ensures governance is enforced on all mutation paths.
+**Structure Decision**: Single Project structure. Implementing the ledger manager as a utility and integrating it via the existing hook system ensures governance is enforced on all mutation paths. **CRITICAL**: The `LedgerManager` utility must be exclusively invoked by the Hook Engine to maintain Invariant 4.
 
 ## Complexity Tracking
 

@@ -27,12 +27,18 @@ export interface AgentTraceEntry {
 	/** The Git revision ID or internal system revision at the time of mutation */
 	vcsRevision: string
 
+	/** Identity of the contributor (human or system process) - Invariant 3 */
+	attribution: string
+
 	/** Optional metadata, such as tool names or execution stats */
 	metadata?: Record<string, any>
 }
 
 /**
  * Service interface for managing the append-only ledger.
+ *
+ * SECURITY NOTE: Implementations MUST ONLY be invoked by the Hook Engine
+ * to satisfy Invariant 4 (Single Source of Orchestration Truth).
  */
 export interface ILedgerManager {
 	/**

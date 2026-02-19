@@ -18,7 +18,8 @@
 **Purpose**: Project initialization and basic structure
 
 - [ ] T001 Create directory structure for `.orchestration/` and `src/utils/orchestration/`
-- [ ] T002 [P] Finalize `AgentTraceEntry` and `ILedgerManager` interfaces in `src/contracts/AgentTrace.ts`
+- [ ] T002 [P] Finalize `AgentTraceEntry` (including `attribution`) and `ILedgerManager` interfaces in `src/contracts/AgentTrace.ts`
+- [ ] T002a [P] Add benchmark utility to verify <50ms write target in `src/utils/orchestration/__tests__/performance.bench.ts`
 
 ---
 
