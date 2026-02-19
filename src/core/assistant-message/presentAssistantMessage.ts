@@ -41,6 +41,8 @@ import { selectActiveIntentTool } from "../tools/SelectActiveIntent"
 
 import { formatResponse } from "../prompts/responses"
 import { sanitizeToolUseId } from "../../utils/tool-id"
+import fs from "fs/promises"
+import path from "path"
 
 /**
  * Processes and presents assistant message content to the user interface.
@@ -515,18 +517,29 @@ export async function presentAssistantMessage(cline: Task) {
 				}
 
 				// T013: Delegate to HookEngine.postToolUse for SHA-256 hashing & audit logging
-				const filePath = block.params?.path || block.params?.file_path
-				cline.hookEngine
-					.postToolUse({
-						toolName: block.name,
-						params: block.params || {},
-						intentId: cline.activeIntentId,
-						success: true,
-						output: resultContent.slice(0, 200),
-						filePath: filePath,
-						fileContent: undefined, // Content is handled within the tool handler
-					})
-					.catch((err) => console.error("Failed to run postToolUse:", err))
+				{
+					const filePath = block.params?.path || block.params?.file_path
+					;(async () => {
+						let fileContent: string | undefined = undefined
+						if (filePath) {
+							try {
+								const abs = path.isAbsolute(filePath) ? filePath : path.resolve(cline.cwd, filePath)
+								fileContent = await fs.readFile(abs, "utf8")
+							} catch {
+								fileContent = undefined
+							}
+						}
+						await cline.hookEngine.postToolUse({
+							toolName: block.name,
+							params: block.params || {},
+							intentId: cline.activeIntentId,
+							success: true,
+							output: resultContent.slice(0, 200),
+							filePath: filePath,
+							fileContent: fileContent,
+						})
+					})().catch((err) => console.error("Failed to run postToolUse:", err))
+				}
 
 				hasToolResult = true
 			}
@@ -591,17 +604,29 @@ export async function presentAssistantMessage(cline: Task) {
 				)
 
 				// T013: Delegate error logging to HookEngine.postToolUse
-				const filePath = block.params?.path || block.params?.file_path
-				cline.hookEngine
-					.postToolUse({
-						toolName: block.name,
-						params: block.params || {},
-						intentId: cline.activeIntentId,
-						success: false,
-						output: `Error ${action}: ${error.message}`,
-						filePath: filePath,
-					})
-					.catch((err) => console.error("Failed to run postToolUse:", err))
+				{
+					const filePath = block.params?.path || block.params?.file_path
+					;(async () => {
+						let fileContent: string | undefined = undefined
+						if (filePath) {
+							try {
+								const abs = path.isAbsolute(filePath) ? filePath : path.resolve(cline.cwd, filePath)
+								fileContent = await fs.readFile(abs, "utf8")
+							} catch {
+								fileContent = undefined
+							}
+						}
+						await cline.hookEngine.postToolUse({
+							toolName: block.name,
+							params: block.params || {},
+							intentId: cline.activeIntentId,
+							success: false,
+							output: `Error ${action}: ${error.message}`,
+							filePath: filePath,
+							fileContent: fileContent,
+						})
+					})().catch((err) => console.error("Failed to run postToolUse:", err))
+				}
 
 				pushToolResult(formatResponse.toolError(errorString))
 			}
