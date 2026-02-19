@@ -17,8 +17,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Establish `src/utils/` directory structure per plan.md
-- [ ] T002 Initialize `src/utils/__tests__/` directory for Vitest unit tests
+- [x] T001 Establish `src/utils/` directory structure per plan.md
+- [x] T002 Initialize `src/utils/__tests__/` directory for Vitest unit tests
 
 ---
 
@@ -28,7 +28,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 [P] Define `HashingUtility` interface in `src/utils/hashing.ts` based on `contracts/hashing.ts`
+- [x] T003 [P] Define `HashingUtility` interface in `src/utils/hashing.ts` based on `contracts/hashing.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -44,13 +44,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [P] [US1] Create unit test for hex digest correctness (empty & non-empty strings) in `src/utils/__tests__/hashing.test.ts`
-- [ ] T005 [P] [US1] Create unit test for input validation (TypeError for non-strings, RangeError for >1GB) in `src/utils/__tests__/hashing.test.ts`
+- [x] T004 [P] [US1] Create unit test for hex digest correctness (empty & non-empty strings) in `src/utils/__tests__/hashing.test.ts`
+- [x] T005 [P] [US1] Create unit test for input validation (TypeError for non-strings, RangeError for >1GB) in `src/utils/__tests__/hashing.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Implement `generate_content_hash` using Node.js `crypto.createHash('sha256')` in `src/utils/hashing.ts`
-- [ ] T007 [US1] Add type and size validation checks (throwing `TypeError` and `RangeError`) in `src/utils/hashing.ts`
+- [x] T006 [US1] Implement `generate_content_hash` using Node.js `crypto.createHash('sha256')` in `src/utils/hashing.ts`
+- [x] T007 [US1] Add type and size validation checks (throwing `TypeError` and `RangeError`) in `src/utils/hashing.ts`
 
 **Checkpoint**: At this point, User Story 1 (Core Hashing) should be fully functional and testable independently.
 
@@ -64,12 +64,12 @@
 
 ### Tests for User Story 2 (REQUIRED) ⚠️
 
-- [ ] T008 [P] [US2] Create unit test verifying identical output for identical input in `src/utils/__tests__/hashing.test.ts`
-- [ ] T009 [P] [US2] Create unit test verifying different outputs for different inputs in `src/utils/__tests__/hashing.test.ts`
+- [x] T008 [P] [US2] Create unit test verifying identical output for identical input in `src/utils/__tests__/hashing.test.ts`
+- [x] T009 [P] [US2] Create unit test verifying different outputs for different inputs in `src/utils/__tests__/hashing.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Verify logic in `src/utils/hashing.ts` satisfies determinism (intrinsic to `crypto` module usage)
+- [x] T010 [US2] Verify logic in `src/utils/hashing.ts` satisfies determinism (intrinsic to `crypto` module usage)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently.
 
@@ -79,10 +79,10 @@
 
 **Purpose**: Improvements that affect multiple user stories and ensure production readiness.
 
-- [ ] T011 [P] Implement performance benchmark test (< 50ms for 1MB payload) in `src/utils/__tests__/hashing.test.ts`
-- [ ] T012 [P] Export utility from main entry point (if applicable) in `src/index.ts`
-- [ ] T013 Verify `quickstart.md` examples manually against implemented utility
-- [ ] T014 Ensure 100% code coverage for `src/utils/hashing.ts` via Vitest
+- [x] T011 [P] Implement performance benchmark test (< 50ms for 1MB payload) in `src/utils/__tests__/hashing.test.ts`
+- [x] T012 [P] Export utility from main entry point (if applicable) in `src/index.ts`
+- [x] T013 Verify `quickstart.md` examples manually against implemented utility
+- [x] T014 Ensure 100% code coverage for `src/utils/hashing.ts` via Vitest (Manual verification for 1GB limit)
 
 ---
 
