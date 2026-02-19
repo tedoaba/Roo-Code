@@ -57,7 +57,7 @@ description: "Tasks for Post-Write Trace Hook"
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Implement trace capture logic and basic object instantiation writing directly to ledger internally in `src/hooks/post/AgentTraceHook.ts`.
+- [ ] T006 [US1] Implement trace capture logic and basic object instantiation writing directly to ledger internally in `src/hooks/post/AgentTraceHook.ts` (ensure native `fs.appendFile` or existing ledger synchronization utilities are utilized during write to avoid concurrency race conditions).
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently.
 
@@ -104,7 +104,7 @@ description: "Tasks for Post-Write Trace Hook"
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T012 Register `AgentTraceHook` conditionally within the primary Hook Engine pipeline (post-write tool boundary) inside `src/hooks/HookEngine.ts`.
+- [ ] T012 Register `AgentTraceHook` conditionally within the primary Hook Engine pipeline (post-write tool boundary) inside `src/hooks/HookEngine.ts`, explicitly filtering to apply only for write tools.
 - [ ] T013 Verify e2e integration per `quickstart.md` scenario by triggering manual write operations and confirming `.orchestration/agent_trace.jsonl` footprint.
 
 ---
