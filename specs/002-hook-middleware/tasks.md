@@ -17,7 +17,7 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Initialize `src/hooks/HookEngine.ts` with basic structure and register in `Task.ts`
+- [ ] T001 Initialize `src/hooks/HookEngine.ts` with class skeleton (`preToolUse`, `postToolUse` stubs) and register in `Task.ts`
 - [ ] T002 Ensure `ignore` library is available for `.intentignore` pattern matching
 
 ---
@@ -29,6 +29,8 @@
 - [ ] T003 Define `HookResponse` interface and `CommandClassification` constant in `src/hooks/HookEngine.ts`
 - [ ] T004 Implement `.intentignore` loading and watching in `src/services/orchestration/OrchestrationService.ts`
 - [ ] T005 Update `OrchestrationService.validateScope` to enforce `.intentignore` precedence over `owned_scope`
+- [ ] T006 Implement Turn Budget enforcement (Law 3.1.5) in `HookEngine.preToolUse` (check `consumed_turns` vs `max_turns`)
+- [ ] T007 [P] Deprecate `IntentGateHook` and unify all existing gatekeeper logic into `HookEngine` to ensure a single execution gateway (Invariant 2)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -42,12 +44,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Refine `HookEngine.isMutatingTool` to match "Destructive" classification in `src/hooks/HookEngine.ts`
-- [ ] T007 [US1] Implement `HookEngine.preToolUse` to classify tools and determine if rejection or approval is required
-- [ ] T008 [US1] Integrate `HookEngine.preToolUse` into the execution loop in `src/core/assistant-message/presentAssistantMessage.ts`
-- [ ] T009 [US1] Implement UI-Blocking "Approve/Reject" trigger in `src/core/assistant-message/presentAssistantMessage.ts` for DESTRUCTIVE tools using `askApproval` callback
-- [ ] T010 [US1] Implement `HookEngine.postToolUse` for audit logging and mutation hashing in `src/hooks/HookEngine.ts`
-- [ ] T011 [US1] Integrate `HookEngine.postToolUse` into the execution loop in `src/core/assistant-message/presentAssistantMessage.ts`
+- [ ] T008 [US1] Implement `HookEngine.isDestructiveTool` matching the "Destructive" classification in `src/hooks/HookEngine.ts`
+- [ ] T009 [US1] Implement `HookEngine.preToolUse` to classify tools and determine if rejection or approval is required
+- [ ] T010 [US1] Integrate `HookEngine.preToolUse` into the execution loop in `src/core/assistant-message/presentAssistantMessage.ts`
+- [ ] T011 [US1] Implement UI-Blocking "Approve/Reject" trigger in `src/core/assistant-message/presentAssistantMessage.ts` using `askApproval` callback
+- [ ] T012 [US1] Implement `HookEngine.postToolUse` with SHA-256 cryptographic hashing of modified code blocks for audit logging in `src/hooks/HookEngine.ts`
+- [ ] T013 [US1] Integrate `HookEngine.postToolUse` into the execution loop in `src/core/assistant-message/presentAssistantMessage.ts`
 
 **Checkpoint**: User Story 1 (Secure Command Execution) is fully functional as an MVP.
 
@@ -61,9 +63,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T012 [P] [US2] Update `HookEngine.preToolUse` to call `OrchestrationService.validateScope` for file-mutating tools
-- [ ] T013 [US2] Implement "No Active Intent" block in `HookEngine.preToolUse` to deny destructive tools if no intent is active
-- [ ] T014 [US2] Implement logic to distinguish between file-based destructive tools (subject to scope) and non-file destructive tools like `run_command` (approval only)
+- [ ] T014 [P] [US2] Update `HookEngine.preToolUse` to call `OrchestrationService.validateScope` for file-mutating tools
+- [ ] T015 [US2] Implement "No Active Intent" block in `HookEngine.preToolUse` to deny destructive tools if no intent is active
+- [ ] T016 [US2] Implement logic to distinguish between file-based destructive tools and non-file destructive tools using mapping from `data-model.md` §3
 
 **Checkpoint**: User Story 2 (Scope Enforcement) is functional.
 
@@ -77,9 +79,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Implement standardized JSON error formatting for hook denials in `src/core/assistant-message/presentAssistantMessage.ts`
-- [ ] T016 [US3] Add `details` and `recovery_hint` fields to `HookResponse` in `src/hooks/HookEngine.ts` to populate JSON errors
-- [ ] T017 [US3] Update `HookEngine` to return specific error reasons for "Scope Violation" and "No Active Intent"
+- [ ] T017 [US3] Implement standardized JSON error formatting for hook denials in `src/core/assistant-message/presentAssistantMessage.ts`
+- [ ] T018 [US3] Add `details` and `recovery_hint` fields to `HookResponse` in `src/hooks/HookEngine.ts` to populate JSON errors
+- [ ] T019 [US3] Update `HookEngine` to return specific error reasons for "Scope Violation", "No Active Intent", and "Budget Exceeded"
 
 ---
 
@@ -87,9 +89,8 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T018 Documentation updates in `quickstart.md` and `README.md`
-- [ ] T019 [P] Deprecate or unify `IntentGateHook` with the new `HookEngine` to ensure a single execution gateway
-- [ ] T020 Perform final validation against all user scenarios in `spec.md`
+- [ ] T020 Documentation updates in `quickstart.md`, `README.md`, and `ARCHITECTURE_NOTES.md`
+- [ ] T021 [P] Perform final validation against all user scenarios and Invariants in `spec.md` and `constitution.md`
 
 ---
 
@@ -98,25 +99,15 @@
 ### Phase Dependencies
 
 1. **Setup (Phase 1)**: No dependencies.
-2. **Foundational (Phase 2)**: Depends on Setup.
+2. **Foundational (Phase 2)**: Depends on Setup. (Includes Gateway Unification and Budgeting)
 3. **User Story 1 (Phase 3)**: Depends on Foundation. (Critical MVP)
 4. **User Story 2 & 3 (Phases 4 & 5)**: Depend on Foundation. Can be worked on in parallel with or after US1.
 5. **Polish (Phase 6)**: Depends on all user stories.
 
 ### Parallel Opportunities
 
-- T012 [P] [US2] can run in parallel with US1 tasks as it targets different logic within `preToolUse`.
-- T019 [P] can run in parallel with final polish tasks.
-
----
-
-## Parallel Example: User Story 1 & 2
-
-```bash
-# Launch Foundational tasks together:
-Task: "Implement .intentignore loading and watching in src/services/orchestration/OrchestrationService.ts"
-Task: "Define HookResponse interface and CommandClassification constant in src/hooks/HookEngine.ts"
-```
+- T007 [P] Unification can run while core foundational services are being updated.
+- T014 [P] [US2] can run in parallel with US1 tasks as it targets different logic within `preToolUse`.
 
 ---
 
@@ -125,13 +116,13 @@ Task: "Define HookResponse interface and CommandClassification constant in src/h
 ### MVP First (User Story 1 Only)
 
 1. Complete Phase 1 & 2 (Setup & Foundation).
-2. Complete User Story 1: Implement classification and UI blocking.
-3. **STOP and VALIDATE**: Verify that every destructive command triggers a prompt.
+2. Complete User Story 1: Implement classification, SHA-256 auditing, and UI blocking.
+3. **STOP and VALIDATE**: Verify that every destructive command triggers a prompt and logs a hash.
 
 ### Incremental Delivery
 
-1. Foundation ready.
-2. User Story 1: Basic security (Manual approval).
+1. Foundation ready (Budgeting & Unified Gateway).
+2. User Story 1: Basic security (Manual approval + Auditing).
 3. User Story 2: Automated safety (Scope enforcement).
 4. User Story 3: Resilience (JSON recovery).
 5. Polish: Final cleanup.

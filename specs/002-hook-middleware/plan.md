@@ -30,10 +30,11 @@ Architect and implement the Hook Engine that wraps all tool execution requests, 
 | :------------------------ | :----------------- | :--------------------------------------------------------------- |
 | `OrchestrationService`    | `validateScope`    | Integrate `.intentignore` check (Precedence: High).              |
 | `OrchestrationService`    | `loadIntentIgnore` | [New] Load and watch `.intentignore` file.                       |
-| `HookEngine`              | `preToolUse`       | Classify tools; enforce Intent Handshake; return JSON errors.    |
-| `HookEngine`              | `postToolUse`      | Log mutation hashes and update audit ledger.                     |
+| `HookEngine`              | `preToolUse`       | Classify tools; enforce Intent Handshake; check turn budgets.    |
+| `HookEngine`              | `postToolUse`      | Log SHA-256 mutation hashes and update audit ledger.             |
 | `Task`                    | `ask`              | Ensure UI blocking works consistently for Hook Engine approvals. |
 | `presentAssistantMessage` | `handle`           | Wrap sequential tool execution in unified Hook Engine calls.     |
+| `IntentGateHook`          | `unify`            | Deprecate and merge into HookEngine (Single Gateway).            |
 
 ## 5. Project Structure
 
@@ -51,12 +52,14 @@ src/
 
 1. [ ] **T001**: Implement `.intentignore` loading and watching in `OrchestrationService`.
 2. [ ] **T002**: Update `OrchestrationService.validateScope` to enforce `.intentignore` precedence.
-3. [ ] **T003**: Refine `HookEngine.isMutatingTool` to match "Destructive" classification.
-4. [ ] **T004**: Implement JSON-formatted error responses in `HookEngine.preToolUse`.
-5. [ ] **T005**: Integrate `HookEngine.preToolUse` into `presentAssistantMessage.ts` (Native Tooling).
-6. [ ] **T006**: Integrate `HookEngine.postToolUse` for audit logging and hashing.
-7. [ ] **T007**: Implement UI-Blocking "Approve/Reject" trigger in the execution loop for DESTRUCTIVE tools.
-8. [ ] **T008**: Verify "No Active Intent" behavior (Block & Force Handshake).
+3. [ ] **T003**: Implement `HookEngine.isDestructiveTool` using classification from `data-model.md`.
+4. [ ] **T004**: Implement turn budget enforcement (Law 3.1.5) in `HookEngine.preToolUse`.
+5. [ ] **T005**: Deprecate `IntentGateHook` and unify all checks into `HookEngine` (Invariant 2).
+6. [ ] **T006**: Implement JSON-formatted error responses in `HookEngine.preToolUse`.
+7. [ ] **T007**: Integrate `HookEngine.preToolUse` into `presentAssistantMessage.ts`.
+8. [ ] **T008**: Integrate `HookEngine.postToolUse` with SHA-256 hashing and audit logging.
+9. [ ] **T009**: Implement UI-Blocking "Approve/Reject" trigger in the execution loop.
+10. [ ] **T010**: Verify "No Active Intent" behavior (Block & Force Handshake).
 
 ## 7. Complexity & Technical Debt
 

@@ -101,8 +101,8 @@ export class HookEngine {
 			return { action: "CONTINUE" }
 		}
 
-		// 3. Scope enforcement for mutating tools
-		if (req.intentId && this.isMutatingTool(req.toolName)) {
+		// 3. Scope enforcement for destructive tools
+		if (req.intentId && this.isDestructiveTool(req.toolName)) {
 			const filePath = req.params.path || req.params.file_path || req.params.cwd
 			if (filePath) {
 				const scopeResult = await this.orchestrationService.validateScope(req.intentId, filePath)
@@ -192,8 +192,8 @@ export class HookEngine {
 	async postToolUse(result: ToolResult): Promise<void> {
 		if (!result.intentId) return
 
-		// For file-mutating tools, compute hash and update intent map
-		if (result.success && result.filePath && result.fileContent && this.isMutatingTool(result.toolName)) {
+		// For file-destructive tools, compute hash and update intent map
+		if (result.success && result.filePath && result.fileContent && this.isDestructiveTool(result.toolName)) {
 			await this.orchestrationService.logMutation(result.intentId, result.filePath, result.fileContent)
 		}
 
@@ -278,7 +278,7 @@ export class HookEngine {
 		}
 	}
 
-	private isMutatingTool(toolName: string): boolean {
+	private isDestructiveTool(toolName: string): boolean {
 		const mutatingTools = [
 			"write_to_file",
 			"apply_diff",
