@@ -1,53 +1,43 @@
-export interface AgentTrace {
-	/**
-	 * Automatically generated unique identifier for the trace.
-	 */
-	id: string
+/**
+ * Represents a single mutation record in the agent trace ledger.
+ * Follows Invariant 3 of the System Constitution.
+ */
+export interface AgentTraceEntry {
+	/** ISO-8601 timestamp of the mutation */
+	timestamp: string
 
-	/**
-	 * The timestamp of when the mutation was recorded. Epoch time.
-	 */
-	timestamp: number
+	/** Identity string of the agent that performed the mutation */
+	agentId: string
 
-	/**
-	 * The identifier of the agent executing the mutation logic.
-	 */
-	agent: string
+	/** The identifier of the intent that authorized this mutation */
+	intentId: string
 
-	/**
-	 * The absolute path of the affected file.
-	 */
-	target_artifact: string
+	/** Mutation details */
+	mutation: {
+		/** Type of operation performed (e.g., 'write', 'delete') */
+		type: "write" | "delete" | "rename" | "create"
 
-	/**
-	 * Classification of the mutation intent. e.g., 'write', 'delete'.
-	 */
-	mutation_class: string
+		/** Path to the file or artifact modified, relative to project root */
+		target: string
 
-	/**
-	 * Relation ties to upstream execution bounds.
-	 */
-	related: {
-		type: "intent" | "request"
-		id: string
-	}[]
+		/** Cryptographic hash (SHA-256) of the resulting content */
+		hash: string
+	}
 
-	/**
-	 * SHA-256 cryptographic signature linking the mutation state deterministically.
-	 */
-	content_hash: string
+	/** The Git revision ID or internal system revision at the time of mutation */
+	vcsRevision: string
+
+	/** Optional metadata, such as tool names or execution stats */
+	metadata?: Record<string, any>
 }
 
 /**
- * Interface mapping an internal hook dependency contract
+ * Service interface for managing the append-only ledger.
  */
-export interface IAgentTraceHook {
+export interface ILedgerManager {
 	/**
-	 * Asynchronous executor for tracing successful write tools.
-	 * @param intent_id - The user's active intent
-	 * @param target_file - The mutated file
-	 * @param request_id - Request origin
-	 * @returns void - Failure must fail safely without throwing exceptions.
+	 * Appends a trace entry to the ledger file.
+	 * MUST ensure atomicity and MUST NOT overwrite existing entries.
 	 */
-	execute(intent_id: string, target_file: string, request_id: string): Promise<void>
+	append(entry: AgentTraceEntry): Promise<void>
 }
