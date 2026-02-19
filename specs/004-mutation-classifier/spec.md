@@ -5,6 +5,14 @@
 **Status**: Draft  
 **Input**: User description: "Title: Implement Deterministic Mutation Classification. Build a mutation classification module that distinguishes semantic refactors from intent changes. Definitions: AST_REFACTOR: Syntax-only changes. No functional behavior change. INTENT_EVOLUTION: New or modified behavior. Requirements: Accept previous_content, new_content. Return AST_REFACTOR or INTENT_EVOLUTION. Implement deterministic logic: Use AST comparison OR structured diff. Avoid probabilistic AI decisions. Provide unit tests with: Formatting-only change, Variable rename, Added logic branch, New function. Success Criteria: Correct classification for test cases. Deterministic output for identical inputs."
 
+## Clarifications
+
+### Session 2026-02-19
+
+- Q: Is the implementation strictly limited to TypeScript (and JavaScript), or must it be extensible to other languages (e.g., Python, Go) in this phase? → A: Extensible architecture (generic AST) but only TS/JS implemented now.
+- Q: If the `new_content` contains syntax errors that prevent AST parsing, how should the system categorize the change? → A: Classify as `INTENT_EVOLUTION` (Safe Default).
+- Q: How should the mutation classifier be exposed to other tools in the codebase? → A: Internal TypeScript library (Class/Singleton).
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Categorize Refactoring Activity (Priority: P1)
@@ -42,7 +50,7 @@ As a system administrator, I want to ensure that the same pair of code changes a
 ### Edge Cases
 
 - **Empty Files**: How does the system handle comparing two empty files or a file being deleted? (Should likely be `AST_REFACTOR` for empty-to-empty, `INTENT_EVOLUTION` for deletion).
-- **Invalid Syntax**: What happens if `new_content` contains syntax errors that prevent AST parsing? (System should likely default to `INTENT_EVOLUTION` for safety or throw a specific error).
+- **Invalid Syntax**: If `new_content` contains syntax errors that prevent AST parsing, the system MUST return `INTENT_EVOLUTION` for safety.
 - **Comment-only changes**: Are changes to JSDoc or comments considered `AST_REFACTOR`? (Assumption: Yes, as they don't change functional behavior).
 
 ## Requirements _(mandatory)_
@@ -52,10 +60,12 @@ As a system administrator, I want to ensure that the same pair of code changes a
 - **FR-001**: The system MUST accept two string inputs: `previous_content` and `new_content`.
 - **FR-002**: The system MUST return exactly one of two constants: `AST_REFACTOR` or `INTENT_EVOLUTION`.
 - **FR-003**: The classification logic MUST be deterministic (no random seeds or probabilistic AI models).
-- **FR-004**: The system MUST use Abstract Syntax Tree (AST) comparison or structured diffing to identify semantic differences.
+- **FR-004**: The system MUST use an extensible Abstract Syntax Tree (AST) comparison or structured diffing architecture that supports multiple languages, with TypeScript/JavaScript as the initial implementation.
 - **FR-005**: Changes that ONLY affect formatting, whitespace, or non-functional comments MUST be classified as `AST_REFACTOR`.
 - **FR-006**: Renaming of symbols (variables, functions, classes) where the structure and logic remain identical MUST be classified as `AST_REFACTOR`.
 - **FR-007**: Any change that modifies the control flow, data processing logic, or adds/removes exported symbols MUST be classified as `INTENT_EVOLUTION`.
+- **FR-008**: The system MUST return `INTENT_EVOLUTION` if either input cannot be successfully parsed into an AST for semantic comparison.
+- **FR-009**: The classification module MUST be implemented as an internal TypeScript library (likely a Class or Singleton) to be consumed directly by core services.
 
 ### Key Entities _(include if feature involves data)_
 
