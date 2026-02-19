@@ -14,13 +14,15 @@ import { isPathOutsideWorkspace } from "../../utils/pathUtils"
 import { unescapeHtmlEntities } from "../../utils/text-normalization"
 import { EXPERIMENT_IDS, experiments } from "../../shared/experiments"
 import { convertNewFileToUnifiedDiff, computeDiffStats, sanitizeUnifiedDiff } from "../diff/stats"
-import type { ToolUse } from "../../shared/tools"
+import type { ToolUse, MutationClass } from "../../shared/tools"
 
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 
 interface WriteToFileParams {
 	path: string
 	content: string
+	intent_id: string
+	mutation_class: MutationClass
 }
 
 export class WriteToFileTool extends BaseTool<"write_to_file"> {
@@ -28,8 +30,8 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 
 	async execute(params: WriteToFileParams, task: Task, callbacks: ToolCallbacks): Promise<void> {
 		const { pushToolResult, handleError, askApproval } = callbacks
-		const relPath = params.path
-		let newContent = params.content
+		const { path: relPath, intent_id, mutation_class } = params
+		let { content: newContent } = params
 
 		if (!relPath) {
 			task.consecutiveMistakeCount++
@@ -43,6 +45,31 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 			task.consecutiveMistakeCount++
 			task.recordToolError("write_to_file")
 			pushToolResult(await task.sayAndCreateMissingParamError("write_to_file", "content"))
+			await task.diffViewProvider.reset()
+			return
+		}
+
+		if (!intent_id) {
+			task.consecutiveMistakeCount++
+			task.recordToolError("write_to_file")
+			pushToolResult(await task.sayAndCreateMissingParamError("write_to_file", "intent_id"))
+			await task.diffViewProvider.reset()
+			return
+		}
+
+		if (!mutation_class) {
+			task.consecutiveMistakeCount++
+			task.recordToolError("write_to_file")
+			pushToolResult(await task.sayAndCreateMissingParamError("write_to_file", "mutation_class"))
+			await task.diffViewProvider.reset()
+			return
+		}
+
+		const validMutationClasses: MutationClass[] = ["AST_REFACTOR", "INTENT_EVOLUTION"]
+		if (!validMutationClasses.includes(mutation_class)) {
+			task.consecutiveMistakeCount++
+			task.recordToolError("write_to_file")
+			pushToolResult(`Invalid value for mutation_class. Allowed values: ${validMutationClasses.join(", ")}`)
 			await task.diffViewProvider.reset()
 			return
 		}

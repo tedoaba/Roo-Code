@@ -17,7 +17,7 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Update `toolParamNames` and `NativeToolArgs` types in `src/shared/tools.ts` to include `mutation_class`
+- [x] T001 Update `toolParamNames` and `NativeToolArgs` types in `src/shared/tools.ts` to include `mutation_class`
 
 ---
 
@@ -27,8 +27,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Update tool prompt schema definition in `src/core/prompts/tools/native-tools/write_to_file.ts` to include `intent_id` and `mutation_class` as required fields
-- [ ] T003 Update `WriteToFileParams` type definition in `src/core/tools/WriteToFileTool.ts` to include metadata fields and ensure no legacy optionality remains
+- [x] T002 Update tool prompt schema definition in `src/core/prompts/tools/native-tools/write_to_file.ts` to include `intent_id` and `mutation_class` as required fields
+- [x] T003 Update `WriteToFileParams` type definition in `src/core/tools/WriteToFileTool.ts` to include metadata fields and ensure no legacy optionality remains
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -44,11 +44,11 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [P] [US1] Add positive test case for valid metadata in `src/core/tools/__tests__/writeToFileTool.spec.ts`
+- [x] T004 [P] [US1] Add positive test case for valid metadata in `src/core/tools/__tests__/writeToFileTool.spec.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Update `WriteToFileTool.ts` to accept and process the new metadata fields during tool execution
+- [x] T005 [US1] Update `WriteToFileTool.ts` to accept and process the new metadata fields during tool execution
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -62,12 +62,12 @@
 
 ### Tests for User Story 2
 
-- [ ] T006 [P] [US2] Add failure test cases for missing/empty metadata in `src/core/tools/__tests__/writeToFileTool.spec.ts`
+- [x] T006 [P] [US2] Add failure test cases for missing/empty metadata in `src/core/tools/__tests__/writeToFileTool.spec.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Implement strict existence validation for `intent_id` and `mutation_class` in `src/core/tools/WriteToFileTool.ts`
-- [ ] T008 [US2] Implement non-empty string validation for `intent_id` in `src/core/tools/WriteToFileTool.ts`
+- [x] T007 [US2] Implement strict existence validation for `intent_id` and `mutation_class` in `src/core/tools/WriteToFileTool.ts`
+- [x] T008 [US2] Implement non-empty string validation for `intent_id` in `src/core/tools/WriteToFileTool.ts`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -81,11 +81,11 @@
 
 ### Tests for User Story 3
 
-- [ ] T009 [P] [US3] Add failure test cases for invalid/lower-case enum values in `src/core/tools/__tests__/writeToFileTool.spec.ts`
+- [x] T009 [P] [US3] Add failure test cases for invalid/lower-case enum values in `src/core/tools/__tests__/writeToFileTool.spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Implement strict enum and case-sensitivity validation for `mutation_class` in `src/core/tools/WriteToFileTool.ts`
+- [x] T010 [US3] Implement strict enum and case-sensitivity validation for `mutation_class` in `src/core/tools/WriteToFileTool.ts`
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -95,9 +95,9 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T011 Verify all scenarios in `specs/003-enforce-intent-metadata/quickstart.md` manually
-- [ ] T012 [P] Update agent context using `.specify/scripts/powershell/update-agent-context.ps1 -AgentType agy`
-- [ ] T013 Run full test suite in `src/core/tools/__tests__/writeToFileTool.spec.ts` to ensure zero regressions and verify validation overhead is <10ms
+- [x] T011 Verify all scenarios in `specs/003-enforce-intent-metadata/quickstart.md` manually
+- [x] T012 [P] Update agent context using `.specify/scripts/powershell/update-agent-context.ps1 -AgentType agy`
+- [x] T013 Run full test suite in `src/core/tools/__tests__/writeToFileTool.spec.ts` to ensure zero regressions and verify validation overhead is <10ms
 
 ---
 

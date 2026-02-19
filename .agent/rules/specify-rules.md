@@ -26,5 +26,7 @@ General: Follow standard conventions
 
 - 003-enforce-intent-metadata: Added TypeScript + VS Code API, Anthropic SDK (for blocks/types), @roo-code/types
 
+- 003-enforce-intent-metadata: Added TypeScript + VS Code API, Anthropic SDK (for blocks/types), @roo-code/types
+
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
