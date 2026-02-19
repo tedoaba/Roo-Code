@@ -29,5 +29,5 @@ In the `PostToolUse` hook (e.g., for `write_to_file`):
 ## Running Tests
 
 ```bash
-npm test src/core/mutation/__tests__
+pnpm --filter roo-cline test -- src/core/mutation/__tests__
 ```

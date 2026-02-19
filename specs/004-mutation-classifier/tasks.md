@@ -21,8 +21,8 @@ description: "Task list for Semantic Mutation Classifier implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create project directories: `src/core/mutation/engines` and `src/core/mutation/__tests__`
-- [ ] T002 Verify `typescript` dependency is present in `package.json`
+- [x] T001 Create project directories: `src/core/mutation/engines` and `src/core/mutation/__tests__`
+- [x] T002 Verify `typescript` dependency is present in `package.json`
 
 ---
 
@@ -32,10 +32,10 @@ description: "Task list for Semantic Mutation Classifier implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Define `MutationClass` enum and shared types in `src/shared/types.ts`
-- [ ] T004 Implement `IMutationEngine` interface and `IMutationClassifier` in `src/core/mutation/types.ts` (based on `contracts/classifier.ts`)
-- [ ] T005 [P] Implement `BaseEngine` in `src/core/mutation/engines/BaseEngine.ts`
-- [ ] T006 Create `MutationClassifier` singleton service in `src/core/mutation/MutationClassifier.ts` with engine registration logic
+- [x] T003 Define `MutationClass` enum and shared types in `src/shared/types.ts`
+- [x] T004 Implement `IMutationEngine` interface and `IMutationClassifier` in `src/core/mutation/types.ts` (based on `contracts/classifier.ts`)
+- [x] T005 [P] Implement `BaseEngine` in `src/core/mutation/engines/BaseEngine.ts`
+- [x] T006 Create `MutationClassifier` singleton service in `src/core/mutation/MutationClassifier.ts` with engine registration logic
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -51,19 +51,19 @@ description: "Task list for Semantic Mutation Classifier implementation"
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [P] [US1] Create unit test suite for TS classification in `src/core/mutation/__tests__/MutationClassifier.test.ts`
-- [ ] T008 [P] [US1] Add test cases for whitespace/formatting changes (AST_REFACTOR)
-- [ ] T009 [P] [US1] Add test cases for variable/function renames (AST_REFACTOR)
-- [ ] T010 [P] [US1] Add test cases for adding logic branches or new functions (INTENT_EVOLUTION)
-- [ ] T010b [P] [US1] Add test cases for edge cases: empty files (AST_REFACTOR) and file deletion (INTENT_EVOLUTION)
+- [x] T007 [P] [US1] Create unit test suite for TS classification in `src/core/mutation/__tests__/MutationClassifier.test.ts`
+- [x] T008 [P] [US1] Add test cases for whitespace/formatting changes (AST_REFACTOR)
+- [x] T009 [P] [US1] Add test cases for variable/function renames (AST_REFACTOR)
+- [x] T010 [P] [US1] Add test cases for adding logic branches or new functions (INTENT_EVOLUTION)
+- [x] T010b [P] [US1] Add test cases for edge cases: empty files (AST_REFACTOR) and file deletion (INTENT_EVOLUTION)
 
 ### Implementation for User Story 1
 
-- [ ] T011 [P] [US1] Implement `TypeScriptEngine` in `src/core/mutation/engines/TypeScriptEngine.ts`
-- [ ] T012 [US1] Implement AST parsing with `ts.createSourceFile` and error handling (default to `INTENT_EVOLUTION`)
-- [ ] T013 [US1] Implement recursive AST node comparison logic ignoring trivia (whitespace/comments)
-- [ ] T014 [US1] Implement identifier normalization to detect consistent renames as `AST_REFACTOR`
-- [ ] T015 [US1] Register `TypeScriptEngine` for `.ts` and `.js` extensions in `MutationClassifier.ts`
+- [x] T011 [P] [US1] Implement `TypeScriptEngine` in `src/core/mutation/engines/TypeScriptEngine.ts`
+- [x] T012 [US1] Implement AST parsing with `ts.createSourceFile` and error handling (default to `INTENT_EVOLUTION`)
+- [x] T013 [US1] Implement recursive AST node comparison logic ignoring trivia (whitespace/comments)
+- [x] T014 [US1] Implement identifier normalization to detect consistent renames as `AST_REFACTOR`
+- [x] T015 [US1] Register `TypeScriptEngine` for `.ts` and `.js` extensions in `MutationClassifier.ts`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -77,8 +77,8 @@ description: "Task list for Semantic Mutation Classifier implementation"
 
 ### Tests for User Story 2
 
-- [ ] T016 [P] [US2] Add determinism validation to `src/core/mutation/__tests__/MutationClassifier.test.ts`
-- [ ] T017 [US2] Implement a test runner to execute classification 100 times on a complex input pair
+- [x] T016 [P] [US2] Add determinism validation to `src/core/mutation/__tests__/MutationClassifier.test.ts`
+- [x] T017 [US2] Implement a test runner to execute classification 100 times on a complex input pair
 
 **Checkpoint**: User Story 2 verified - governance is predictable.
 
@@ -88,10 +88,10 @@ description: "Task list for Semantic Mutation Classifier implementation"
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T018 [P] Implement performance benchmark test in `src/core/mutation/__tests__/MutationClassifier.test.ts` (Target: < 500ms for 1000 LOC)
-- [ ] T019 [P] Update `README.md` with Mutation Classifier documentation
-- [ ] T020 Final validation of all scenarios in `quickstart.md`
-- [ ] T021 Code cleanup and linting of `src/core/mutation`
+- [x] T018 [P] Implement performance benchmark test in `src/core/mutation/__tests__/MutationClassifier.test.ts` (Target: < 500ms for 1000 LOC)
+- [x] T019 [P] Update `README.md` with Mutation Classifier documentation
+- [x] T020 Final validation of all scenarios in `quickstart.md`
+- [x] T021 Code cleanup and linting of `src/core/mutation`
 
 ---
 
