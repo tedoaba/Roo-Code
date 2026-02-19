@@ -49,10 +49,11 @@ description: "Task list for REQ-ID Injection Enforcement implementation"
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
 - [ ] T004 [US1] Add unit test checking that `HookEngine.preToolUse` throws `TraceabilityError` when `req.intentId` is missing for a destructive tool in `src/hooks/__tests__/HookEngine.test.ts`
+- [ ] T005 [US1] Add unit test checking that `HookEngine.preToolUse` allows execution of `SAFE` tools (e.g., `read_file`) even when `req.intentId` is missing, ensuring zero impact on read-only tools in `src/hooks/__tests__/HookEngine.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Implement intent presence validation in `src/hooks/HookEngine.ts` inside `preToolUse()` handling to throw `TraceabilityError` for destructive tools.
+- [ ] T006 [US1] Implement intent presence validation in `src/hooks/HookEngine.ts` inside `preToolUse()` handling to throw `TraceabilityError` for destructive tools.
 
 **Checkpoint**: At this point, mutations are securely blocked without an intentId, satisfying accountability basics.
 
@@ -66,12 +67,12 @@ description: "Task list for REQ-ID Injection Enforcement implementation"
 
 ### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
 
-- [ ] T006 [US2] Add unit test to verify rejection of malformed `intentId` formats (e.g., "FIX-123") in `src/hooks/__tests__/HookEngine.test.ts`
-- [ ] T007 [US2] Add unit test to verify acceptance of valid `intentId` formats (e.g., "REQ-123", "REQ-AUTH-01") in `src/hooks/__tests__/HookEngine.test.ts`
+- [ ] T007 [US2] Add unit test to verify rejection of malformed `intentId` formats (e.g., "FIX-123", plain numeric, or empty strings "") in `src/hooks/__tests__/HookEngine.test.ts`
+- [ ] T008 [US2] Add unit test to verify acceptance of valid `intentId` formats (e.g., "REQ-123", "REQ-AUTH-01") in `src/hooks/__tests__/HookEngine.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Implement flexible regex format validation (`/^REQ-[a-zA-Z0-9\-]+$/`) to the intentId check block in `src/hooks/HookEngine.ts`
+- [ ] T009 [US2] Implement flexible regex format validation (`/^REQ-[a-zA-Z0-9\-]+$/`) to the intentId check block in `src/hooks/HookEngine.ts`
 
 **Checkpoint**: The HookEngine now guarantees all requirement links are perfectly formatted.
 
@@ -81,8 +82,8 @@ description: "Task list for REQ-ID Injection Enforcement implementation"
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T009 Refactoring / optimize HookEngine validation checks to remain strictly under the <50ms goal metric.
-- [ ] T010 Update documentation or run quickstart sample locally.
+- [ ] T010 Refactoring / optimize HookEngine validation checks to remain strictly under the <50ms goal metric.
+- [ ] T011 Update documentation or run quickstart sample locally.
 
 ---
 
