@@ -5,6 +5,14 @@
 **Status**: Draft  
 **Input**: User description: "Spatial Hashing Utility Title: Implement SHA-256 Content Hashing Create a hashing utility for file content integrity. Requirements Function: generate_content_hash(content: string) -> string Use SHA-256. Output hex digest. Deterministic behavior. No external network calls. Tests Same input → same hash. Different input → different hash. Empty string supported. Success Criteria Cryptographic integrity verified. Used downstream by trace system."
 
+## Clarifications
+
+### Session 2026-02-19
+
+- Q: How should the utility handle non-string or null/undefined inputs? → A: Throw a standard Error (e.g., "Invalid input: expected string").
+- Q: Is there a maximum expected string size for this utility, or should we assume it must handle arbitrary sizes? → A: Explicit limit (e.g., 1GB) with error on exceed.
+- Q: What is the maximum acceptable latency for hashing a standard-sized file (e.g., 1MB)? → A: Under 50ms for 1MB content.
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Generate File Content Integrity Hash (Priority: P1)
@@ -39,8 +47,9 @@ As a developer, I want to ensure that the hashing utility is deterministic so th
 
 ### Edge Cases
 
-- **Large Content**: How does the system handle very large strings? (Expected: Standard SHA-256 processing).
+- **Large Content**: System MUST throw an error if the input string exceeds 1GB in size to prevent memory exhaustion.
 - **Special Characters**: Does the system handle Unicode/UTF-8 characters correctly? (Expected: Hashing should be based on UTF-8 byte representation).
+- **Invalid Inputs**: System MUST throw an error if input is null, undefined, or not a string.
 - **Empty String**: Handled as per User Story 1.
 
 ## Requirements _(mandatory)_
@@ -48,6 +57,8 @@ As a developer, I want to ensure that the hashing utility is deterministic so th
 ### Functional Requirements
 
 - **FR-001**: System MUST provide a public utility function `generate_content_hash` that accepts a UTF-8 string.
+- **FR-007**: System MUST throw an Error if the input to `generate_content_hash` is not a string (e.g., null, undefined, number).
+- **FR-008**: System MUST throw an Error if the input string length exceeds 1GB (1,073,741,824 characters, assuming 1 byte per char for length validation simplicity).
 - **FR-002**: System MUST use the SHA-256 cryptographic hashing algorithm.
 - **FR-003**: System MUST return the hash as a hexadecimal string (hex digest).
 - **FR-004**: System MUST ensure that the hashing process is entirely deterministic.
@@ -66,3 +77,4 @@ As a developer, I want to ensure that the hashing utility is deterministic so th
 - **SC-002**: 0% variance in output when hashing the same input multiple times (100% determinism).
 - **SC-003**: Zero network requests are initiated during the execution of the hashing function.
 - **SC-004**: The utility is successfully used downstream by the trace system to verify content integrity.
+- **SC-005**: Hashing performance meets the target of < 50ms for a 1MB payload on standard hardware.
