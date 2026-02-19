@@ -54,6 +54,7 @@ specs/[###-feature]/
 
 ```text
 src/
+├── index.ts                 # Main entry point (exports hashing)
 └── utils/
     ├── hashing.ts           # Implementation (generate_content_hash)
     └── __tests__/
