@@ -1,6 +1,7 @@
 import { OrchestrationService } from "../services/orchestration/OrchestrationService"
 import { StateMachine } from "../core/state/StateMachine"
 import { HookResponse, CommandClassification } from "../services/orchestration/types"
+import { TraceabilityError } from "../errors/TraceabilityError"
 
 /**
  * Hook Engine - The Sole Execution Gateway (T007)
@@ -137,16 +138,21 @@ export class HookEngine {
 			return { action: "CONTINUE", classification }
 		}
 
-		// T007/T015: No Active Intent block (FR-008)
-		// All destructive tools are denied if no intent is active
-		if (!req.intentId && this.isDestructiveTool(req.toolName)) {
-			return {
-				action: "DENY",
-				classification,
-				reason: "Error: No active intent. Please execute select_active_intent before modifying code.",
-				details: `Tool '${req.toolName}' requires an active intent but none is selected.`,
-				recovery_hint:
-					"Use the 'select_active_intent' tool to select or create an intent before performing destructive operations.",
+		// US1/US2: Traceability Enforcement (Law 3.3.1)
+		// All destructive tools MUST have a valid REQ-ID intent identifier.
+		if (this.isDestructiveTool(req.toolName)) {
+			if (req.intentId === undefined || req.intentId === null) {
+				throw new TraceabilityError(
+					`[Traceability Requirement Violation] Tool '${req.toolName}' is classified as DESTRUCTIVE and requires an active traceability identifier (intentId), but none was provided.`,
+				)
+			}
+
+			// Validate REQ-ID format (US2)
+			const reqIdRegex = /^REQ-[a-zA-Z0-9\-]+$/
+			if (!reqIdRegex.test(req.intentId)) {
+				throw new TraceabilityError(
+					`[Invalid Traceability Identifier Format] The provided intentId '${req.intentId}' does not follow the required project standard (must match /^REQ-[a-zA-Z0-9\-]+$/).`,
+				)
 			}
 		}
 
