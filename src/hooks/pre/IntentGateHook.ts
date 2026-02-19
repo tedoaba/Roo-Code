@@ -2,6 +2,12 @@ import { Task } from "../../core/task/Task"
 import { ToolName } from "@roo-code/types"
 import { OrchestrationService } from "../../services/orchestration/OrchestrationService"
 
+/**
+ * @deprecated Use HookEngine instead. All gatekeeper logic has been unified
+ * into HookEngine.preToolUse (Invariant 2: Sole Execution Gateway).
+ * This class is retained only for backward compatibility during migration.
+ * See T007 in specs/002-hook-middleware/tasks.md.
+ */
 export class IntentGateHook {
 	private orchestrationService: OrchestrationService
 

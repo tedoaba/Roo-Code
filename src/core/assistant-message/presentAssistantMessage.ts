@@ -235,17 +235,23 @@ export async function presentAssistantMessage(cline: Task) {
 			}
 
 			if (!mcpBlock.partial) {
-				// Enforcement Hook: Intent Gate
-				const validation = await cline.intentGateHook.validateToolCall(
-					cline,
-					`mcp_${mcpBlock.serverName}_${mcpBlock.toolName}`,
-					mcpBlock.arguments,
-				)
-				if (!validation.allowed) {
+				// Enforcement Hook: HookEngine PreToolUse (Invariant 2: Sole Execution Gateway)
+				const hookResponse = await cline.hookEngine.preToolUse({
+					toolName: `mcp_${mcpBlock.serverName}_${mcpBlock.toolName}`,
+					params: mcpBlock.arguments || {},
+					intentId: cline.activeIntentId,
+				})
+				if (hookResponse.action === "DENY" || hookResponse.action === "HALT") {
 					cline.consecutiveMistakeCount++
-					const errorContent = formatResponse.toolError(
-						validation.reason || "Tool execution blocked by Intent Gate.",
-					)
+					// T017: JSON error formatting for hook denials
+					const jsonError = JSON.stringify({
+						error: hookResponse.reason || "Tool execution blocked by Hook Engine.",
+						details:
+							hookResponse.details ||
+							`Tool 'mcp_${mcpBlock.serverName}_${mcpBlock.toolName}' was denied.`,
+						recovery_hint: hookResponse.recovery_hint || "Check intent scope and try again.",
+					})
+					const errorContent = formatResponse.toolError(jsonError)
 					cline.pushToolResultToUserContent({
 						type: "tool_result",
 						tool_use_id: sanitizeToolUseId(toolCallId!),
@@ -508,28 +514,19 @@ export async function presentAssistantMessage(cline: Task) {
 					cline.userMessageContent.push(...imageBlocks)
 				}
 
-				// Log trace if intent is active
-				if (cline.activeIntentId) {
-					cline.orchestrationService
-						.logTrace({
-							timestamp: new Date().toISOString(),
-							agent_id: "roo-code-agent",
-							intent_id: cline.activeIntentId,
-							action_type: "TOOL_EXECUTION",
-							payload: {
-								tool_name: block.name,
-								tool_input: block.params,
-							},
-							result: {
-								status: "SUCCESS", // We assume success if we got here, errors are handled separately
-								output_summary: resultContent.slice(0, 200) + (resultContent.length > 200 ? "..." : ""),
-							},
-							metadata: {
-								session_id: cline.taskId,
-							},
-						})
-						.catch((err) => console.error("Failed to log trace:", err))
-				}
+				// T013: Delegate to HookEngine.postToolUse for SHA-256 hashing & audit logging
+				const filePath = block.params?.path || block.params?.file_path
+				cline.hookEngine
+					.postToolUse({
+						toolName: block.name,
+						params: block.params || {},
+						intentId: cline.activeIntentId,
+						success: true,
+						output: resultContent.slice(0, 200),
+						filePath: filePath,
+						fileContent: undefined, // Content is handled within the tool handler
+					})
+					.catch((err) => console.error("Failed to run postToolUse:", err))
 
 				hasToolResult = true
 			}
@@ -593,29 +590,18 @@ export async function presentAssistantMessage(cline: Task) {
 					`Error ${action}:\n${error.message ?? JSON.stringify(serializeError(error), null, 2)}`,
 				)
 
-				// Log trace if intent is active
-				if (cline.activeIntentId) {
-					cline.orchestrationService
-						.logTrace({
-							timestamp: new Date().toISOString(),
-							agent_id: "roo-code-agent",
-							intent_id: cline.activeIntentId,
-							action_type: "ERROR",
-							payload: {
-								tool_name: block.name,
-								tool_input: block.params,
-							},
-							result: {
-								status: "FAILURE",
-								output_summary: `Error ${action}: ${error.message}`,
-								error_message: error.stack,
-							},
-							metadata: {
-								session_id: cline.taskId,
-							},
-						})
-						.catch((err) => console.error("Failed to log trace:", err))
-				}
+				// T013: Delegate error logging to HookEngine.postToolUse
+				const filePath = block.params?.path || block.params?.file_path
+				cline.hookEngine
+					.postToolUse({
+						toolName: block.name,
+						params: block.params || {},
+						intentId: cline.activeIntentId,
+						success: false,
+						output: `Error ${action}: ${error.message}`,
+						filePath: filePath,
+					})
+					.catch((err) => console.error("Failed to run postToolUse:", err))
 
 				pushToolResult(formatResponse.toolError(errorString))
 			}
@@ -692,13 +678,21 @@ export async function presentAssistantMessage(cline: Task) {
 
 			// Check for identical consecutive tool calls.
 			if (!block.partial) {
-				// Enforcement Hook: Intent Gate
-				const validation = await cline.intentGateHook.validateToolCall(cline, block.name, block.params)
-				if (!validation.allowed) {
+				// Enforcement Hook: HookEngine PreToolUse (Invariant 2: Sole Execution Gateway)
+				const hookResponse = await cline.hookEngine.preToolUse({
+					toolName: block.name,
+					params: block.params || {},
+					intentId: cline.activeIntentId,
+				})
+				if (hookResponse.action === "DENY" || hookResponse.action === "HALT") {
 					cline.consecutiveMistakeCount++
-					const errorContent = formatResponse.toolError(
-						validation.reason || "Tool execution blocked by Intent Gate.",
-					)
+					// T017: JSON error formatting for hook denials
+					const jsonError = JSON.stringify({
+						error: hookResponse.reason || "Tool execution blocked by Hook Engine.",
+						details: hookResponse.details || `Tool '${block.name}' was denied.`,
+						recovery_hint: hookResponse.recovery_hint || "Check intent scope and try again.",
+					})
+					const errorContent = formatResponse.toolError(jsonError)
 					cline.pushToolResultToUserContent({
 						type: "tool_result",
 						tool_use_id: sanitizeToolUseId(toolCallId),
