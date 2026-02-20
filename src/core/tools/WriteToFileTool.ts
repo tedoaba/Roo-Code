@@ -74,15 +74,23 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 			return
 		}
 
-		// Requirement 2: Programmatic Enforcement of Semantic Classification
+		let fileExists: boolean
 		const absolutePath = path.resolve(task.cwd, relPath)
+
+		if (task.diffViewProvider.editType !== undefined) {
+			fileExists = task.diffViewProvider.editType === "modify"
+		} else {
+			fileExists = await fileExistsAtPath(absolutePath)
+			task.diffViewProvider.editType = fileExists ? "modify" : "create"
+		}
+
 		let previousContent = ""
-		try {
-			if (await fileExistsAtPath(absolutePath)) {
+		if (fileExists) {
+			try {
 				previousContent = await fs.readFile(absolutePath, "utf-8")
+			} catch (error) {
+				// If file can't be read, treat as empty (INTENT_EVOLUTION effectively)
 			}
-		} catch (error) {
-			// If file can't be read, treat as empty (INTENT_EVOLUTION effectively)
 		}
 
 		const { MutationClassifier } = await import("../mutation/MutationClassifier")
@@ -108,15 +116,6 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 		}
 
 		const isWriteProtected = task.rooProtectedController?.isWriteProtected(relPath) || false
-
-		let fileExists: boolean
-
-		if (task.diffViewProvider.editType !== undefined) {
-			fileExists = task.diffViewProvider.editType === "modify"
-		} else {
-			fileExists = await fileExistsAtPath(absolutePath)
-			task.diffViewProvider.editType = fileExists ? "modify" : "create"
-		}
 
 		// Create parent directories early for new files to prevent ENOENT errors
 		// in subsequent operations (e.g., diffViewProvider.open, fs.readFile)
