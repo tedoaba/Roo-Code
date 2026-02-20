@@ -30,6 +30,7 @@ describe("LedgerManager", () => {
 			related: [],
 			ranges: { file: "f1.ts", hash: "h1", content_hash: "h1", start_line: 1, end_line: 10 },
 			summary: "test",
+			contributor: { entity_type: "AI", model_identifier: "roo-code" },
 		} as any
 
 		await manager.append(entry)
@@ -52,6 +53,7 @@ describe("LedgerManager", () => {
 			related: [],
 			ranges: { file: "f1.ts", hash: "h1", content_hash: "h1", start_line: 1, end_line: 10 },
 			summary: "test",
+			contributor: { entity_type: "AI", model_identifier: "roo-code" },
 		} as any
 
 		const entry2: AgentTraceEntry = {
@@ -63,6 +65,7 @@ describe("LedgerManager", () => {
 			related: [],
 			ranges: { file: "f2.ts", content_hash: "h2", start_line: 1, end_line: 10 },
 			summary: "test",
+			contributor: { entity_type: "AI", model_identifier: "roo-code" },
 		} as any
 
 		await manager.append(entry1)
@@ -89,6 +92,7 @@ describe("LedgerManager", () => {
 			related: [],
 			ranges: { file: "test.ts", content_hash: "hash", start_line: 1, end_line: 10 },
 			summary: "test",
+			contributor: { entity_type: "AI", model_identifier: "roo-code" },
 		} as any
 
 		await nestedManager.append(entry)
