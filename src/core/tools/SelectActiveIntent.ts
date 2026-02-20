@@ -1,6 +1,6 @@
 import { BaseTool, ToolCallbacks } from "./BaseTool"
 import { Task } from "../task/Task"
-import { AgentTraceEntry } from "../../services/orchestration/types"
+import { AgentTraceEntry, ExecutionState } from "../../contracts/AgentTrace"
 
 export class SelectActiveIntentTool extends BaseTool<"select_active_intent"> {
 	readonly name = "select_active_intent" as const
@@ -67,12 +67,13 @@ export class SelectActiveIntentTool extends BaseTool<"select_active_intent"> {
 				},
 				actor: "roo-code-agent",
 				summary: `Selected intent ${intent_id}`,
+				contributor: { entity_type: "AI", model_identifier: "roo-code" },
 				state: "REASONING",
 				action_type: "INTENT_SELECTION",
 				payload: { tool_name: "select_active_intent", tool_input: params },
 				result: { status: "SUCCESS", output_summary: `Selected intent ${intent_id}` },
 				metadata: { session_id: task.taskId },
-			} as any)
+			})
 
 			// T017: Load Shared Brain content
 			const sharedBrain = await service.loadSharedBrain()
