@@ -8,7 +8,8 @@ import ignore, { Ignore } from "ignore"
 import { ActiveIntent, IntentStatus, AgentTraceEntry, IntentContextBlock, ScopeValidationResult } from "./types"
 
 interface ActiveIntentsFile {
-	intents: ActiveIntent[]
+	active_intents?: ActiveIntent[]
+	intents?: ActiveIntent[]
 }
 
 /** Maximum number of files an intent's owned_scope can cover */
@@ -107,7 +108,7 @@ export class OrchestrationService {
 		try {
 			const content = await fs.readFile(this.intentsFile, "utf8")
 			const data = yaml.load(content) as ActiveIntentsFile
-			return data.intents || []
+			return data.active_intents || data.intents || []
 		} catch (error: any) {
 			if (error.code === "ENOENT") {
 				return []
@@ -240,7 +241,7 @@ export class OrchestrationService {
 		try {
 			await fs.access(this.intentsFile)
 		} catch {
-			const defaultIntents = yaml.dump({ intents: [] })
+			const defaultIntents = yaml.dump({ active_intents: [] })
 			await fs.writeFile(this.intentsFile, defaultIntents, "utf8")
 		}
 
@@ -255,13 +256,7 @@ export class OrchestrationService {
 		try {
 			await fs.access(this.intentMapFile)
 		} catch {
-			const defaultMap = [
-				"# Intent Map",
-				"",
-				"| File Path | Owning Intent ID | Last Hash | Prov. Locked? |",
-				"| :--- | :--- | :--- | :--- |",
-				"",
-			].join("\n")
+			const defaultMap = ["# Intent Map", "", "_No intents have been mapped yet._"].join("\n")
 			await fs.writeFile(this.intentMapFile, defaultMap, "utf8")
 		}
 	}
@@ -526,7 +521,7 @@ export class OrchestrationService {
 	 * Save the intents array back to the YAML file.
 	 */
 	private async saveIntents(intents: ActiveIntent[]): Promise<void> {
-		const content = yaml.dump({ intents })
+		const content = yaml.dump({ active_intents: intents })
 		await fs.writeFile(this.intentsFile, content, "utf8")
 	}
 

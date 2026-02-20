@@ -5,11 +5,11 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Verify project structure and active branch `017-sidecar-model-alignment`
+- [x] T001 Verify project structure and active branch `017-sidecar-model-alignment`
 
 ## Phase 2: Foundational
 
-- [ ] T002 Update `ActiveIntentsFile` interface in `src/services/orchestration/OrchestrationService.ts` (line 10) to support both `active_intents` and `intents` keys
+- [x] T002 Update `ActiveIntentsFile` interface in `src/services/orchestration/OrchestrationService.ts` (line 10) to support both `active_intents` and `intents` keys
 
 ## Phase 3: User Story 1 - Initial Sidecar State (P1)
 
@@ -25,8 +25,8 @@
 **Implementation Tasks**:
 
 - [ ] T003 [P] [US1] Create unit tests for sidecar initialization in `src/services/orchestration/__tests__/OrchestrationService.test.ts`
-- [ ] T004 [US1] Update `intent_map.md` template in `OrchestrationService.initializeOrchestration()` (lines 258-265) in `src/services/orchestration/OrchestrationService.ts`
-- [ ] T005 [US1] Update active_intents.yaml initial template to use canonical `active_intents:` root key in OrchestrationService.initializeOrchestration() (line 243) in src/services/orchestration/OrchestrationService.ts
+- [x] T004 [US1] Update `intent_map.md` template in `OrchestrationService.initializeOrchestration()` (lines 258-265) in `src/services/orchestration/OrchestrationService.ts`
+- [x] T005 [US1] Update active_intents.yaml initial template to use canonical `active_intents:` root key in OrchestrationService.initializeOrchestration() (line 243) in src/services/orchestration/OrchestrationService.ts
 
 ## Phase 4: User Story 2 - Canonical Data Format (P1)
 
@@ -39,8 +39,8 @@
 
 **Implementation Tasks**:
 
-- [ ] T006 [P] [US2] Add unit tests for canonical saving in `src/services/orchestration/__tests__/OrchestrationService.test.ts`
-- [ ] T007 [US2] Update OrchestrationService.saveIntents() (line 529) to write the canonical `active_intents:` root key in src/services/orchestration/OrchestrationService.ts
+- [x] T006 [P] [US2] Add unit tests for canonical saving in `src/services/orchestration/__tests__/OrchestrationService.test.ts`
+- [x] T007 [US2] Update OrchestrationService.saveIntents() (line 529) to write the canonical `active_intents:` root key in src/services/orchestration/OrchestrationService.ts
 
 ## Phase 5: User Story 3 - Graceful Migration (P2)
 
@@ -53,12 +53,12 @@
 
 **Implementation Tasks**:
 
-- [ ] T008 [P] [US3] Add unit tests for legacy fallback and precedence in `src/services/orchestration/__tests__/OrchestrationService.test.ts`
-- [ ] T009 [US3] Refactor `OrchestrationService.getActiveIntents()` (line 110) to implement precedence-based parsing in `src/services/orchestration/OrchestrationService.ts`
+- [x] T008 [P] [US3] Add unit tests for legacy fallback and precedence in `src/services/orchestration/__tests__/OrchestrationService.test.ts`
+- [x] T009 [US3] Refactor `OrchestrationService.getActiveIntents()` (line 110) to implement precedence-based parsing in `src/services/orchestration/OrchestrationService.ts`
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T010 Final verification: Run all tests in `src/services/orchestration/__tests__/OrchestrationService.test.ts` and verify success criteria SC-001 to SC-004 are met.
+- [x] T010 Final verification: Run all tests in `src/services/orchestration/__tests__/OrchestrationService.test.ts` and verify success criteria SC-001 to SC-004 are met.
 
 ## Dependency Graph
 
