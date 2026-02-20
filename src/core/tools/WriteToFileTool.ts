@@ -74,6 +74,31 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 			return
 		}
 
+		// Requirement 2: Programmatic Enforcement of Semantic Classification
+		const absolutePath = path.resolve(task.cwd, relPath)
+		let previousContent = ""
+		try {
+			if (await fileExistsAtPath(absolutePath)) {
+				previousContent = await fs.readFile(absolutePath, "utf-8")
+			}
+		} catch (error) {
+			// If file can't be read, treat as empty (INTENT_EVOLUTION effectively)
+		}
+
+		const { MutationClassifier } = await import("../mutation/MutationClassifier")
+		const classifier = MutationClassifier.getInstance()
+		const classificationResult = await classifier.classify(previousContent, newContent, relPath)
+
+		if (mutation_class === "AST_REFACTOR" && classificationResult.classification === "INTENT_EVOLUTION") {
+			task.consecutiveMistakeCount++
+			task.recordToolError("write_to_file")
+			pushToolResult(
+				`Semantic Classification Violation: You claimed 'AST_REFACTOR' but the changes were detected as 'INTENT_EVOLUTION' because they modified functional structure or logic. Reason: ${classificationResult.reason || "AST mismatch detected."}`,
+			)
+			await task.diffViewProvider.reset()
+			return
+		}
+
 		const accessAllowed = task.rooIgnoreController?.validateAccess(relPath)
 
 		if (!accessAllowed) {
@@ -85,7 +110,6 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 		const isWriteProtected = task.rooProtectedController?.isWriteProtected(relPath) || false
 
 		let fileExists: boolean
-		const absolutePath = path.resolve(task.cwd, relPath)
 
 		if (task.diffViewProvider.editType !== undefined) {
 			fileExists = task.diffViewProvider.editType === "modify"
