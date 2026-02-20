@@ -5,6 +5,22 @@
 **Status**: Draft  
 **Input**: User description: "Implement Automated Lessons Learned Recorder. Create a tool that records failures into AGENT.md under a structured “Lessons Learned” section. Trigger Condition: If verification step fails (Linter, Test, Static analysis). Behavior: Append Timestamp, Failure Type, Cause, Resolution, File involved, Error summary, Suggested corrective rule to AGENT.md. Atomic append, avoid duplicates, deterministic formatting."
 
+## Clarifications
+
+### Session 2026-02-20
+
+- Q: Data Model - Field Mapping Consistency (Resolution vs. Suggested corrective rule) → A: Keep both (Option A)
+- Q: Scope - Granularity of Failure Entries → A: Atomic: Create a separate entry for each unique failure (unique file + error signature) (Option B)
+- Q: Formatting - Entry Structure & Header Level → A: List-based: Bold labels for fields within a bulleted list (Option A)
+- Q: Error Handling - Recovery from Write Failures → A: Resilient: Fail silently after one retry to avoid blocking the user (Option B)
+- Q: Lifecycle - Verification vs. Recording Order → A: Immediate: Record the lesson as soon as the tool returns a non-zero exit code (Option A)
+
+### Session 2026-02-20 (Part 2)
+
+- Q: Functional Scope - Source of Intelligence → A: Agent Provided (Option A)
+- Q: Observability - Automated Feedback Loop → A: Prompt-Based: Automatically inject relevant lessons into context (Option A)
+- Q: Functional Scope - Lesson Aging and Cleanup → A: Persistent: Keep all lessons indefinitely. Rely on the injection logic to filter relevance. (Option B)
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Automatic Recording of Verification Failures (Priority: P1)
@@ -52,25 +68,38 @@ As a user, I want the recorder to avoid cluttering `AGENT.md` with duplicate ent
 ### Edge Cases
 
 - **Concurrent Failures**: How does the system handle multiple tools failing simultaneously? (Atomic append ensures serial log integrity).
-- **Disk Full/Write Protected**: How does the system handle write failures? (Should fail gracefully without crashing the main agent loop).
+- **Disk Full/Write Protected**: If the system cannot write to `AGENT.md`, it MUST attempt exactly one retry after a brief delay. If it still fails, it MUST fail silently to the main process (logging the failure only to an internal debug trace) to avoid blocking the user story.
 - **Massive Errors**: How does the system handle extremely long error summaries? (Should truncate or summarize to keep `AGENT.md` manageable).
 
 ## Requirements _(mandatory)_
 
 ### Functional Requirements
 
-- **FR-001**: System MUST monitor verification tools (Linter, Test suite, Static analysis) for exit codes indicating failure.
-- **FR-002**: System MUST capture specific metadata for each failure: Timestamp, Failure Type (e.g., Lint, Test), Cause, Resolution, File involved, Error summary, and Suggested corrective rule.
+- **FR-001**: System MUST monitor verification tools (Linter, Test suite, Static analysis) and trigger immediate recording of failures as soon as a non-zero exit code is detected.
+- **FR-002**: System MUST capture specific metadata for each failure:
+    - **Timestamp**: Date and time of failure.
+    - **Failure Type**: Category (e.g., Lint, Test, Static Analysis).
+    - **File Involved**: Path to the file where the failure occurred.
+    - **Error Summary**: A concise summary of the error output.
+    - **Cause**: The root cause of the specific failure (provided by the calling agent).
+    - **Resolution**: The specific action taken to fix this instance of the failure (provided by the calling agent).
+    - **Suggested corrective rule**: A general guideline for prevention of similar future failures (provided by the calling agent).
 - **FR-003**: System MUST record failures into `AGENT.md` under a structured "## Lessons Learned" section.
 - **FR-004**: System MUST perform atomic file appends to prevent data corruption or partial writes.
 - **FR-005**: System MUST create the `AGENT.md` file and/or the "## Lessons Learned" section header if they do not exist.
-- **FR-006**: System MUST append new entries to the end of the section without overwriting or modifying previous entries.
-- **FR-007**: System MUST use a deterministic Markdown format for entries (e.g., bullet points with specific labels).
+- **FR-006**: System MUST append new entries to the end of the section without overwriting or modifying previous entries, maintaining a permanent record of all lessons learned.
+- **FR-007**: System MUST use a deterministic Markdown format for entries:
+    - Each lesson MUST start as a top-level bullet point with a timestamp.
+    - Metadata MUST be labeled using bold identifiers (e.g., **Failure Type:**, **Cause:**, etc.).
+    - Indentation MUST be used to group metadata under the main lesson bullet.
 - **FR-008**: System MUST implement a de-duplication mechanism based on [File + Error Summary] signature to avoid redundant logs for the same issue.
+- **FR-009**: System MUST record each distinct failure as a separate entry if a tool returns multiple failures (e.g., multiple linting errors or test case failures).
+- **FR-010**: The recording tool MUST expose an interface (e.g., CLI or API) that allows the calling agent to provide the analyzed metadata (Cause, Resolution, Rule) along with the raw failure data.
+- **FR-011**: The system MUST support a mechanism to automatically retrieve and inject relevant lessons (e.g., most recent or contextually similar) from `AGENT.md` into the agent's context (Prompt-Based injection) to ensure self-correction.
 
 ### Key Entities _(include if feature involves data)_
 
-- **Lesson**: Represents a single failure event and its resolution. Attributes: `timestamp`, `type`, `cause`, `resolution`, `file`, `error_summary`, `corrective_rule`.
+- **Lesson**: Represents a single failure event and its resolution. Attributes: `timestamp`, `type`, `file`, `error_summary`, `cause`, `resolution` (specific fix), `corrective_rule` (general guidance).
 - **Lesson Ledger**: The append-only Markdown file (`AGENT.md`) that serves as the persistent memory of mistakes.
 
 ## Success Criteria _(mandatory)_
