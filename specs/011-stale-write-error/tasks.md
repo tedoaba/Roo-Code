@@ -30,7 +30,7 @@
 
 ### Tests for User Story 1
 
-- [ ] T004 [P] [US1] Write unit tests for `OptimisticGuard` rejection behavior in `src/core/concurrency/OptimisticGuard.test.ts`
+- [ ] T004 [P] [US1] Write unit tests for `OptimisticGuard` rejection behavior in `src/core/concurrency/OptimisticGuard.test.ts` including concurrent deletion (`actual_hash: "DELETED"`)
 - [ ] T005 [P] [US1] Write unit tests for trace logging in `src/hooks/AgentTraceHook.test.ts`
 
 ### Implementation for User Story 1
@@ -65,8 +65,9 @@
 **Purpose**: Improvements, validations and cleanup.
 
 - [ ] T010 [P] Verify generated JSON error payload matches the schema in `contracts/stale-write-error.json`
-- [ ] T011 Run all unit tests to explicitly verify 100% of tested stale write scenarios leave target files unmodified and emit logs
+- [ ] T011 Run all unit tests to explicitly verify 100% of tested stale write scenarios leave target files unmodified (including multi-replace atomic blocking edge cases) and emit logs
 - [ ] T012 Run quickstart validation from `specs/011-stale-write-error/quickstart.md`
+- [ ] T013 [P] Add integration test to simulate Controller receiving `RE_READ_REQUIRED` payload and triggering `view_file` flow
 
 ---
 
