@@ -1,4 +1,4 @@
-import { ExecutionState, AgentTraceEntry } from "../../services/orchestration/types"
+import { ExecutionState, AgentTraceEntry, COMMAND_CLASSIFICATION } from "../../services/orchestration/types"
 import { OrchestrationService } from "../../services/orchestration/OrchestrationService"
 
 /**
@@ -6,7 +6,7 @@ import { OrchestrationService } from "../../services/orchestration/Orchestration
  *
  * Manages the mandatory flow:
  *   State 1: REQUEST  → User prompt received
- *   State 2: REASONING → Restricted to select_active_intent only
+ *   State 2: REASONING → Allows analysis via SAFE tools
  *   State 3: ACTION    → Full tool access constrained by intent scope
  *
  * Enforces Invariant 9 (Three-State Execution Flow) and
@@ -99,27 +99,26 @@ export class StateMachine {
 
 	/**
 	 * Check if a tool is allowed in the current state.
+	 *
+	 * Relaxed Handshake Analysis (FR-009):
+	 * Allows SAFE tools (read-only) in any state to facilitate analysis.
+	 * DESTRUCTIVE tools are strictly blocked in REQUEST and REASONING.
 	 */
 	isToolAllowed(toolName: string): { allowed: boolean; reason?: string } {
+		const classification = COMMAND_CLASSIFICATION[toolName] || "DESTRUCTIVE"
+
+		// SAFE tools are always allowed to facilitate analysis and informational tasks
+		if (classification === "SAFE") {
+			return { allowed: true }
+		}
+
 		switch (this.currentState) {
 			case "REQUEST":
-				// In REQUEST state, only select_active_intent is allowed
-				if (toolName === "select_active_intent") {
-					return { allowed: true }
-				}
-				return {
-					allowed: false,
-					reason: `State Violation: In REQUEST state. You must first call 'select_active_intent' to enter the Reasoning Intercept.`,
-				}
-
 			case "REASONING":
-				// In REASONING state, only select_active_intent is allowed
-				if (toolName === "select_active_intent") {
-					return { allowed: true }
-				}
+				// Non-SAFE tools are blocked in handshake states
 				return {
 					allowed: false,
-					reason: `State Violation: Reasoning Intercept Required. Only 'select_active_intent' is available in State 2 (REASONING).`,
+					reason: `State Violation: Intent Handshake required for DESTRUCTIVE actions. Call 'select_active_intent' first.`,
 				}
 
 			case "ACTION":
