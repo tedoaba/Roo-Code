@@ -5,6 +5,13 @@
 **Status**: Draft  
 **Input**: User description: "Sidecar Data Model Alignment. Task ID: REQ-ARCH-017. Align the .orchestration/ sidecar data model with the architecture specification by: (1) creating intent_map.md during orchestration initialization, and (2) fixing the active_intents.yaml root key from 'intents:' to 'active_intents:' as documented."
 
+## Clarifications
+
+### Session 2026-02-21
+
+- Q: Mixed Keys Precedence → A: Prioritize `active_intents:` (canonical) and ignore `intents:` (legacy) if both are present.
+- Q: Initialization Overwrite Policy → A: Only create `intent_map.md` if the file is missing; preserve content if it already exists.
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Initial Sidecar State (Priority: P1)
@@ -54,8 +61,8 @@ As a user with an existing project using the old `intents:` root key, I should b
 
 ### Edge Cases
 
-- **Mixed Keys**: What happens if a file somehow contains both or neither? (The fallback should handle missing keys gracefully, likely returning an empty list).
-- **Initialization Overwrite**: How does initialization handle pre-existing but empty `.orchestration/` directories? (It should ensure all required files are present without necessarily overwriting existing valid data).
+- **Mixed Keys**: If a file contains both `active_intents:` and `intents:`, the system MUST prioritize the canonical `active_intents:` key and ignore the legacy one.
+- **Initialization Overwrite**: `OrchestrationService.initializeOrchestration()` MUST NOT overwrite existing `intent_map.md` or `active_intents.yaml` files if they already exist, ensuring non-destructive initialization.
 
 ## Requirements _(mandatory)_
 
@@ -71,7 +78,7 @@ As a user with an existing project using the old `intents:` root key, I should b
     ```
 
 - **FR-003**: The `ActiveIntentsFile` interface MUST be updated to use `active_intents` as the primary property name.
-- **FR-004**: The YAML parser for active intents MUST check for `active_intents` first, then fall back to `intents` for backward compatibility.
+- **FR-004**: The YAML parser for active intents MUST prioritize `active_intents` property; if missing, it MUST fall back to `intents` for backward compatibility.
 - **FR-005**: All intent-saving operations MUST use the canonical `active_intents:` root key.
 - **FR-006**: Existing test fixtures and mocks MUST be updated to use the canonical key where appropriate, or retained to test backward compatibility.
 
