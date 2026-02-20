@@ -4,6 +4,9 @@ Auto-generated from all feature plans. Last updated: 2026-02-18
 
 ## Active Technologies
 
+- TypeScript (Node.js/VSCode Extension context) + `HookEngine`, `AgentTraceHook`, generic `vscode` FS APIs. (011-stale-write-error)
+- Agent Trace Ledger (`.orchestration/agent_trace.jsonl`) for audit logs. (011-stale-write-error)
+
 - TypeScript 5.0+ + `fs/promises`, SHA-256 Utility (`src/utils/hashing.ts`) (010-turn-hash-snapshot)
 - In-memory `Map<string, string | Promise<string | null>>` (010-turn-hash-snapshot)
 
@@ -45,11 +48,11 @@ General: Follow standard conventions
 
 ## Recent Changes
 
+- 011-stale-write-error: Added TypeScript (Node.js/VSCode Extension context) + `HookEngine`, `AgentTraceHook`, generic `vscode` FS APIs.
+
 - 010-turn-hash-snapshot: Added TypeScript 5.0+ + `fs/promises`, SHA-256 Utility (`src/utils/hashing.ts`)
 
 - 009-optimistic-locking-guard: Added TypeScript 5.x + `crypto` (standard library), `HookEngine`, `LedgerManager`.
-
-- 008-req-id-trace-injection: Added TypeScript 5.x + None (built-in orchestration hooks)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
