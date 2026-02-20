@@ -16,6 +16,9 @@ mock/
 bin/
 *.vsix
 
+# folders
+report/
+
 # Local prompts and rules
 /local-prompts
 AGENTS.local.md
@@ -53,5 +56,8 @@ qdrant_storage/
 
 # Architect plans
 plans/
+
+# Orchestration sidecar (runtime state)
+.orchestration/
 
 roo-cli-*.tar.gz*

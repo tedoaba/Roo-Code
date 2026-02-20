@@ -37,9 +37,12 @@ import { generateImageTool } from "../tools/GenerateImageTool"
 import { applyDiffTool as applyDiffToolClass } from "../tools/ApplyDiffTool"
 import { isValidToolName, validateToolUse } from "../tools/validateToolUse"
 import { codebaseSearchTool } from "../tools/CodebaseSearchTool"
+import { selectActiveIntentTool } from "../tools/SelectActiveIntent"
 
 import { formatResponse } from "../prompts/responses"
 import { sanitizeToolUseId } from "../../utils/tool-id"
+import fs from "fs/promises"
+import path from "path"
 
 /**
  * Processes and presents assistant message content to the user interface.
@@ -234,6 +237,31 @@ export async function presentAssistantMessage(cline: Task) {
 			}
 
 			if (!mcpBlock.partial) {
+				// Enforcement Hook: HookEngine PreToolUse (Invariant 2: Sole Execution Gateway)
+				const hookResponse = await cline.hookEngine.preToolUse({
+					toolName: `mcp_${mcpBlock.serverName}_${mcpBlock.toolName}`,
+					params: mcpBlock.arguments || {},
+					intentId: cline.activeIntentId,
+				})
+				if (hookResponse.action === "DENY" || hookResponse.action === "HALT") {
+					cline.consecutiveMistakeCount++
+					// T017: JSON error formatting for hook denials
+					const jsonError = JSON.stringify({
+						error: hookResponse.reason || "Tool execution blocked by Hook Engine.",
+						details:
+							hookResponse.details ||
+							`Tool 'mcp_${mcpBlock.serverName}_${mcpBlock.toolName}' was denied.`,
+						recovery_hint: hookResponse.recovery_hint || "Check intent scope and try again.",
+					})
+					const errorContent = formatResponse.toolError(jsonError)
+					cline.pushToolResultToUserContent({
+						type: "tool_result",
+						tool_use_id: sanitizeToolUseId(toolCallId!),
+						content: typeof errorContent === "string" ? errorContent : "(enforcement error)",
+						is_error: true,
+					})
+					break
+				}
 				cline.recordToolUsage("use_mcp_tool") // Record as use_mcp_tool for analytics
 				TelemetryService.instance.captureToolUsage(cline.taskId, "use_mcp_tool")
 			}
@@ -488,6 +516,31 @@ export async function presentAssistantMessage(cline: Task) {
 					cline.userMessageContent.push(...imageBlocks)
 				}
 
+				// T013: Delegate to HookEngine.postToolUse for SHA-256 hashing & audit logging
+				{
+					const filePath = block.params?.path || block.params?.file_path
+					;(async () => {
+						let fileContent: string | undefined = undefined
+						if (filePath) {
+							try {
+								const abs = path.isAbsolute(filePath) ? filePath : path.resolve(cline.cwd, filePath)
+								fileContent = await fs.readFile(abs, "utf8")
+							} catch {
+								fileContent = undefined
+							}
+						}
+						await cline.hookEngine.postToolUse({
+							toolName: block.name,
+							params: block.params || {},
+							intentId: cline.activeIntentId,
+							success: true,
+							output: resultContent.slice(0, 200),
+							filePath: filePath,
+							fileContent: fileContent,
+						})
+					})().catch((err) => console.error("Failed to run postToolUse:", err))
+				}
+
 				hasToolResult = true
 			}
 
@@ -549,6 +602,31 @@ export async function presentAssistantMessage(cline: Task) {
 					"error",
 					`Error ${action}:\n${error.message ?? JSON.stringify(serializeError(error), null, 2)}`,
 				)
+
+				// T013: Delegate error logging to HookEngine.postToolUse
+				{
+					const filePath = block.params?.path || block.params?.file_path
+					;(async () => {
+						let fileContent: string | undefined = undefined
+						if (filePath) {
+							try {
+								const abs = path.isAbsolute(filePath) ? filePath : path.resolve(cline.cwd, filePath)
+								fileContent = await fs.readFile(abs, "utf8")
+							} catch {
+								fileContent = undefined
+							}
+						}
+						await cline.hookEngine.postToolUse({
+							toolName: block.name,
+							params: block.params || {},
+							intentId: cline.activeIntentId,
+							success: false,
+							output: `Error ${action}: ${error.message}`,
+							filePath: filePath,
+							fileContent: fileContent,
+						})
+					})().catch((err) => console.error("Failed to run postToolUse:", err))
+				}
 
 				pushToolResult(formatResponse.toolError(errorString))
 			}
@@ -625,6 +703,30 @@ export async function presentAssistantMessage(cline: Task) {
 
 			// Check for identical consecutive tool calls.
 			if (!block.partial) {
+				// Enforcement Hook: HookEngine PreToolUse (Invariant 2: Sole Execution Gateway)
+				const hookResponse = await cline.hookEngine.preToolUse({
+					toolName: block.name,
+					params: block.params || {},
+					intentId: cline.activeIntentId,
+				})
+				if (hookResponse.action === "DENY" || hookResponse.action === "HALT") {
+					cline.consecutiveMistakeCount++
+					// T017: JSON error formatting for hook denials
+					const jsonError = JSON.stringify({
+						error: hookResponse.reason || "Tool execution blocked by Hook Engine.",
+						details: hookResponse.details || `Tool '${block.name}' was denied.`,
+						recovery_hint: hookResponse.recovery_hint || "Check intent scope and try again.",
+					})
+					const errorContent = formatResponse.toolError(jsonError)
+					cline.pushToolResultToUserContent({
+						type: "tool_result",
+						tool_use_id: sanitizeToolUseId(toolCallId),
+						content: typeof errorContent === "string" ? errorContent : "(enforcement error)",
+						is_error: true,
+					})
+					break
+				}
+
 				// Use the detector to check for repetition, passing the ToolUse
 				// block directly.
 				const repetitionCheck = cline.toolRepetitionDetector.check(block)
@@ -798,6 +900,13 @@ export async function presentAssistantMessage(cline: Task) {
 					break
 				case "switch_mode":
 					await switchModeTool.handle(cline, block as ToolUse<"switch_mode">, {
+						askApproval,
+						handleError,
+						pushToolResult,
+					})
+					break
+				case "select_active_intent":
+					await selectActiveIntentTool.handle(cline, block as ToolUse<"select_active_intent">, {
 						askApproval,
 						handleError,
 						pushToolResult,

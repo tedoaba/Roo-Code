@@ -1,0 +1,16 @@
+intents:
+    - id: "test-intent-1"
+      name: "Test Intent"
+      description: "A dummy intent for testing the handshake protocol."
+      status: IN_PROGRESS
+      constraints:
+          - "Must not edit outside of src/test/"
+      owned_scope:
+          - "**/*.test.ts"
+      acceptance_criteria:
+          - "Handshake works."
+      related_specs:
+          - "specs/001-intent-handshake/spec.md"
+      assigned_agent: "human"
+      created_at: "2026-02-17T00:00:00Z"
+      updated_at: "2026-02-17T00:00:00Z"

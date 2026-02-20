@@ -1,0 +1,7 @@
+export { HookEngine, COMMAND_CLASSIFICATION, type ToolRequest, type ToolResult } from "./HookEngine"
+export { IntentGateHook } from "./pre/IntentGateHook"
+export { ContextEnrichmentHook } from "./pre/ContextEnrichmentHook"
+export { ScopeEnforcementHook } from "./pre/ScopeEnforcementHook"
+export { BudgetHook } from "./pre/BudgetHook"
+export { PreCompactHook } from "./pre/PreCompactHook"
+export { AuditHook } from "./post/AuditHook"

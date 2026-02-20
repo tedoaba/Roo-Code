@@ -57,3 +57,7 @@
   will be resolved when the PR is merged to main and the script reference is cleaned up.
 - Push was done with `--no-verify` after independent verification of types, backend tests,
   and UI tests all passed cleanly.
+
+## Recent Updates
+
+- 2026-02-19: All tasks in `specs/002-hook-middleware/tasks.md` marked completed and recorded on branch `002-hook-middleware`.

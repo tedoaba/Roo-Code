@@ -1,72 +1,83 @@
 # AI-Native IDE — Architecture Notes
 
-> _Technical mapping of the existing Roo Code extension architecture and identification of governance hook insertion points._
+> _Technical mapping of the existing Roo Code extension architecture, privilege separation model, sidecar data model specification, and identification of governance hook insertion points._
 
-**Version**: 1.0.0 | **Authored**: 2026-02-17
+**Version**: 1.3.0 | **Authored**: 2026-02-17 | **Updated**: 2026-02-18
 
 ---
 
 ## Table of Contents
 
+0. [Governance Foundation](#0-governance-foundation)
 1. [Current Extension Architecture Overview](#1-current-extension-architecture-overview)
 2. [Tool Execution Loop Mapping](#2-tool-execution-loop-mapping)
 3. [LLM Request/Response Lifecycle](#3-llm-requestresponse-lifecycle)
 4. [System Prompt Construction Pipeline](#4-system-prompt-construction-pipeline)
 5. [Identified Interception Points](#5-identified-interception-points)
-6. [Proposed Hook Middleware Boundary](#6-proposed-hook-middleware-boundary)
-7. [Orchestration Data Integration Points](#7-orchestration-data-integration-points)
-8. [State Machine Modification Plan](#8-state-machine-modification-plan)
+6. [Privilege Separation & Hook Middleware Boundary](#6-privilege-separation--hook-middleware-boundary)
+7. [Sidecar Data Model (`.orchestration/`)](#7-sidecar-data-model-orchestration)
+8. [Three-State Execution Flow](#8-three-state-execution-flow)
 9. [Concurrency & Safety Injection Points](#9-concurrency--safety-injection-points)
+10. [Multi-Agent Concurrency & Conflict Resolution](#10-multi-agent-concurrency--conflict-resolution)
+11. [Enterprise Guardrails & Safety](#11-enterprise-guardrails--safety)
+12. [Appendix A: File Reference Map](#appendix-a-file-reference-map)
+13. [Appendix B: Modification Impact Summary](#appendix-b-modification-impact-summary)
+
+---
+
+## 0. Governance Foundation
+
+The extension's operations are governed by a hierarchy of documents:
+
+- **System Constitution** (`.specify/memory/constitution.md`): The supreme law defining invariants and governance axioms. No architectural decision or code mutation may violate the Constitution.
+- **System Soul** (`.specify/memory/soul.md`): The philosophical character and behavioral specifications of system agents. It defines _how_ agents should reason (e.g., Spec-Driven Reasoning).
+- **Architecture Notes** (This document): The technical blueprint mapping governance onto the physical codebase.
 
 ---
 
 ## 1. Current Extension Architecture Overview
 
-### 1.1 High-Level Component Map
+### 1.1 High-Level Component Map (With Privilege Separation)
 
-The extension follows a standard VS Code Webview Extension architecture with three distinct execution domains:
+The extension follows a VS Code Webview Extension architecture with **four distinct privilege domains**. The Hook Engine acts as a strict middleware boundary between the Extension Host's core logic and all mutating operations:
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                       VS Code Extension Host                     │
-│                                                                  │
-│  ┌──────────────┐  ┌──────────┐  ┌─────────────────────────┐    │
-│  │ extension.ts │──│ activate │──│   ClineProvider          │    │
-│  │  (entry)     │  │ (cmds)   │  │   (webview host)         │    │
-│  └──────────────┘  └──────────┘  └────────┬────────────────┘    │
-│                                            │                     │
-│                                            ▼                     │
-│                                   ┌────────────────┐             │
-│                                   │     Task       │             │
-│                                   │  (core loop)   │             │
-│                                   └───┬────┬───┬───┘             │
-│                                       │    │   │                 │
-│                          ┌────────────┘    │   └──────────┐      │
-│                          ▼                 ▼              ▼      │
-│                   ┌────────────┐   ┌────────────┐  ┌──────────┐ │
-│                   │ API Layer  │   │ Tool Layer │  │ Prompts  │ │
-│                   │ (providers)│   │ (BaseTool) │  │ (system) │ │
-│                   └────────────┘   └────────────┘  └──────────┘ │
-│                                                                  │
-│  ┌───────────────────────────────────────────────────────────┐   │
-│  │ Services: MCP | CodeIndex | Skills | Checkpoints | Glob   │   │
-│  └───────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌───────────────────────────────────────────────────────────┐   │
-│  │ Integrations: Terminal | Editor | Diagnostics | Workspace │   │
-│  └───────────────────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────────────────┘
-        ▲                                              │
-        │  postMessage / onDidReceiveMessage           │
-        ▼                                              ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                       Webview (React UI)                         │
-│  webview-ui/src/                                                 │
-│  ┌───────────────┐  ┌──────────────┐  ┌───────────────────────┐ │
-│  │ Chat View     │  │ Settings     │  │ History / Task List   │ │
-│  │ (messages)    │  │ (config)     │  │ (task management)     │ │
-│  └───────────────┘  └──────────────┘  └───────────────────────┘ │
-└──────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph VS_Code_Extension_Host [VS Code Extension Host]
+        entry[extension.ts] --> act[activate]
+        act --> CP[ClineProvider]
+        CP --> Task[Task Core Loop]
+
+        subgraph Core_Runtime
+            Task --> API[API Layer]
+            Task --> Tool[Tool Layer]
+            Task --> Prompt[Prompts]
+        end
+
+        subgraph Hook_Engine [HOOK ENGINE]
+            Pre[Pre-Hooks] --> Post[Post-Hooks]
+            Post --> SM[State Manager]
+        end
+
+        Tool <==> Hook_Engine
+    end
+
+    subgraph UI_Layer [Webview Layer]
+        WV[React UI]
+    end
+
+    subgraph Storage [Workspace Storage]
+        subgraph Sidecar [.orchestration/]
+            AI[active_intents.yaml]
+            AT[agent_trace.jsonl]
+            IM[intent_map.md]
+        end
+        Brain[AGENT.md / CLAUDE.md]
+    end
+
+    WV <==> CP
+    Hook_Engine <==> Sidecar
+    Tool --> Files[Target Files]
 ```
 
 ### 1.2 Webview (UI Layer) Responsibilities
@@ -132,150 +143,93 @@ The project uses a monorepo structure with isolated packages:
 
 The following describes the exact lifecycle of a tool invocation from LLM response to UI feedback:
 
-```
-Phase 1: LLM Response Streaming
-─────────────────────────────────────────────────────────
- Task.recursivelyMakeClineRequests()
-   │
-   ├── Calls ApiHandler.createMessage(systemPrompt, messages, metadata)
-   │   └── Returns ApiStream (async generator of chunks)
-   │
-   ├── Iterates stream chunks, accumulates:
-   │   ├── Text content blocks
-   │   ├── Tool use blocks (via NativeToolCallParser)
-   │   └── Usage/reasoning metadata
-   │
-   └── On stream completion → moves to Phase 2
+```mermaid
+sequenceDiagram
+    participant T as Task
+    participant A as ApiHandler
+    participant P as presentAssistantMessage
+    participant B as BaseTool/SpecificTool
+    participant W as Webview
 
-Phase 2: Assistant Message Presentation
-─────────────────────────────────────────────────────────
- presentAssistantMessage(task)
-   │
-   ├── Iterates accumulated content blocks sequentially
-   │
-   ├── For TEXT blocks:
-   │   └── task.say("text", content) → pushes to Webview
-   │
-   ├── For TOOL_USE blocks:
-   │   ├── Extracts tool name and parameters
-   │   ├── Validates tool name: isValidToolName(toolName)
-   │   ├── Validates mode permission: validateToolUse(toolName, mode, ...)
-   │   │   └── Throws if tool not allowed for current mode
-   │   │
-   │   ├── Dispatches to specific tool handler:
-   │   │   ├── writeToFileTool.handle(task, block, callbacks)
-   │   │   ├── executeCommandTool.handle(task, block, callbacks)
-   │   │   ├── readFileTool.handle(task, block, callbacks)
-   │   │   ├── ... (20+ tool handlers)
-   │   │   └── Each extends BaseTool<ToolName>
-   │   │
-   │   └── Callbacks provided to tool:
-   │       ├── askApproval() → prompts user via Webview
-   │       ├── handleError() → formats error, pushes tool_result
-   │       └── pushToolResult() → adds tool_result to userContent
-   │
-   └── Returns accumulated userMessageContent (tool_results)
+    Note over T, A: Phase 1: LLM Response Streaming
+    T->>A: createMessage(systemPrompt, messages, metadata)
+    A-->>T: ApiStream (async generator of chunks)
+    loop For each chunk
+        T->>T: Accumulate text, tool use (NativeToolCallParser), usage/reasoning
+    end
+    T->>P: moves to Phase 2
 
-Phase 3: Tool Execution (inside tool.handle())
-─────────────────────────────────────────────────────────
- BaseTool.handle(task, block, callbacks)
-   │
-   ├── If block.partial → handlePartial(task, block) → return
-   │
-   ├── Extract params from block.nativeArgs
-   │   └── Throws if nativeArgs missing (legacy XML rejected)
-   │
-   └── execute(params, task, callbacks)
-       │
-       ├── Tool-specific logic (e.g., WriteToFileTool):
-       │   ├── Resolves file path
-       │   ├── callbacks.askApproval() → waits for user response
-       │   ├── Performs file operation (fs.writeFile, etc.)
-       │   ├── Creates diff for UI display
-       │   └── callbacks.pushToolResult(result)
-       │
-       └── On error → callbacks.handleError(action, error)
+    Note over P, B: Phase 2: Assistant Message Presentation
+    loop For each content block
+        alt TEXT block
+            P->>W: task.say("text", content)
+        else TOOL_USE block
+            P->>P: Extracts & Validates (Tool Name, Mode)
+            P->>B: handle(task, block, callbacks)
+        end
+    end
 
-Phase 4: Loop Continuation
-─────────────────────────────────────────────────────────
- Back in recursivelyMakeClineRequests():
-   │
-   ├── Collects all tool_results from Phase 2
-   ├── Appends assistant message to conversation history
-   ├── Appends user message (tool_results) to conversation history
-   ├── Saves conversation history to disk
-   │
-   └── Recurses: recursivelyMakeClineRequests(userContent)
-       └── Next LLM call includes tool_results
+    Note over B: Phase 3: Tool Execution
+    B->>B: execute(params, task, callbacks)
+    B-->>P: askApproval() / pushToolResult() / handleError()
+
+    Note over T: Phase 4: Loop Continuation
+    P-->>T: userMessageContent (tool_results)
+    T->>T: Append history & Save to disk
+    T->>T: Recurse: recursivelyMakeClineRequests(userContent)
 ```
 
 ### 2.2 Write Operations: `write_to_file` Flow
 
 **Location:** `src/core/tools/WriteToFileTool.ts`
 
-```
-WriteToFileTool.execute(params, task, callbacks)
-  │
-  ├── Extract: path, content from params
-  ├── Resolve absolute path against task.cwd
-  ├── Check file existence (new file vs. edit)
-  │
-  ├── If existing file:
-  │   ├── Read current content
-  │   ├── Compute unified diff (current → new)
-  │   └── Display diff in approval dialog
-  │
-  ├── callbacks.askApproval("tool", diffDisplay)
-  │   └── User sees diff, approves or rejects
-  │
-  ├── If approved:
-  │   ├── fs.writeFile(absolutePath, content)  ← MUTATION POINT
-  │   ├── Track file in filesContentBeforeEditing
-  │   └── callbacks.pushToolResult(successMessage)
-  │
-  └── If rejected:
-      └── callbacks.pushToolResult(rejectionMessage)
+```mermaid
+graph TD
+    Start[WriteToFileTool.execute] --> Extract[Extract path, content]
+    Extract --> Resolve[Resolve absolute path]
+    Resolve --> Exist{File exists?}
+    Exist -- Yes --> Read[Read current content]
+    Read --> Diff[Compute unified diff]
+    Diff --> Approval[askApproval 'tool', diffDisplay]
+    Exist -- No --> Approval
+    Approval --> Approved{Approved?}
+    Approved -- Yes --> Write[fs.writeFile]
+    Write --> Track[Track file content]
+    Track --> Success[pushToolResult success]
+    Approved -- No --> Reject[pushToolResult rejection]
 ```
 
 ### 2.3 Command Execution: `execute_command` Flow
 
 **Location:** `src/core/tools/ExecuteCommandTool.ts`
 
-```
-ExecuteCommandTool.execute(params, task, callbacks)
-  │
-  ├── Extract: command, cwd from params
-  ├── Resolve working directory
-  │
-  ├── callbacks.askApproval("command", commandDisplay)
-  │   └── User sees command, approves or rejects
-  │
-  ├── If approved:
-  │   ├── executeCommandInTerminal(task, options)  ← MUTATION POINT
-  │   │   ├── Creates VS Code terminal
-  │   │   ├── Sends command via shell integration
-  │   │   ├── Captures output via OutputInterceptor
-  │   │   └── Returns [completed, output]
-  │   │
-  │   └── callbacks.pushToolResult(output)
-  │
-  └── If rejected:
-      └── callbacks.pushToolResult(rejectionMessage)
+```mermaid
+graph TD
+    Start[ExecuteCommandTool.execute] --> Extract[Extract command, cwd]
+    Extract --> Resolve[Resolve working directory]
+    Resolve --> Approval[askApproval 'command', commandDisplay]
+    Approval --> Approved{Approved?}
+    Approved -- Yes --> Exec[executeCommandInTerminal]
+    Exec --> Terminal[Create VS Code Terminal]
+    Terminal --> Send[Send command via shell integration]
+    Send --> Capture[Capture output via OutputInterceptor]
+    Capture --> Success[pushToolResult output]
+    Approved -- No --> Reject[pushToolResult rejection]
 ```
 
 ### 2.4 Response Propagation to UI
 
 Tool results propagate back to the Webview through a defined chain:
 
-```
-Tool.execute()
-  └── callbacks.pushToolResult(content)
-        └── Adds Anthropic.ToolResultBlockParam to userMessageContent[]
-              └── presentAssistantMessage() returns userMessageContent
-                    └── recursivelyMakeClineRequests() processes results
-                          ├── task.addToClineMessages() → saved to disk
-                          ├── Webview receives state update via postMessage
-                          └── Recurses with tool_results as next user message
+```mermaid
+graph LR
+    Tool[Tool.execute] --> Push[callbacks.pushToolResult]
+    Push --> Block[Anthropic.ToolResultBlockParam]
+    Block --> Present[presentAssistantMessage]
+    Present --> Recurse[recursivelyMakeClineRequests]
+    Recurse --> Add[task.addToClineMessages]
+    Add --> Save[Save to disk]
+    Save --> Webview[Webview receives state update]
 ```
 
 ---
@@ -284,88 +238,50 @@ Tool.execute()
 
 ### 3.1 Complete Request Flow
 
-```
-Task.recursivelyMakeClineRequests(userContent)
-  │
-  ├── 1. BUILD SYSTEM PROMPT
-  │   └── SYSTEM_PROMPT(context, cwd, supportsComputerUse, ...)
-  │       ├── generatePrompt() assembles sections:
-  │       │   ├── roleDefinition (from mode config)
-  │       │   ├── markdownFormattingSection()
-  │       │   ├── getSharedToolUseSection()
-  │       │   ├── getToolUseGuidelinesSection()
-  │       │   ├── getCapabilitiesSection(cwd, mcpHub)
-  │       │   ├── getModesSection(context)
-  │       │   ├── getSkillsSection(skillsManager, mode)
-  │       │   ├── getRulesSection(cwd, settings)
-  │       │   ├── getSystemInfoSection(cwd)
-  │       │   ├── getObjectiveSection()
-  │       │   └── addCustomInstructions(base, global, cwd, mode)
-  │       │       └── Reads .roo/rules, .clinerules, custom instructions
-  │       │
-  │       └── Returns assembled system prompt string
-  │
-  ├── 2. BUILD TOOLS ARRAY
-  │   └── buildNativeToolsArrayWithRestrictions(options)
-  │       ├── getNativeTools({ supportsImages })
-  │       ├── filterNativeToolsForMode(tools, mode, ...)
-  │       ├── getMcpServerTools(mcpHub)
-  │       ├── filterMcpToolsForMode(mcpTools, mode, ...)
-  │       ├── customToolRegistry (if experiment enabled)
-  │       └── Returns { tools[], allowedFunctionNames[] }
-  │
-  ├── 3. CONSTRUCT MESSAGES
-  │   ├── Conversation history (apiConversationHistory[])
-  │   ├── Appends current userContent (text/tool_results)
-  │   └── Optional: environment details, context condensing
-  │
-  ├── 4. CALL API
-  │   └── this.api.createMessage(systemPrompt, messages, metadata)
-  │       ├── metadata = { taskId, mode, tools, tool_choice, ... }
-  │       ├── Provider-specific handler (Anthropic, OpenAI, Gemini, ...)
-  │       └── Returns ApiStream (async generator)
-  │
-  ├── 5. PROCESS STREAM
-  │   ├── For each chunk in stream:
-  │   │   ├── "text" → accumulate text content
-  │   │   ├── "tool_use" → NativeToolCallParser processes
-  │   │   ├── "usage" → track token consumption
-  │   │   └── "reasoning" → capture reasoning blocks
-  │   │
-  │   └── Yields partial updates to presentAssistantMessage()
-  │
-  ├── 6. POST-STREAM PROCESSING
-  │   ├── presentAssistantMessage(this) → dispatches tools
-  │   ├── Collects tool_results
-  │   ├── Saves conversation history
-  │   └── Creates checkpoint (if enabled)
-  │
-  └── 7. RECURSE OR TERMINATE
-      ├── If tool_results exist → recurse with results
-      ├── If attempt_completion → task completes
-      └── If error/abort → task aborts
+```mermaid
+graph TD
+    Start[Task.recursivelyMakeClineRequests] --> Step1[1. BUILD SYSTEM PROMPT]
+    Step1 --> Assemble[Assemble sections: role, format, tools, guidelines, etc.]
+    Assemble --> Step2[2. BUILD TOOLS ARRAY]
+    Step2 --> Filter[Native + MCP tools filtered by mode]
+    Filter --> Step3[3. CONSTRUCT MESSAGES]
+    Step3 --> History[Conversation history + current userContent]
+    History --> Step4[4. CALL API]
+    Step4 --> Provider[Provider-specific createMessage]
+    Provider --> Step5[5. PROCESS STREAM]
+    Step5 --> Accum[Accumulate text, tools, usage, reasoning]
+    Accum --> Step6[6. POST-STREAM PROCESSING]
+    Step6 --> Present[presentAssistantMessage -> dispatches tools]
+    Present --> Save[Save conversation & Checkpoint]
+    Save --> Step7[7. RECURSE OR TERMINATE]
+    Step7 --> Result{tool_results?}
+    Result -- Yes --> Start
+    Result -- No --> Completion{attempt_completion?}
+    Completion -- Yes --> End[Task completes]
+    Completion -- No --> Abort[Task aborts]
 ```
 
 ### 3.2 Provider Abstraction
 
-```
-ApiHandler interface
-  │
-  ├── createMessage(systemPrompt, messages, metadata) → ApiStream
-  ├── getModel() → { id, info: ModelInfo }
-  └── countTokens(content) → number
-
-buildApiHandler(configuration: ProviderSettings) → ApiHandler
-  └── Switch on apiProvider:
-      ├── "anthropic"  → AnthropicHandler
-      ├── "openai"     → OpenAiHandler
-      ├── "gemini"     → GeminiHandler
-      ├── "bedrock"    → AwsBedrockHandler
-      ├── "vertex"     → VertexHandler
-      ├── "ollama"     → NativeOllamaHandler
-      ├── "openrouter" → OpenRouterHandler
-      ├── ... (20+ providers)
-      └── default      → AnthropicHandler
+```mermaid
+classDiagram
+    class ApiHandler {
+        <<interface>>
+        +createMessage(systemPrompt, messages, metadata) ApiStream
+        +getModel() ModelDetails
+        +countTokens(content) number
+    }
+    class buildApiHandler {
+        <<factory>>
+    }
+    buildApiHandler ..> ApiHandler : creates
+    ApiHandler <|-- AnthropicHandler
+    ApiHandler <|-- OpenAiHandler
+    ApiHandler <|-- GeminiHandler
+    ApiHandler <|-- AwsBedrockHandler
+    ApiHandler <|-- VertexHandler
+    ApiHandler <|-- NativeOllamaHandler
+    ApiHandler <|-- OpenRouterHandler
 ```
 
 ---
@@ -378,25 +294,24 @@ buildApiHandler(configuration: ProviderSettings) → ApiHandler
 
 The system prompt is assembled from modular sections. Each section is a function that returns a string fragment:
 
-```
-SYSTEM_PROMPT()
-  └── generatePrompt()
-        │
-        ├── roleDefinition           ← Mode-specific role text
-        ├── markdownFormattingSection ← Output formatting rules
-        ├── getSharedToolUseSection   ← Common tool use instructions
-        ├── getToolUseGuidelinesSection ← Tool usage rules
-        ├── getCapabilitiesSection    ← Environment capabilities
-        ├── getModesSection           ← Available modes description
-        ├── getSkillsSection          ← Loaded skills catalog
-        ├── getRulesSection           ← Rules from .roo/ and settings
-        ├── getSystemInfoSection      ← OS, shell, cwd information
-        ├── getObjectiveSection       ← High-level objective framing
-        └── addCustomInstructions     ← User/project custom rules
-              ├── Reads .roo/rules-{mode}/
-              ├── Reads .clinerules
-              ├── Reads CLAUDE.md (if exists)
-              └── Appends global custom instructions
+```mermaid
+graph TD
+    SP[SYSTEM_PROMPT] --> GP[generatePrompt]
+    GP --> Role[roleDefinition]
+    GP --> Markdown[markdownFormattingSection]
+    GP --> Shared[getSharedToolUseSection]
+    GP --> Guidelines[getToolUseGuidelinesSection]
+    GP --> Cap[getCapabilitiesSection]
+    GP --> Modes[getModesSection]
+    GP --> Skills[getSkillsSection]
+    GP --> Rules[getRulesSection]
+    GP --> Info[getSystemInfoSection]
+    GP --> Obj[getObjectiveSection]
+    GP --> Custom[addCustomInstructions]
+    Custom --> RooRules[Read .roo/rules-]
+    Custom --> Clinerules[Read .clinerules]
+    Custom --> ClaudeMD[Read CLAUDE.md]
+    Custom --> Global[Global custom instructions]
 ```
 
 ### 4.2 Prompt Section Sources
@@ -483,37 +398,62 @@ These are locations where orchestration state can be injected into the LLM conte
 
 ---
 
-## 6. Proposed Hook Middleware Boundary
+## 6. Privilege Separation & Hook Middleware Boundary
 
-### 6.1 Clean Interceptor Pattern
+### 6.1 Three-Domain Privilege Separation
 
-The Hook Engine SHALL be implemented as a middleware layer that wraps existing execution flows without modifying core logic. The pattern follows a pipeline architecture:
+The physical architecture is designed with **strict privilege separation** across three domains:
 
-```
-                    ┌─────────────────────────────────┐
-                    │         Hook Engine              │
-                    │         src/hooks/               │
-                    │                                  │
- Existing Flow ───▶ │  ┌─────────┐    ┌─────────────┐ │ ───▶ Existing Flow
-                    │  │Pre-Hooks│ ──▶│ Post-Hooks  │ │      (continues)
-                    │  │ Chain   │    │ Chain       │ │
-                    │  └─────────┘    └─────────────┘ │
-                    │       │              │           │
-                    │       ▼              ▼           │
-                    │  ┌──────────────────────────┐    │
-                    │  │  Orchestration State      │    │
-                    │  │  (read/write)             │    │
-                    │  └──────────────────────────┘    │
-                    └─────────────────────────────────┘
+| Domain                       | Privilege Level            | Capabilities                                                                             | Cannot Do                                                      |
+| ---------------------------- | -------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| **Webview (UI)**             | Restricted presentation    | Render UI, emit events via `postMessage`                                                 | Access filesystem, invoke tools, call LLM APIs, read secrets   |
+| **Extension Host (Logic)**   | Core runtime               | API polling, secret management, MCP tool execution, LLM calls                            | Mutate files without Hook Engine approval, bypass scope checks |
+| **Hook Engine (Governance)** | Strict middleware boundary | Intercept all tool execution, enforce HITL authorization, manage `.orchestration/` state | Modify core logic, access Webview directly                     |
+
+The Hook Engine is the **only** component permitted to read/write the `.orchestration/` sidecar directory. All tool execution requests MUST pass through the Hook Engine before reaching the filesystem, terminal, or external services.
+
+### 6.2 Hook Engine Architecture
+
+The Hook Engine SHALL be implemented as a middleware layer that wraps existing execution flows without modifying core logic. It operates at two interception phases:
+
+```mermaid
+graph TD
+    subgraph Hook_Engine [HOOK ENGINE — src/hooks/]
+        subgraph PreToolUse_Phase [PreToolUse Phase]
+            A1[Intent context injection]
+            A2[HITL authorization enforcement]
+            A3[Scope validation]
+            A4[Optimistic lock acquisition]
+        end
+
+        subgraph PostToolUse_Phase [PostToolUse Phase]
+            B1[Codebase documentation update]
+            B2[State evolution .orchestration/]
+            B3[Intent progress tracking]
+            B4[Content hash computation]
+            B5[Agent trace logging]
+            B6[Context Compaction]
+        end
+
+        subgraph OSM [Orchestration State Manager]
+            C1[.orchestration/* read/write]
+        end
+
+        PreToolUse_Phase -->|ALLOW / DENY| PostToolUse_Phase
+        PostToolUse_Phase --> OSM
+    end
+
+    Execution_Request[Tool Execution Request] --> PreToolUse_Phase
 ```
 
 **Hook Engine responsibilities:**
 
-- Receive interception calls from instrumented points in core code
-- Execute registered pre-hooks in priority order
-- Allow/deny the operation based on hook results
-- Execute registered post-hooks for logging and state updates
-- Provide typed interfaces for hook implementations
+- Intercept ALL tool execution requests before they reach the filesystem/terminal
+- **PreToolUse:** Enforce intent context injection, **Context Compaction (PreCompact)**, and Human-in-the-Loop (HITL) authorization (**PreAuthorize**).
+- **PostToolUse:** Update codebase documentation, state evolution, and intent changes.
+- **Guardrails:** Monitor **Execution Budgets** and trigger **Circuit Breakers** for infinite loops or privilege escalation.
+- Manage the `.orchestration/` sidecar directory as the sole writer.
+- Provide typed interfaces for hook implementations.
 
 **Hook interface contract (conceptual):**
 
@@ -525,56 +465,66 @@ HookContext {
   targetPath:    string | undefined   // File path being operated on
   toolName:      string | undefined   // Tool being invoked
   timestamp:     number               // Operation timestamp
+  vcs:           { revision_id: string } // Current git SHA
   metadata:      Record<string, any>  // Operation-specific data
 }
 
 PreHookResult {
   allow:         boolean              // Whether to proceed
   reason:        string | undefined   // Denial reason (for logging)
+  injectedContext: string | undefined // Deep context to inject into prompt
   modifiedContext: Partial<HookContext> // Optional context modifications
 }
 
 PostHookInput {
   context:       HookContext           // Original operation context
   result:        OperationResult       // Outcome of the operation
+  contentHash:   string | undefined    // SHA-256 of modified content block
   duration:      number                // Execution duration
 }
 ```
 
-### 6.2 Isolation Strategy: `src/hooks/`
+### 6.3 Isolation Strategy: `src/hooks/`
 
 **Location:** `src/hooks/` (currently empty — reserved for governance)
 
 The hooks directory SHALL contain all governance logic, fully isolated from core extension code. The isolation boundary is strict:
 
-```
-src/hooks/
-  ├── engine/
-  │   ├── HookEngine.ts              # Central hook dispatcher
-  │   ├── HookRegistry.ts            # Hook registration and ordering
-  │   └── types.ts                   # Hook interfaces and types
-  │
-  ├── pre/
-  │   ├── IntentValidationHook.ts    # Validates active intent exists
-  │   ├── ScopeEnforcementHook.ts    # Validates operation within scope
-  │   ├── PrivilegeCheckHook.ts      # Validates agent permissions
-  │   └── LockAcquisitionHook.ts     # Acquires file-level locks
-  │
-  ├── post/
-  │   ├── AuditLogHook.ts            # Writes to agent_trace.jsonl
-  │   ├── ContentHashHook.ts         # Computes and records content hashes
-  │   ├── IntentProgressHook.ts      # Updates intent completion state
-  │   └── ScopeDriftDetectionHook.ts # Detects out-of-scope mutations
-  │
-  ├── state/
-  │   ├── OrchestrationState.ts      # Reads/writes orchestration YAML
-  │   ├── IntentRegistry.ts          # Active intent management
-  │   └── AgentIdentity.ts           # Current agent identity resolution
-  │
-  └── index.ts                       # Public API for hook integration
+```mermaid
+graph TD
+    Hooks[src/hooks/] --> Engine[engine/]
+    Hooks --> Pre[pre/]
+    Hooks --> Post[post/]
+    Hooks --> State[state/]
+    Hooks --> Tools[tools/]
+    Hooks --> Index[index.ts]
+
+    Engine --> HE[HookEngine.ts]
+    Engine --> HR[HookRegistry.ts]
+    Engine --> HT[types.ts]
+
+    Pre --> IV[IntentValidationHook.ts]
+    Pre --> SE[ScopeEnforcementHook.ts]
+    Pre --> PC[PrivilegeCheckHook.ts]
+    Pre --> CI[ContextInjectionHook.ts]
+    Pre --> LA[LockAcquisitionHook.ts]
+
+    Post --> AL[AuditLogHook.ts]
+    Post --> CH[ContentHashHook.ts]
+    Post --> IP[IntentProgressHook.ts]
+    Post --> IM[IntentMapHook.ts]
+    Post --> SB[SharedBrainHook.ts]
+    Post --> SD[ScopeDriftDetectionHook.ts]
+
+    State --> OS[OrchestrationState.ts]
+    State --> IR[IntentRegistry.ts]
+    State --> CH2[ContentHasher.ts]
+    State --> AI[AgentIdentity.ts]
+
+    Tools --> SAI[SelectActiveIntentTool.ts]
 ```
 
-### 6.3 How Core Logic Remains Untouched
+### 6.4 How Core Logic Remains Untouched
 
 The integration strategy follows the **Decorator Pattern** — core functions are wrapped with hook calls at their boundaries, not modified internally:
 
@@ -582,137 +532,306 @@ The integration strategy follows the **Decorator Pattern** — core functions ar
 
 **Instrumentation pattern (conceptual flow, not code):**
 
-```
-BEFORE (current):
-  WriteToFileTool.execute() → fs.writeFile(path, content)
+```mermaid
+graph TD
+    subgraph BEFORE [Current Flow]
+        B_Tool[WriteToFileTool.execute] --> B_FS[fs.writeFile]
+    end
 
-AFTER (instrumented):
-  WriteToFileTool.execute()
-    → hookEngine.pre("file_write", { path, content, intentId })
-      → If denied: return rejection result
-    → fs.writeFile(path, content)                    [UNCHANGED]
-    → hookEngine.post("file_write", { path, hash, result })
+    subgraph AFTER [Instrumented Flow]
+        A_Tool[WriteToFileTool.execute] --> A_Pre[hookEngine.preToolUse]
+        A_Pre -- Allowed --> A_FS[fs.writeFile]
+        A_Pre -- Denied --> A_Reject[Return rejection]
+        A_FS --> A_Post[hookEngine.postToolUse]
+        A_Post --> A_Trace[Logs to agent_trace.jsonl]
+        A_Post --> A_Map[Updates intent_map.md]
+        A_Post --> A_Evolve[Evolves intent state]
+    end
 ```
 
 **Changes to core files are limited to:**
 
 1. Importing the Hook Engine
-2. Adding `hookEngine.pre()` calls before operations
-3. Adding `hookEngine.post()` calls after operations
+2. Adding `hookEngine.preToolUse()` calls before operations
+3. Adding `hookEngine.postToolUse()` calls after operations
 4. Core logic flow, error handling, and data structures remain unchanged
 
 ---
 
-## 7. Orchestration Data Integration Points
+## 7. Sidecar Data Model (`.orchestration/`)
 
-### 7.1 When `active_intents.yaml` Is Read
+The governance system uses a **Sidecar Storage Pattern** in `.orchestration/`. These files are **machine-managed** — created, read, and updated exclusively by the Hook Engine. Human developers may read them for debugging but SHOULD NOT edit them directly.
 
-The orchestration state file (`.orchestration/active_intents.yaml`) SHALL be read at the following points:
+```mermaid
+graph TD
+    Sidecar[.orchestration/] --> AI[active_intents.yaml]
+    Sidecar --> AT[agent_trace.jsonl]
+    Sidecar --> IM[intent_map.md]
+    Sidecar --> SQL[future: SQLite/Zvec]
 
-| Trigger                    | Location                                        | Purpose                                                                                 |
-| -------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------- |
-| **Task start**             | `Task.startTask()`                              | Load active intents. Determine if agent must select intent before proceeding            |
-| **Before each LLM call**   | `Task.recursivelyMakeClineRequests()` via PRE-1 | Verify active intent is still valid. Load scope constraints for system prompt injection |
-| **Before tool execution**  | `presentAssistantMessage()` via PRE-2           | Resolve scope boundaries for the active intent. Validate tool target is within scope    |
-| **On intent state change** | Hook Engine state management                    | When an intent transitions lifecycle state (active → completed, etc.)                   |
+    Root[Project Root] --> Brain[AGENT.md / CLAUDE.md]
+```
+
+> **Storage Evolution Note:** The initial implementation uses flat files (YAML, JSONL, Markdown). Based on performance requirements and architecture capability, the storage MAY evolve to a high-performance local database (SQLite, Zvec, or similar). The Hook Engine's `OrchestrationState` manager abstracts the storage backend to enable this migration without upstream changes.
+
+### 7.1 `active_intents.yaml` — The Intent Specification
+
+**Purpose:** Tracks the lifecycle of business requirements. Inspired by Spec-Driven Development and AISpec, this file treats the codebase as a collection of formalized intents. Not all code changes are equal — this file tracks _why_ we are working.
+
+**Update Pattern:** Updated via Pre-Hooks (when an agent picks a task) and Post-Hooks (when a task is complete).
+
+**Schema:**
+
+```yaml
+active_intents:
+    - id: "INT-001"
+      name: "JWT Authentication Migration"
+      status: "IN_PROGRESS" # PENDING | IN_PROGRESS | BLOCKED | COMPLETED | ABANDONED
+      # Formal Scope Definition (Crucial for Parallelism)
+      owned_scope:
+          - "src/auth/**"
+          - "src/middleware/jwt.ts"
+      constraints:
+          - "Must not use external auth providers"
+          - "Must maintain backward compatibility with Basic Auth"
+      # The "Definition of Done"
+      acceptance_criteria:
+          - "Unit tests in tests/auth/ pass"
+          - "Integration tests verify backward compatibility"
+      # Agent assignment
+      assigned_agent: "agent-builder-01"
+      # Traceability
+      related_specs:
+          - type: "specification"
+            value: "REQ-001"
+      created_at: "2026-02-16T12:00:00Z"
+      updated_at: "2026-02-17T15:30:00Z"
+```
+
+**When `active_intents.yaml` Is Read:**
+
+| Trigger                    | Location                                        | Purpose                                                                               |
+| -------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **Task start**             | `Task.startTask()`                              | Load active intents. Determine if agent must `select_active_intent` before proceeding |
+| **Reasoning Intercept**    | `select_active_intent` Pre-Hook                 | Query constraints, related files, and recent history for the selected intent          |
+| **Before each LLM call**   | `Task.recursivelyMakeClineRequests()` via PRE-1 | Verify active intent is still valid. Load scope constraints for prompt injection      |
+| **Before tool execution**  | `presentAssistantMessage()` via PRE-2           | Resolve `owned_scope` boundaries. Validate tool target is within scope                |
+| **On intent state change** | Hook Engine state management                    | When an intent transitions lifecycle state (IN_PROGRESS → COMPLETED, etc.)            |
 
 **Read strategy:** The file SHALL be read lazily and cached within the Hook Engine's `OrchestrationState` manager. Cache invalidation occurs on file change (via VS Code `FileSystemWatcher`) or on explicit state transition.
 
-### 7.2 When `agent_trace.jsonl` Is Written
+### 7.2 `agent_trace.jsonl` — The Ledger
 
-The audit trail (`.orchestration/agent_trace.jsonl`) SHALL be written by POST hooks at these points:
+**Purpose:** An append-only, machine-readable history of every mutating action, linking the abstract **Intent** to the concrete **Code Hash**. This is the system's audit trail and the foundation for intent-code traceability.
 
-| Event                    | Trigger Location                  | Trace Record Contents                                        |
-| ------------------------ | --------------------------------- | ------------------------------------------------------------ |
-| **Intent declared**      | Hook Engine (intent registration) | Intent ID, scope, agent ID, timestamp                        |
-| **Intent activated**     | Hook Engine (intent validation)   | Intent ID, validation result, timestamp                      |
-| **Tool invoked**         | POST-3 (after BaseTool.handle)    | Tool name, params, intent ID, agent ID, result, duration     |
-| **File mutated**         | POST-4 (after WriteToFileTool)    | Path, content hash (before), content hash (after), intent ID |
-| **Command executed**     | POST-5 (after ExecuteCommandTool) | Command, exit code, output hash, intent ID                   |
-| **LLM request sent**     | POST-1 (after stream completion)  | Provider, model, token usage, intent ID, response hash       |
-| **Intent completed**     | Hook Engine (intent lifecycle)    | Intent ID, completion status, final scope summary            |
-| **Governance violation** | Any pre-hook denial               | Violation type, denied operation, agent ID, intent ID        |
+**Update Pattern:** Updated via Post-Hook after file writes and other mutating operations.
+
+**Full Agent Trace Specification (with Spatial Independence via Content Hashing):**
+
+```json
+{
+	"id": "uuid-v4",
+	"timestamp": "2026-02-16T12:00:00Z",
+	"event_type": "file_mutation",
+	"vcs": {
+		"revision_id": "git_sha_hash"
+	},
+	"files": [
+		{
+			"relative_path": "src/auth/middleware.ts",
+			"conversations": [
+				{
+					"url": "session_log_id",
+					"contributor": {
+						"entity_type": "AI",
+						"model_identifier": "claude-3-5-sonnet"
+					},
+					"ranges": [
+						{
+							"start_line": 15,
+							"end_line": 45,
+							"content_hash": "sha256:a8f5f167f44f4964e6c998dee827110c"
+						}
+					],
+					"related": [
+						{
+							"type": "specification",
+							"value": "REQ-001"
+						},
+						{
+							"type": "intent",
+							"value": "INT-001"
+						}
+					]
+				}
+			]
+		}
+	]
+}
+```
+
+**Critical Design Properties:**
+
+- **Spatial Independence via Content Hashing:** The `content_hash` (SHA-256) is computed over the **modified code block content**, not the line numbers. If lines move due to upstream edits, the hash remains valid. This decouples the trace from positional instability.
+- **The Golden Thread to SpecKit:** The `related[]` array links each code mutation back to specification requirements (`REQ-*`) and intents (`INT-*`), creating a traceable chain from business requirement → intent → code change.
+- **Contributor Attribution:** Every trace records whether the change was made by an AI agent (with model identifier) or a human, enabling provenance tracking.
+
+**When `agent_trace.jsonl` Is Written:**
+
+| Event                    | Trigger Location                  | Trace Contents                                                         |
+| ------------------------ | --------------------------------- | ---------------------------------------------------------------------- |
+| **Intent declared**      | Hook Engine (intent registration) | Intent ID, scope, agent ID, timestamp                                  |
+| **Intent activated**     | `select_active_intent` Pre-Hook   | Intent ID, injected context summary, validation result                 |
+| **File mutated**         | POST-4 (after WriteToFileTool)    | Full trace record with `files[].conversations[].ranges[].content_hash` |
+| **Command executed**     | POST-5 (after ExecuteCommandTool) | Command, exit code, output hash, intent ID                             |
+| **LLM request sent**     | POST-1 (after stream completion)  | Provider, model, token usage, intent ID, response hash                 |
+| **Intent completed**     | Hook Engine (intent lifecycle)    | Intent ID, completion status, acceptance_criteria results              |
+| **Governance violation** | Any pre-hook denial               | Violation type, denied operation, agent ID, intent ID                  |
 
 **Write strategy:** Append-only. Each line is a self-contained JSON object. The file SHALL NOT be truncated or edited during normal operation.
 
-### 7.3 When `CLAUDE.md` Is Appended
+### 7.3 `intent_map.md` — The Spatial Map
 
-The custom instructions file (`CLAUDE.md` or `.roo/rules`) SHALL be programmatically augmented at these points:
+**Purpose:** Maps high-level business intents to physical files and AST nodes. When a stakeholder asks, "Where is the billing logic?" or "What intent touched the auth middleware?", this file provides the answer.
 
-| Trigger                                | Modification                                                      | Purpose                                                             |
-| -------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------- |
-| **Task start (before first LLM call)** | Append active intent constraints to custom instructions via INJ-1 | Ensure LLM is aware of scope boundaries and governance requirements |
-| **Intent activation**                  | Update custom instructions with new scope definition              | Refresh LLM awareness when intent scope changes                     |
-| **Governance violation detected**      | Append violation feedback to custom instructions                  | Inform LLM of the violation so it can self-correct                  |
+**Update Pattern:** Incrementally updated by the `IntentMapHook` Post-Hook when `INTENT_EVOLUTION` occurs — specifically when files are mutated under an active intent, or when an intent's `owned_scope` changes.
 
-**Strategy note:** Rather than modifying `CLAUDE.md` on disk, the governance layer SHALL inject content dynamically through the `addCustomInstructions()` pipeline at INJ-1. This preserves the original file and allows governance instructions to be computed per-request based on current orchestration state.
+**Schema (Markdown for human readability, machine-parseable):**
+
+```markdown
+# Intent Map
+
+## INT-001: JWT Authentication Migration
+
+- **Status:** IN_PROGRESS
+- **Owned Scope:** `src/auth/**`, `src/middleware/jwt.ts`
+- **Files Touched:**
+    - `src/auth/middleware.ts` (L15-45, hash: sha256:a8f5...)
+    - `src/auth/jwt-provider.ts` (L1-120, hash: sha256:b3c2...)
+    - `src/middleware/jwt.ts` (L30-55, hash: sha256:d4e1...)
+- **Related Specs:** REQ-001
+- **Last Updated:** 2026-02-17T15:30:00Z
+
+## INT-002: Rate Limiting Implementation
+
+- **Status:** PENDING
+- **Owned Scope:** `src/middleware/rate-limit/**`
+- **Files Touched:** (none yet)
+- **Related Specs:** REQ-005
+```
+
+### 7.4 `AGENT.md` / `CLAUDE.md` — The Shared Brain
+
+**Purpose:** A persistent knowledge base shared across parallel agent sessions (Architect, Builder, Tester). Contains "Lessons Learned," project-specific stylistic rules, and architectural decisions. This is how parallel agents maintain shared consciousness without explicit coordination.
+
+**Update Pattern:** Incrementally appended by the `SharedBrainHook` Post-Hook when:
+
+| Trigger                           | What Is Appended                                                          |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| **Verification loop fails**       | Lesson learned: what was tried, why it failed, what worked instead        |
+| **Architectural decision made**   | Decision record: context, options considered, decision, rationale         |
+| **Governance violation resolved** | Pattern to avoid: what triggered the violation, how to prevent recurrence |
+| **Scope conflict detected**       | Coordination note: which intents conflicted, how it was resolved          |
+
+**Strategy note:** Rather than modifying `CLAUDE.md` on disk for every LLM call, the governance layer SHALL:
+
+1. **Read** `AGENT.md`/`CLAUDE.md` from disk as a base knowledge source
+2. **Inject** governance-specific context (active intent constraints, scope boundaries) dynamically through the `addCustomInstructions()` pipeline at INJ-1
+3. **Append** to `AGENT.md`/`CLAUDE.md` on disk only for durable cross-session knowledge (lessons learned, decisions)
+
+This preserves the original file content for human readability while allowing per-request governance instructions to be computed dynamically based on current orchestration state.
 
 ---
 
-## 8. State Machine Modification Plan
+## 8. Three-State Execution Flow
 
-### 8.1 Two-Stage Intent Handshake Integration
+The agent is **not allowed to write code immediately**. It must first "checkout" an intent. Every turn of the conversation follows a mandatory Three-State Execution Flow:
 
-The Intent Handshake introduces a mandatory pre-execution phase into the Task lifecycle. It modifies the state machine as follows:
+### 8.1 The Three States
 
-```
-CURRENT STATE MACHINE:
-═══════════════════════════════════════════════
+```mermaid
+graph TD
+    subgraph CURRENT_MODEL [Current Execution Model]
+        CM_Start[User Message] --> CM_StartTask[startTask]
+        CM_StartTask --> CM_Recurse[recursivelyMakeClineRequests]
+        CM_Recurse --> CM_Loop[[Loop: Direct Tool Access]]
+    end
 
-  User Message → startTask() → recursivelyMakeClineRequests() → [Loop]
+    subgraph GOVERNED_MODEL [Governed Three-State Model]
+        S1[STATE 1: THE REQUEST] -- "User prompts" --> S2
 
+        subgraph S2 [STATE 2: THE REASONING INTERCEPT]
+            S2_Analyze[1. Agent analyzes request] --> S2_Call[2. Agent calls select_active_intent]
+            S2_Call --> S2_Hook[3. Pre-Hook INTERCEPTS & PAUSES]
+            S2_Hook --> S2_Query[Query Data Model: active_intents, constraints, scope]
+            S2_Query --> S2_Inject[Enrich prompt with deep context]
+            S2_Inject --> S2_Resume[4. Execution RESUMES]
+        end
 
-PROPOSED STATE MACHINE:
-═══════════════════════════════════════════════
+        S2 --> S3
 
-  User Message → startTask()
-                    │
-                    ▼
-              ┌──────────────┐
-              │ STAGE 1:     │
-              │ Intent       │  ← Agent MUST call select_active_intent
-              │ Selection    │    before any other tool
-              │              │
-              └──────┬───────┘
-                     │
-                     ▼
-              ┌──────────────┐
-              │ Intent       │  ← Validates intent exists in active_intents.yaml
-              │ Validation   │    Validates scope is well-formed
-              │              │    Validates no scope conflicts
-              └──────┬───────┘
-                     │
-                     ▼ (intent validated)
-              ┌──────────────┐
-              │ STAGE 2:     │
-              │ Governed     │  ← Normal tool loop, but every tool call
-              │ Execution    │    passes through Hook Engine
-              │              │    Scope enforcement active
-              └──────────────┘
+        subgraph S3 [STATE 3: CONTEXTUALIZED ACTION]
+            S3_Generate[1. LLM generates changes] --> S3_Mutate[2. Agent calls mutating tools]
+            S3_Mutate --> S3_Hook[Post-Hook INTERCEPTS]
+            S3_Hook --> S3_Process[Compute Hash, Log Trace, Update Map, Check Criteria]
+        end
+    end
 ```
 
-### 8.2 How Prompt Modification Enforces `select_active_intent`
+### 8.2 State Transition Mechanics
 
-The governance layer enforces the Two-Stage Handshake by modifying the system prompt and tool availability:
+**State 1 → State 2 (Request → Reasoning Intercept):**
 
-**Stage 1 enforcement (before intent is selected):**
+The governance layer forces the agent into the Reasoning Intercept by controlling the system prompt and tool availability:
 
-1. **System prompt injection (INJ-2):** A governance section is prepended to the system prompt stating:
+1. **System prompt injection (INJ-2):** A governance section is prepended to the system prompt:
 
     - "You MUST call `select_active_intent` before performing any other action"
     - "Any tool call other than `select_active_intent` will be rejected"
-    - Lists available intents from `active_intents.yaml`
+    - Lists available intents from `active_intents.yaml` with their names, constraints, and owned_scope
 
-2. **Tool restriction (INJ-4):** The `buildNativeToolsArray()` output is filtered by the Hook Engine to expose ONLY `select_active_intent` until an intent is active. All other tools are removed from the tools array.
+2. **Tool restriction (INJ-4):** The `buildNativeToolsArray()` output is filtered by the Hook Engine to expose ONLY `select_active_intent` until an intent is active. All other tools are removed from the tools array sent to the LLM.
 
-3. **Pre-hook enforcement (PRE-2):** Even if the LLM attempts to call a non-intent-selection tool, the pre-hook at `presentAssistantMessage()` rejects it and returns a tool_error explaining that intent must be selected first.
+3. **Pre-hook enforcement (PRE-2):** Even if the LLM attempts to call a non-intent-selection tool, the pre-hook at `presentAssistantMessage()` rejects it and returns a `tool_error` explaining that intent must be selected first.
 
-**Stage 2 transition (after intent is selected):**
+**State 2 → State 3 (Reasoning Intercept → Contextualized Action):**
 
-1. The `select_active_intent` tool handler validates the intent and transitions the Hook Engine state
-2. On next `recursivelyMakeClineRequests()` iteration, the full tool set is restored (filtered by scope)
-3. The system prompt governance section updates to reflect the active intent and its scope boundaries
-4. All subsequent tool calls pass through scope validation pre-hooks
+The critical "pause → enrich → resume" flow:
+
+1. Agent calls `select_active_intent(intent_id: "INT-001")`
+2. Pre-Hook **pauses** the execution loop at PRE-2
+3. Pre-Hook queries the Data Model:
+    - Reads `active_intents.yaml` for INT-001's `constraints`, `owned_scope`, `acceptance_criteria`
+    - Reads `agent_trace.jsonl` for recent history of INT-001 (what was already done)
+    - Reads `intent_map.md` for current file mappings
+    - Reads `AGENT.md`/`CLAUDE.md` for relevant lessons learned
+4. Pre-Hook **injects** this deep context into the tool result that flows back to the LLM
+5. Pre-Hook **transitions** the Hook Engine state: intent is now active
+6. Execution **resumes**: on next `recursivelyMakeClineRequests()` iteration, the full tool set is restored (filtered by `owned_scope`)
+7. The system prompt governance section updates to reflect the active intent and its scope boundaries
+8. All subsequent tool calls pass through scope validation pre-hooks
+
+### 8.3 State 3: PostToolUse Mechanics
+
+During Contextualized Action, every mutating tool call triggers PostToolUse processing:
+
+```mermaid
+graph TD
+    Start[Agent calls write_file] --> Pre[PreToolUse validates]
+    Pre --> Scope{In scope?}
+    Scope -- Yes --> Lock{Lock/Hash valid?}
+    Lock -- Yes --> Write[Core write_file executes]
+    Write --> Post[PostToolUse processes]
+    Post --> Hash[Compute SHA-256 Hash]
+    Hash --> Trace[Append to agent_trace.jsonl]
+    Trace --> Map[Update intent_map.md]
+    Map --> Criteria[Check acceptance_criteria]
+    Criteria -- Met --> Complete[Transition to COMPLETED]
+    Criteria -- Not Met --> Lessons[Optional: Append lessons if failed]
+
+    Scope -- No --> Deny[DENY]
+    Lock -- No --> Deny
+```
 
 ---
 
@@ -732,18 +851,20 @@ Optimistic locking prevents concurrent agents from silently overwriting each oth
 
 **Optimistic locking flow:**
 
-```
-Agent A wants to write file X:
-  1. PRE-4 hook reads current hash of file X → hash_A
-  2. Agent A proceeds with write
-  3. POST-4 hook computes new hash → hash_B, records (file X, hash_A → hash_B)
+```mermaid
+graph TD
+    subgraph Agent_A [Agent A Workflow]
+        A1[PRE-4 reads current hash: hash_A] --> A2[Agent A proceeds with write]
+        A2 --> A3[POST-4 computes hash_B, records transition]
+    end
 
-Agent B wants to write file X concurrently:
-  1. PRE-4 hook reads current hash of file X → hash_B (changed by Agent A)
-  2. PRE-4 compares expected hash (from B's intent scope) vs actual hash
-  3. MISMATCH: file was modified outside B's knowledge
-  4. PRE-4 DENIES write → returns conflict error
-  5. Conflict logged to agent_trace.jsonl
+    subgraph Agent_B [Agent B Concurrent Workflow]
+        B1[PRE-4 reads actual hash: hash_B] --> B2{hash_B == expected_hash?}
+        B2 -- No/Mismatch --> B3[PRE-4 DENIES write: conflict error]
+        B3 --> B4[Conflict logged to agent_trace.jsonl]
+    end
+
+    A3 -.-> B1
 ```
 
 ### 9.2 Where Scope Validation Will Occur
@@ -762,29 +883,22 @@ Scope validation ensures agents only operate within their declared intent bounda
 
 **Scope validation flow:**
 
-```
-Tool invocation arrives at PRE-2/PRE-3:
-  │
-  ├── Resolve active intent from OrchestrationState
-  │     └── If no active intent → DENY (Intent Handshake not completed)
-  │
-  ├── Extract target path(s) from tool parameters
-  │     ├── WriteToFileTool → params.path
-  │     ├── ExecuteCommandTool → params.cwd
-  │     ├── EditFileTool → params.path
-  │     └── ApplyPatchTool → extracted paths from patch content
-  │
-  ├── Resolve target paths to absolute paths (against task.cwd)
-  │
-  ├── For each target path:
-  │     ├── Check: path ∈ intent.scope.files OR
-  │     │          path ∈ intent.scope.directories (prefix match) OR
-  │     │          path matches intent.scope.patterns (glob match)
-  │     │
-  │     ├── If MATCH → continue
-  │     └── If NO MATCH → DENY (scope violation)
-  │
-  └── All paths validated → ALLOW operation
+```mermaid
+graph TD
+    Start[Tool invocation at PRE-2/PRE-3] --> Active{Active intent?}
+    Active -- No --> Deny[DENY: Intent Handshake not completed]
+    Active -- Yes --> Extract[Extract target path/CWD from params]
+    Extract --> Absolute[Resolve to absolute paths]
+    Absolute --> Valid{Path in scope?}
+    Valid -- Yes --> Continue[ALLOW operation]
+    Valid -- No --> Deny2[DENY: Scope violation]
+
+    subgraph Scope_Check [Scope Definition Match]
+        Files[exact file match]
+        Dirs[directory prefix match]
+        Globs[glob pattern match]
+    end
+    Valid -.-> Scope_Check
 ```
 
 ### 9.3 Existing Safety Mechanisms (Preserved)
@@ -799,6 +913,59 @@ The current codebase already has safety mechanisms that governance hooks will co
 | `ProtectTool`         | `src/core/protect/`                 | File protection patterns          | Preserved. Governance scope is an additional layer above file protection |
 | `RooIgnore`           | `src/core/ignore/`                  | .gitignore-style file exclusion   | Preserved. Governance scope is additive to ignore rules                  |
 | Checkpoint system     | `src/core/checkpoints/`             | File state snapshots for rollback | Essential for governance rollback on partial failures                    |
+
+---
+
+## 10. Multi-Agent Concurrency & Conflict Resolution
+
+As the system evolves toward a **Hive Mind** model, concurrency management moves beyond simple file locks to hierarchical orchestration.
+
+### 10.1 Hierarchical Orchestration (Supervisor Pattern)
+
+Complex tasks are handled via a hierarchy:
+
+- **Supervisor Agent:** Maintains the high-level intent (`active_intents.yaml`), decomposes tasks into sub-intents, and coordinates sub-agents.
+- **Sub-Agents (Workers):** Specialized agents executing narrow intents within restricted `owned_scope`.
+
+**Governance Role:** The Hook Engine ensures that sub-agents never exceed the scope granted by their Supervisor.
+
+### 10.2 Conflict Resolution Strategies
+
+1. **Write Partitioning:** Agents are assigned non-overlapping directory segments (partitioning).
+2. **Optimistic Hash Validation:** Before applying a patch, the Hook Engine verifies that the target AST range hasn't changed (using `content_hash`).
+3. **Hierarchical Lock Promotion:** If a sub-agent needs a file held by another branch of the hive, the request is escalated to the Supervisor for resolution.
+
+---
+
+## 11. Enterprise Guardrails & Safety
+
+To mitigate the risks of autonomous agents, the Hook Engine enforces systemic guardrails:
+
+### 11.1 Execution Budgets
+
+Limits are enforced per intent to prevent runaway costs or resource exhaustion:
+
+- **Token Budgets:** Max cumulative tokens per intent.
+- **Turn Budgets:** Max number of conversation turns.
+- **Time Budgets:** Max execution duration.
+
+### 11.2 Circuit Breakers
+
+The system implements automated self-interruption (Circuit Breaker) for:
+
+- **Infinite Loops:** Detecting repetitive tool calls or cyclic edits.
+- **Context Rot:** Halting when the LLM's context window contains conflicting or stale intent data.
+- **Privilege Escalation:** Blocking attempts to access `.orchestration/` or sensitive hooks.
+
+### 11.3 Context Compaction (The PreCompact Hook)
+
+To maintain prompt efficiency and prevent "reasoning drift," the Hook Engine implements **Context Compaction** during the Pre-Hook phase:
+
+- Merges redundant tool results.
+- Summarizes historical turns within the same intent.
+- Distills `agent_trace.jsonl` entries into a "What's Happened So Far" summary for the prompt.
+
+---
 
 ---
 
@@ -826,6 +993,8 @@ The current codebase already has safety mechanisms that governance hooks will co
 | Editor integration   | `src/integrations/editor/`                                           |
 | Extension entry      | `src/extension.ts`                                                   |
 | Hooks directory      | `src/hooks/` (empty — reserved)                                      |
+| System Constitution  | `.specify/memory/constitution.md`                                    |
+| System Soul          | `.specify/memory/soul.md`                                            |
 
 ---
 
