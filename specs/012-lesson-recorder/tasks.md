@@ -17,10 +17,10 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create project structure per implementation plan (src/core/lessons, src/cli, src/hooks, tests/unit, tests/integration)
-- [ ] T002 Initialize TypeScript project with Node.js v20+ and Jest dependencies in package.json
-- [ ] T003 [P] Configure linting and formatting (ESLint/Prettier) in .eslintrc.json and .prettierrc
-- [ ] T004 Define `Lesson` entity and types in `src/core/lessons/types.ts` per updated data-model.md (intent_id required)
+- [x] T001 Create project structure per implementation plan (src/core/lessons, src/cli, src/hooks, tests/unit, tests/integration)
+- [x] T002 Initialize TypeScript project with Node.js v20+ and Vitest dependencies in package.json
+- [x] T003 [P] Configure linting and formatting (ESLint/Prettier) in .eslintrc.json and .prettierrc
+- [x] T004 Define `Lesson` entity and types in `src/core/lessons/types.ts` per updated data-model.md (intent_id required)
 
 ---
 
@@ -30,9 +30,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 [P] Implement file locking utility for cross-process atomic writes in `src/core/lessons/LockManager.ts`
-- [ ] T006 [P] Implement SHA256 signature generation helper in `src/core/lessons/Deduplicator.ts` per research.md
-- [ ] T007 [P] Implement audit logging integration using `LedgerManager` to write to `.orchestration/agent_trace.jsonl`
+- [x] T005 [P] Implement file locking utility for cross-process atomic writes in `src/core/lessons/LockManager.ts`
+- [x] T006 [P] Implement SHA256 signature generation helper in `src/core/lessons/Deduplicator.ts` per research.md
+- [x] T007 [P] Implement audit logging integration using `LedgerManager` to write to `.orchestration/agent_trace.jsonl`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -46,15 +46,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T008 [P] [US1] Create unit tests for `LessonRecorder` in `tests/unit/LessonRecorder.test.ts`
-- [ ] T009 [P] [US1] Create integration test for CLI in `tests/integration/record-lesson.test.ts`
+- [x] T008 [P] [US1] Create unit tests for `LessonRecorder` in `src/core/lessons/__tests__/LessonRecorder.test.ts`
+- [x] T009 [P] [US1] Create integration test for CLI in `src/cli/__tests__/record-lesson.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement `LessonRecorder` core logic (atomic append, EOS formatting, 500-char truncation) in `src/core/lessons/LessonRecorder.ts`
-- [ ] T011 [US1] Implement CLI entry point in `src/cli/record-lesson.ts` strictly enforcing `contracts/cli.json` (required intent-id)
-- [ ] T012 [US1] Integrate `LedgerManager` into `LessonRecorder` to log every recording event to the audit ledger
-- [ ] T013 [US1] Add basic error handling (fail silently after retry after 100ms delay) per spec.md in `src/core/lessons/LessonRecorder.ts`
+- [x] T010 [US1] Implement `LessonRecorder` core logic (atomic append, EOS formatting, 500-char truncation) in `src/core/lessons/LessonRecorder.ts`
+- [x] T011 [US1] Implement CLI entry point in `src/cli/record-lesson.ts` strictly enforcing `contracts/cli.json` (required intent-id)
+- [x] T012 [US1] Integrate `LedgerManager` into `LessonRecorder` to log every recording event to the audit ledger
+- [x] T013 [US1] Add basic error handling (fail silently after retry after 100ms delay) per spec.md in `src/core/lessons/LessonRecorder.ts`
 
 **Checkpoint**: Core recording functionality with traceability is functional.
 
@@ -68,12 +68,12 @@
 
 ### Tests for User Story 2
 
-- [ ] T014 [US2] Add unit tests for file/section existence checks and creation in `tests/unit/LessonRecorder.test.ts`
+- [x] T014 [US2] Add unit tests for file/section existence checks and creation in `src/core/lessons/__tests__/LessonRecorder.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Implement section detection and automatic creation logic in `src/core/lessons/LessonRecorder.ts`
-- [ ] T016 [US2] Ensure atomic creation of the file and header using the `LockManager`
+- [x] T015 [US2] Implement section detection and automatic creation logic in `src/core/lessons/LessonRecorder.ts`
+- [x] T016 [US2] Ensure atomic creation of the file and header using the `LockManager`
 
 **Checkpoint**: The system is now robust against missing storage files or headers.
 
@@ -87,12 +87,12 @@
 
 ### Tests for User Story 3
 
-- [ ] T017 [P] [US3] Create unit tests for signature-based de-duplication in `tests/unit/Deduplicator.test.ts`
+- [x] T017 [P] [US3] Create unit tests for signature-based de-duplication in `src/core/lessons/__tests__/Deduplicator.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Implement de-duplication logic using the SHA256 signature in `src/core/lessons/Deduplicator.ts`
-- [ ] T019 [US3] Integrate `Deduplicator` into the `LessonRecorder` write flow in `src/core/lessons/LessonRecorder.ts`
+- [x] T018 [US3] Implement de-duplication logic using the SHA256 signature in `src/core/lessons/Deduplicator.ts`
+- [x] T019 [US3] Integrate `Deduplicator` into the `LessonRecorder` write flow in `src/core/lessons/LessonRecorder.ts`
 
 **Checkpoint**: The log remains clean and free of redundant entries.
 
@@ -102,11 +102,11 @@
 
 **Purpose**: Improvements, hooks, and final documentation.
 
-- [ ] T020 [P] Implement `PostVerificationHook` skeleton in `src/hooks/PostVerificationHook.ts` to suggest recording to the agent.
-- [ ] T021 [P] Implement lesson retrieval utility (FR-011) in `src/core/lessons/LessonRetriever.ts`
-- [ ] T022 [US1] Integrate `LessonRetriever` with the main Prompt Injection logic (e.g., in `src/core/PromptEngine.ts` or equivalent)
-- [ ] T023 Run final end-to-end validation of all scenarios in `quickstart.md`.
-- [ ] T024 Final code cleanup, JSDoc comments, and documentation review.
+- [x] T020 [P] Implement `PostVerificationHook` skeleton in `src/hooks/post/PostVerificationHook.ts` to suggest recording to the agent.
+- [x] T021 [P] Implement lesson retrieval utility (FR-011) in `src/core/lessons/LessonRetriever.ts`
+- [x] T022 [US1] Integrate `LessonRetriever` with the main Prompt Injection logic (e.g., in `src/core/prompts/system.ts`)
+- [x] T023 Run final end-to-end validation of all scenarios in `quickstart.md`.
+- [x] T024 Final code cleanup, JSDoc comments, and documentation review.
 
 ---
 
