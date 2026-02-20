@@ -34,7 +34,7 @@ As a system governor, I want to ensure that no destructive actions (writes, dele
 **Acceptance Scenarios**:
 
 1. **Given** the agent is in the `REASONING` state and no intent is active, **When** the agent calls `write_to_file`, **Then** it should be blocked with a `StateViolationError` indicating that an intent is required for mutations.
-2. **Given** the agent is in the `REQUEST` state and no intent is active, **When** the agent calls `run_command` (if classified as destructive), **Then** it should be blocked.
+2. **Given** the agent is in the `REQUEST` state and no intent is active, **When** the agent calls `execute_command` (if classified as destructive), **Then** it should be blocked.
 
 ---
 
