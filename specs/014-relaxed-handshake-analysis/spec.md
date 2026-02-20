@@ -44,6 +44,13 @@ As a system governor, I want to ensure that no destructive actions (writes, dele
 - **MCP Tools**: MCP tools that are not explicitly classified in `COMMAND_CLASSIFICATION` default to `DESTRUCTIVE` and should be blocked.
 - **Fail-Safe Default**: If the orchestration directory is missing, even `SAFE` tools (except `select_active_intent`) should be blocked as per Invariant 8.
 
+## Clarifications
+
+### Session 2026-02-20
+
+- Q: Is it permissible for the agent to use `attempt_completion` or provide a final answer while still in the `REASONING` state? → A: Yes, allow completion directly from `REASONING` state if only `SAFE` tools were used.
+- Q: How should file access be governed for `SAFE` tools during the Handshake phase? → A: Allow `SAFE` tools to access any file within the project root if no intent is active (read-only).
+
 ## Requirements _(mandatory)_
 
 ### Functional Requirements
@@ -55,6 +62,8 @@ As a system governor, I want to ensure that no destructive actions (writes, dele
 - **FR-005**: The Intent Handshake system prompt MUST be updated to clarify that "Analysis and read-only actions are permitted, but an active intent is still required for mutations (writes/commands)."
 - **FR-006**: Invariant 2 (Sole Execution Gateway) MUST be maintained; all tool calls must continue to pass through the `HookEngine`.
 - **FR-007**: Law 4.1 (Least Privilege) MUST be maintained; `DESTRUCTIVE` tools must remain blocked until `onIntentSelected` transitions the state to `ACTION`.
+- **FR-008**: System MUST permit `attempt_completion` (as a `SAFE` tool) during the handshake phase to allow answering informational queries without mandatory intent selection.
+- **FR-009**: System MUST permit project-wide read access for `SAFE` tools during the `REQUEST` and `REASONING` states while maintaining global protections (e.g., .intentignore).
 
 ### Key Entities _(include if feature involves data)_
 
@@ -70,3 +79,4 @@ As a system governor, I want to ensure that no destructive actions (writes, dele
 - **SC-002**: 100% of tools classified as `DESTRUCTIVE` or unknown (default `DESTRUCTIVE`) remain blocked during the handshake phase without an active intent.
 - **SC-003**: The agent receives a clear instruction in the system prompt about the availability of analysis tools and the requirement for an intent for mutations.
 - **SC-004**: The Architect can successfully perform a `list_files` call before selecting an intent in a fresh session.
+- **SC-005**: The agent can successfully call `attempt_completion` to finalize an informational task without ever selecting an intent.
