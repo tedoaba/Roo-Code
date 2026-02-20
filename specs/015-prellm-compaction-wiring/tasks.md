@@ -26,11 +26,11 @@
 
 **Purpose**: Verify prerequisites and existing infrastructure before making changes
 
-- [ ] T001 Verify `HookEngine.preLLMRequest()` exists and is functional at `src/hooks/HookEngine.ts` lines 432-456
-- [ ] T002 Verify `PreCompactHook.compact()` exists and is functional at `src/hooks/pre/PreCompactHook.ts` lines 27-78
-- [ ] T003 Verify `Task.hookEngine` is a public readonly property at `src/core/task/Task.ts` line 350
-- [ ] T004 Verify `Task.activeIntentId` is a public property at `src/core/task/Task.ts` line 351
-- [ ] T005 Run existing test suite to establish baseline: `npx vitest run src/core/task/__tests__/Task.spec.ts`
+- [x] T001 Verify `HookEngine.preLLMRequest()` exists and is functional at `src/hooks/HookEngine.ts` lines 432-456
+- [x] T002 Verify `PreCompactHook.compact()` exists and is functional at `src/hooks/pre/PreCompactHook.ts` lines 27-78
+- [x] T003 Verify `Task.hookEngine` is a public readonly property at `src/core/task/Task.ts` line 350
+- [x] T004 Verify `Task.activeIntentId` is a public property at `src/core/task/Task.ts` line 351
+- [x] T005 Run existing test suite to establish baseline: `npx vitest run src/core/task/__tests__/Task.spec.ts`
 
 **Checkpoint**: All prerequisites verified — existing infrastructure confirmed functional, baseline tests pass.
 
@@ -52,11 +52,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Change `const systemPrompt` to `const systemPrompt` (keep as const) and add `let effectiveSystemPrompt` variable initialized to `systemPrompt` after line 4046 in `src/core/task/Task.ts` `attemptApiRequest()` method
-- [ ] T007 [US1] Add try/catch block calling `this.hookEngine.preLLMRequest(this.activeIntentId)` after the `effectiveSystemPrompt` initialization, prepending the result to `effectiveSystemPrompt` when non-null and non-empty, in `src/core/task/Task.ts` `attemptApiRequest()` method
-- [ ] T008 [US1] Replace `systemPrompt` with `effectiveSystemPrompt` in the `this.api.createMessage()` call at line 4308 of `src/core/task/Task.ts`
-- [ ] T009 [US1] Add unit test: verify `preLLMRequest()` is called exactly once before `createMessage()` with `this.activeIntentId` in `src/core/task/__tests__/Task.spec.ts`
-- [ ] T010 [US1] Add unit test: when `preLLMRequest()` returns a non-null string, verify the system prompt passed to `createMessage()` starts with the compacted summary followed by `\n\n` in `src/core/task/__tests__/Task.spec.ts`
+- [x] T006 [US1] Change `const systemPrompt` to `const systemPrompt` (keep as const) and add `let effectiveSystemPrompt` variable initialized to `systemPrompt` after line 4046 in `src/core/task/Task.ts` `attemptApiRequest()` method
+- [x] T007 [US1] Add try/catch block calling `this.hookEngine.preLLMRequest(this.activeIntentId)` after the `effectiveSystemPrompt` initialization, prepending the result to `effectiveSystemPrompt` when non-null and non-empty, in `src/core/task/Task.ts` `attemptApiRequest()` method
+- [x] T008 [US1] Replace `systemPrompt` with `effectiveSystemPrompt` in the `this.api.createMessage()` call at line 4308 of `src/core/task/Task.ts`
+- [x] T009 [US1] Add unit test: verify `preLLMRequest()` is called exactly once before `createMessage()` with `this.activeIntentId` in `src/core/task/__tests__/Task.spec.ts`
+- [x] T010 [US1] Add unit test: when `preLLMRequest()` returns a non-null string, verify the system prompt passed to `createMessage()` starts with the compacted summary followed by `\n\n` in `src/core/task/__tests__/Task.spec.ts`
 
 **Checkpoint**: Long-running intents receive compacted context. Independently testable with mock returning a summary string.
 
@@ -70,8 +70,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Add unit test: when `preLLMRequest()` returns null, verify the system prompt passed to `createMessage()` is identical to the original `getSystemPrompt()` result in `src/core/task/__tests__/Task.spec.ts`
-- [ ] T012 [US2] Add unit test: when `preLLMRequest()` returns empty string `""`, verify the system prompt is unmodified (treated same as null) in `src/core/task/__tests__/Task.spec.ts`
+- [x] T011 [US2] Add unit test: when `preLLMRequest()` returns null, verify the system prompt passed to `createMessage()` is identical to the original `getSystemPrompt()` result in `src/core/task/__tests__/Task.spec.ts`
+- [x] T012 [US2] Add unit test: when `preLLMRequest()` returns empty string `""`, verify the system prompt is unmodified (treated same as null) in `src/core/task/__tests__/Task.spec.ts`
 
 **Checkpoint**: No-op path verified — no modifications when compaction is not needed.
 
@@ -85,7 +85,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Add unit test: when `this.activeIntentId` is undefined (REASONING state), verify `preLLMRequest(undefined)` is called and returns null, and system prompt is unmodified in `src/core/task/__tests__/Task.spec.ts`
+- [x] T013 [US3] Add unit test: when `this.activeIntentId` is undefined (REASONING state), verify `preLLMRequest(undefined)` is called and returns null, and system prompt is unmodified in `src/core/task/__tests__/Task.spec.ts`
 
 **Checkpoint**: REASONING state graceful handling verified.
 
@@ -99,9 +99,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T014 [US4] Add `console.error` logging in the catch block of the `preLLMRequest()` try/catch, including Task ID, active intent ID, and error message/stack in `src/core/task/Task.ts` `attemptApiRequest()` method
-- [ ] T015 [US4] Add unit test: when `preLLMRequest()` throws, verify the error is caught, `console.error` is called with diagnostic context (intent ID, error message), and the LLM call proceeds with unmodified system prompt in `src/core/task/__tests__/Task.spec.ts`
-- [ ] T016 [US4] Add unit test: when `hookEngine` is null/undefined, verify `preLLMRequest()` is not called and the system prompt is unmodified in `src/core/task/__tests__/Task.spec.ts`
+- [x] T014 [US4] Add `console.error` logging in the catch block of the `preLLMRequest()` try/catch, including Task ID, active intent ID, and error message/stack in `src/core/task/Task.ts` `attemptApiRequest()` method
+- [x] T015 [US4] Add unit test: when `preLLMRequest()` throws, verify the error is caught, `console.error` is called with diagnostic context (intent ID, error message), and the LLM call proceeds with unmodified system prompt in `src/core/task/__tests__/Task.spec.ts`
+- [x] T016 [US4] Add unit test: when `hookEngine` is null/undefined, verify `preLLMRequest()` is not called and the system prompt is unmodified in `src/core/task/__tests__/Task.spec.ts`
 
 **Checkpoint**: Error resilience verified — compaction failures never crash the LLM loop.
 
@@ -111,9 +111,9 @@
 
 **Purpose**: Final validation and regression checks
 
-- [ ] T017 Run the full existing test suite to verify zero regressions: `npx vitest run`
-- [ ] T018 Verify the implementation follows Decorator Pattern: confirm only a single `preLLMRequest()` call was added at the boundary, no changes to `createMessage()` internals, `HookEngine.ts`, or `PreCompactHook.ts`
-- [ ] T019 Run quickstart.md validation steps to confirm end-to-end correctness
+- [x] T017 Run the full existing test suite to verify zero regressions: `npx vitest run`
+- [x] T018 Verify the implementation follows Decorator Pattern: confirm only a single `preLLMRequest()` call was added at the boundary, no changes to `createMessage()` internals, `HookEngine.ts`, or `PreCompactHook.ts`
+- [x] T019 Run quickstart.md validation steps to confirm end-to-end correctness
 
 ---
 

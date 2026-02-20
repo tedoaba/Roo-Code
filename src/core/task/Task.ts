@@ -4044,6 +4044,20 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		Task.lastGlobalApiRequestTime = performance.now()
 
 		const systemPrompt = await this.getSystemPrompt()
+
+		// Context compaction (Law 3.1.6 / Invariant 2)
+		let effectiveSystemPrompt = systemPrompt
+		try {
+			if (this.hookEngine) {
+				const compaction = await this.hookEngine.preLLMRequest(this.activeIntentId)
+				if (compaction && compaction.length > 0) {
+					effectiveSystemPrompt = compaction + "\n\n" + systemPrompt
+				}
+			}
+		} catch (error) {
+			console.error(`[Task#${this.taskId}] preLLMRequest failed for intent ${this.activeIntentId}:`, error)
+			// Fall through with original systemPrompt
+		}
 		const { contextTokens } = this.getTokenUsage()
 
 		if (contextTokens) {
@@ -4305,7 +4319,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 		// The provider accepts reasoning items alongside standard messages; cast to the expected parameter type.
 		const stream = this.api.createMessage(
-			systemPrompt,
+			effectiveSystemPrompt,
 			cleanConversationHistory as unknown as Anthropic.Messages.MessageParam[],
 			metadata,
 		)
