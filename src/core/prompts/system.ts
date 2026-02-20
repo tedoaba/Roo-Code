@@ -24,6 +24,7 @@ import {
 	markdownFormattingSection,
 	getSkillsSection,
 	getIntentHandshakeSection,
+	getLessonsLearnedSection,
 } from "./sections"
 import { OrchestrationService } from "../../services/orchestration/OrchestrationService"
 
@@ -78,10 +79,11 @@ async function generatePrompt(
 	// Tool calling is native-only.
 	const effectiveProtocol = "native"
 
-	const [modesSection, skillsSection, intentHandshakeSection] = await Promise.all([
+	const [modesSection, skillsSection, intentHandshakeSection, lessonsSection] = await Promise.all([
 		getModesSection(context),
 		getSkillsSection(skillsManager, mode as string),
 		orchestrationService ? getIntentHandshakeSection(orchestrationService, activeIntentId) : Promise.resolve(""),
+		getLessonsLearnedSection(),
 	])
 
 	// Tools catalog is not included in the system prompt.
@@ -103,6 +105,7 @@ ${getRulesSection(cwd, settings)}
 
 ${getSystemInfoSection(cwd)}
 ${intentHandshakeSection}
+${lessonsSection}
 
 ${getObjectiveSection()}
 
