@@ -4,6 +4,8 @@ Auto-generated from all feature plans. Last updated: 2026-02-18
 
 ## Active Technologies
 
+- TypeScript 5.x (VS Code extension, Node.js runtime) + VS Code Extension API, Node.js `fs/promises`, `crypto` (randomUUID, SHA-256) (018-trace-schema-evolution)
+
 - [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION] (017-sidecar-model-alignment)
 - [if applicable, e.g., PostgreSQL, CoreData, files or N/A] (017-sidecar-model-alignment)
 - TypeScript + `js-yaml`, `fs/promises`, `vscode`, `minimatch` (017-sidecar-model-alignment)
@@ -67,10 +69,10 @@ General: Follow standard conventions
 
 ## Recent Changes
 
+- 018-trace-schema-evolution: Added TypeScript 5.x (VS Code extension, Node.js runtime) + VS Code Extension API, Node.js `fs/promises`, `crypto` (randomUUID, SHA-256)
+
 - 017-sidecar-model-alignment: Added TypeScript + `js-yaml`, `fs/promises`, `vscode`, `minimatch`
 - 017-sidecar-model-alignment: Added [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
-
-- 016-proactive-tool-filtering: Added TypeScript 5.x + VS Code Extension API
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
