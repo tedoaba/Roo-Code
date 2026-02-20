@@ -5,6 +5,15 @@
 **Status**: Draft  
 **Input**: User description: "Implement File-Level Optimistic Concurrency Control. Implement optimistic locking to prevent parallel overwrite conflicts. Objective: Block stale writes when a file has changed since the agent began its turn."
 
+## Clarifications
+
+### Session 2026-02-20
+
+- Q: Should blocked write attempts (concurrency conflicts) be recorded in the `AgentTraceLedger`? → A: Record `STALE_FILE` events in the `AgentTraceLedger` as rejected mutation attempts.
+- Q: How should the system handle a file that existed when the agent read it, but has been deleted before the write? → A: Block the write and return a `STALE_FILE` error (Target missing).
+- Q: Should the guard track hashes for ALL files written by the agent, or only those it previously read in the current turn? → A: Only check files that have been explicitly read by the agent during the current turn.
+- Q: Should the `STALE_FILE` error message include the `current_disk_hash` to help with diagnostics? → A: Include `current_disk_hash` in the `STALE_FILE` error JSON.
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Prevent Stale Overwrites (Priority: P1)
@@ -38,7 +47,7 @@ As an agent, I want to be able to recover from a blocked write by re-reading the
 
 ### Edge Cases
 
-- **File Deletion**: If a file is deleted after the agent reads it but before it writes, the hash comparison should fail (as current disk state is "missing") and block the write with a descriptive error.
+- **File Deletion**: If a file is deleted after the agent reads it but before it writes, the hash comparison MUST fail and block the write with a `STALE_FILE` error (Target missing).
 - **Read-Only Access**: If the agent reads a file but never writes to it, the hash is still stored but no concurrency check is performed (no overhead except storage).
 - **Directory Writes**: If the tool target is a directory instead of a file, the guard should handle it gracefully (likely N/A or block if not supported).
 
@@ -54,8 +63,10 @@ As an agent, I want to be able to recover from a blocked write by re-reading the
 - **FR-006**: When a write is blocked, the system MUST return a structured error with:
     - `error_type`: "STALE_FILE"
     - `message`: "File modified by another actor. Re-read required."
+    - `current_disk_hash`: "<hash_of_file_on_disk>"
 - **FR-007**: System MUST update the stored `initial_content_hash` whenever a file is successfully read or written, to ensure the next write has a valid baseline.
 - **FR-008**: Detection MUST integrate with the existing write validation pipeline (e.g., hooks or tool middleware).
+- **FR-009**: All blocked write attempts MUST be recorded in the `AgentTraceLedger` as rejected mutation attempts.
 
 ### Key Entities _(include if feature involves data)_
 
