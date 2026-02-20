@@ -7,7 +7,7 @@
 
 **Purpose**: Project initialization and basic structure.
 
-- [ ] T001 Setup `src/hooks/errors` directory structure
+- [x] T001 Setup `src/hooks/errors` directory structure
 
 ---
 
@@ -15,8 +15,8 @@
 
 **Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented.
 
-- [ ] T002 [P] Create `StaleWriteError` custom Error class in `src/hooks/errors/StaleWriteError.ts`
-- [ ] T003 Update concurrency error types in `src/core/concurrency/types.ts` to support the new error properties
+- [x] T002 [P] Create `StaleWriteError` custom Error class in `src/hooks/errors/StaleWriteError.ts`
+- [x] T003 Update concurrency error types in `src/core/concurrency/types.ts` to support the new error properties
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
 
@@ -30,13 +30,13 @@
 
 ### Tests for User Story 1
 
-- [ ] T004 [P] [US1] Write unit tests for `OptimisticGuard` rejection behavior in `src/core/concurrency/OptimisticGuard.test.ts` including concurrent deletion (`actual_hash: "DELETED"`)
-- [ ] T005 [P] [US1] Write unit tests for trace logging in `src/hooks/AgentTraceHook.test.ts`
+- [x] T004 [P] [US1] Write unit tests for `OptimisticGuard` rejection behavior in `src/core/concurrency/OptimisticGuard.test.ts` including concurrent deletion (`actual_hash: "DELETED"`)
+- [x] T005 [P] [US1] Write unit tests for trace logging in `src/hooks/AgentTraceHook.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Update `src/core/concurrency/OptimisticGuard.ts` to construct and throw `StaleWriteError` instead of a generic error on hash mismatch
-- [ ] T007 [US1] Update `src/hooks/AgentTraceHook.ts` to listen for `StaleWriteError` and record the conflict trace to the Agent Trace Ledger
+- [x] T006 [US1] Update `src/core/concurrency/OptimisticGuard.ts` to construct and throw `StaleWriteError` instead of a generic error on hash mismatch
+- [x] T007 [US1] Update `src/hooks/AgentTraceHook.ts` to listen for `StaleWriteError` and record the conflict trace to the Agent Trace Ledger
 
 **Checkpoint**: User Story 1 is functionally complete, modifications are rejected with the new error and logged to the trace ledger.
 
@@ -50,11 +50,11 @@
 
 ### Tests for User Story 2
 
-- [ ] T008 [P] [US2] Write unit test for `HookEngine` catching `StaleWriteError` and formatting JSON in `src/hooks/HookEngine.test.ts`
+- [x] T008 [P] [US2] Write unit test for `HookEngine` catching `StaleWriteError` and formatting JSON in `src/hooks/HookEngine.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Update `src/hooks/HookEngine.ts` to catch `StaleWriteError` during tool execution and serialize the error as a pure JSON `StaleFileErrorPayload` string
+- [x] T009 [US2] Update `src/hooks/HookEngine.ts` to catch `StaleWriteError` during tool execution and serialize the error as a pure JSON `StaleFileErrorPayload` string
 
 **Checkpoint**: User Story 2 is integrated, Agent Controllers now receive deterministic JSON payload on conflict.
 
@@ -64,10 +64,10 @@
 
 **Purpose**: Improvements, validations and cleanup.
 
-- [ ] T010 [P] Verify generated JSON error payload matches the schema in `contracts/stale-write-error.json`
-- [ ] T011 Run all unit tests to explicitly verify 100% of tested stale write scenarios leave target files unmodified (including multi-replace atomic blocking edge cases) and emit logs
-- [ ] T012 Run quickstart validation from `specs/011-stale-write-error/quickstart.md`
-- [ ] T013 [P] Add integration test to simulate Controller receiving `RE_READ_REQUIRED` payload and triggering `view_file` flow
+- [x] T010 [P] Verify generated JSON error payload matches the schema in `contracts/stale-write-error.json`
+- [x] T011 Run all unit tests to explicitly verify 100% of tested stale write scenarios leave target files unmodified (including multi-replace atomic blocking edge cases) and emit logs
+- [x] T012 Run quickstart validation from `specs/011-stale-write-error/quickstart.md`
+- [x] T013 [P] Add integration test to simulate Controller receiving `RE_READ_REQUIRED` payload and triggering `view_file` flow
 
 ---
 
