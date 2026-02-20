@@ -23,16 +23,14 @@ describe("LedgerManager", () => {
 	it("should create the ledger file and append an entry", async () => {
 		const entry: AgentTraceEntry = {
 			timestamp: "2026-02-20T01:00:00Z",
-			agentId: "agy-77",
-			intentId: "test-intent",
-			mutation: {
-				type: "write",
-				target: "src/test.ts",
-				hash: "abc123hash",
-			},
-			vcsRevision: "main@abcdef",
-			attribution: "agent",
-		}
+			actor: "agy-77",
+			intent_id: "test-intent",
+			trace_id: "trace1",
+			mutation_class: "file_mutation",
+			related: [],
+			ranges: { file: "f1.ts", hash: "h1", content_hash: "h1", start_line: 1, end_line: 10 },
+			summary: "test",
+		} as any
 
 		await manager.append(entry)
 
@@ -47,21 +45,25 @@ describe("LedgerManager", () => {
 	it("should append multiple entries without overwriting", async () => {
 		const entry1: AgentTraceEntry = {
 			timestamp: "2026-02-20T01:00:00Z",
-			agentId: "agy-77",
-			intentId: "test-intent-1",
-			mutation: { type: "write", target: "f1.ts", hash: "h1" },
-			vcsRevision: "rev1",
-			attribution: "agent",
-		}
+			actor: "agy-77",
+			intent_id: "test-intent-1",
+			trace_id: "trace1",
+			mutation_class: "file_mutation",
+			related: [],
+			ranges: { file: "f1.ts", hash: "h1", content_hash: "h1", start_line: 1, end_line: 10 },
+			summary: "test",
+		} as any
 
 		const entry2: AgentTraceEntry = {
 			timestamp: "2026-02-20T01:01:00Z",
-			agentId: "agy-77",
-			intentId: "test-intent-2",
-			mutation: { type: "delete", target: "f2.ts", hash: "h2" },
-			vcsRevision: "rev2",
-			attribution: "system",
-		}
+			actor: "agy-77",
+			intent_id: "test-intent-2",
+			trace_id: "trace2",
+			mutation_class: "file_mutation",
+			related: [],
+			ranges: { file: "f2.ts", content_hash: "h2", start_line: 1, end_line: 10 },
+			summary: "test",
+		} as any
 
 		await manager.append(entry1)
 		await manager.append(entry2)
@@ -80,12 +82,14 @@ describe("LedgerManager", () => {
 
 		const entry: AgentTraceEntry = {
 			timestamp: "2026-02-20T01:00:00Z",
-			agentId: "agy-77",
-			intentId: "test-intent",
-			mutation: { type: "write", target: "test.ts", hash: "hash" },
-			vcsRevision: "rev",
-			attribution: "agent",
-		}
+			actor: "agy-77",
+			intent_id: "test-intent",
+			trace_id: "trace1",
+			mutation_class: "file_mutation",
+			related: [],
+			ranges: { file: "test.ts", content_hash: "hash", start_line: 1, end_line: 10 },
+			summary: "test",
+		} as any
 
 		await nestedManager.append(entry)
 		expect(await fs.stat(deeplyNestedPath).catch(() => null)).not.toBeNull()

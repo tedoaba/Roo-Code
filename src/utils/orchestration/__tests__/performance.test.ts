@@ -11,16 +11,14 @@ describe("LedgerManager Performance Benchmark", () => {
 		const manager = new LedgerManager(testLedgerPath)
 		const entry: AgentTraceEntry = {
 			timestamp: new Date().toISOString(),
-			agentId: "test-agent",
-			intentId: "test-intent",
-			mutation: {
-				type: "write",
-				target: "test.ts",
-				hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-			},
-			vcsRevision: "main@123456",
-			attribution: "agent",
-		}
+			actor: "test-agent",
+			intent_id: "test-intent",
+			trace_id: "trace1",
+			mutation_class: "file_mutation",
+			related: [],
+			ranges: { file: "test.ts", content_hash: "hash", start_line: 1, end_line: 10 },
+			summary: "test",
+		} as any
 
 		const start = performance.now()
 		await manager.append(entry)
@@ -41,16 +39,14 @@ describe("LedgerManager Performance Benchmark", () => {
 		const manager = new LedgerManager(testLedgerPath)
 		const entry: AgentTraceEntry = {
 			timestamp: new Date().toISOString(),
-			agentId: "test-agent",
-			intentId: "test-intent",
-			mutation: {
-				type: "write",
-				target: "test.ts",
-				hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-			},
-			vcsRevision: "main@123456",
-			attribution: "agent",
-		}
+			actor: "test-agent",
+			intent_id: "test-intent",
+			trace_id: "trace1",
+			mutation_class: "file_mutation",
+			related: [],
+			ranges: { file: "test.ts", content_hash: "hash", start_line: 1, end_line: 10 },
+			summary: "test",
+		} as any
 
 		const start = performance.now()
 		await Promise.all(Array.from({ length: 10 }).map(() => manager.append(entry)))

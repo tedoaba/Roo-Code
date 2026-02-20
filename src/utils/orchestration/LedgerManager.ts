@@ -1,6 +1,6 @@
 import * as fs from "fs/promises"
 import * as path from "path"
-import { ILedgerManager, AgentTraceEntry } from "../../contracts/AgentTrace"
+import { ILedgerManager, AgentTraceEntry, Contributor } from "../../contracts/AgentTrace"
 import { generateFileHash } from "../crypto/hashing"
 
 /**
@@ -52,7 +52,8 @@ export class LedgerManager implements ILedgerManager {
 		type: "write" | "delete" | "rename" | "create"
 		target: string
 		summary: string
-		metadata?: Record<string, any>
+		contributor?: Contributor
+		metadata?: any // loosened typing here as it's just a pass-through
 	}): Promise<void> {
 		const { randomUUID } = await import("crypto")
 		let hash = "n/a"
@@ -79,6 +80,7 @@ export class LedgerManager implements ILedgerManager {
 			},
 			actor: params.actor,
 			summary: params.summary,
+			contributor: params.contributor,
 			metadata: params.metadata,
 		}
 
