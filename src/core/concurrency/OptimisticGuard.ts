@@ -1,10 +1,16 @@
 import * as fs from "fs/promises"
 import { ITurnContext, OptimisticLockResult } from "./types"
+import { StaleWriteError } from "../../hooks/errors/StaleWriteError"
 
 /**
  * Verification logic called by HookEngine.preToolUse before any destructive action.
  *
  * FR-004: Block the write execution if initial_content_hash does not match current_disk_hash.
+ *
+ * On hash mismatch (or concurrent deletion), this function THROWS a StaleWriteError
+ * instead of returning a result object. This enables the HookEngine to catch the
+ * structured error, log the conflict to the Agent Trace Ledger, and serialize
+ * it as a pure JSON StaleFileErrorPayload to the Agent Controller.
  */
 export async function verifyOptimisticLock(
 	filePath: string,
@@ -26,20 +32,9 @@ export async function verifyOptimisticLock(
 		// Edge Case: File Deletion.
 		// If a file is deleted after the agent reads it but before it writes, it's a conflict.
 		if (error.code === "ENOENT") {
-			return {
-				allowed: false,
-				reason: "Target file missing.",
-				error_type: "STALE_FILE",
-				details: {
-					path: filePath,
-					baseline_hash: baselineHash,
-					current_disk_hash: "MISSING",
-				},
-			}
+			throw new StaleWriteError(filePath, baselineHash, "DELETED")
 		}
-		// Other filesystem errors (permission, etc.) are handled by the tool itself later,
-		// but here we should probably allow if it's not a concurrency issue specifically.
-		// However, a read failure means we cannot verify, so we should stay safe.
+		// Other filesystem errors (permission, etc.) — we cannot verify, so we should stay safe.
 		return {
 			allowed: false,
 			reason: `Filesystem error during verification: ${error.message}`,
@@ -49,16 +44,7 @@ export async function verifyOptimisticLock(
 	const currentDiskHash = hasher(currentContent)
 
 	if (baselineHash !== currentDiskHash) {
-		return {
-			allowed: false,
-			reason: "File modified by another actor. Re-read required.",
-			error_type: "STALE_FILE",
-			details: {
-				path: filePath,
-				baseline_hash: baselineHash,
-				current_disk_hash: currentDiskHash,
-			},
-		}
+		throw new StaleWriteError(filePath, baselineHash, currentDiskHash)
 	}
 
 	return { allowed: true }
