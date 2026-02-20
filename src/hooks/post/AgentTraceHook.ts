@@ -6,7 +6,13 @@ import * as path from "path"
  * Hook interface for the Agent Trace Ledger.
  */
 export interface IAgentTraceHook {
-	execute(intentId: string, filePath: string, requestId: string): Promise<void>
+	execute(params: {
+		intentId: string
+		filePath: string
+		requestId: string
+		mutationClass: string
+		summary: string
+	}): Promise<void>
 }
 
 /**
@@ -23,36 +29,36 @@ export class AgentTraceHook implements IAgentTraceHook {
 
 	/**
 	 * Asynchronous executor for tracing mutations.
-	 *
-	 * @param intentId - The user's active intent
-	 * @param filePath - The mutated file
-	 * @param requestId - Request origin/context
 	 */
-	async execute(intentId: string, filePath: string, requestId: string): Promise<void> {
-		const eventKey = `${intentId}:${filePath}:${requestId}`
+	async execute(params: {
+		intentId: string
+		filePath: string
+		requestId: string
+		mutationClass: string
+		summary: string
+	}): Promise<void> {
+		const { intentId, filePath, requestId, mutationClass, summary } = params
+		const eventKey = `${intentId}:${filePath}:${requestId}:${mutationClass}`
 
 		if (AgentTraceHook.processedEvents.has(eventKey)) {
-			console.warn(`[AgentTraceHook] Skipping duplicate trace entry for ${eventKey}`)
 			return
 		}
 
 		try {
 			// Record the mutation using LedgerManager's helper
 			await this.ledgerManager.recordMutation({
-				agentId: "roo-code",
+				actor: "roo-code",
 				intentId: intentId,
+				mutationClass: mutationClass,
 				type: "write",
 				target: filePath,
-				vcsRevision: "main@latest",
-				attribution: "agent",
+				summary: summary,
 				metadata: { requestId },
 			})
 
 			// Mark as processed
 			AgentTraceHook.processedEvents.add(eventKey)
 		} catch (error) {
-			// Fail-safe: prevent disrupting the main extension execution flow
-			// Consistency with HookEngine's "fail-safe" philosophy
 			console.error(`[AgentTraceHook] Failed to record trace for ${filePath}:`, error)
 		}
 	}
