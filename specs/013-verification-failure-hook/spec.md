@@ -5,6 +5,17 @@
 **Status**: Draft  
 **Input**: User description: "Integrate Verification Failure Detection. Implement detection hook that triggers Lesson Recording when verification fails. Monitor: Linter exit code, Test runner exit code. On non-zero exit: Capture tool name, error output, affected files. Invoke Lesson Recording tool. Ensure Hook runs automatically. Does not crash system. Success Criteria: Failures automatically recorded. No manual intervention required. Lessons accurately reflect failure context."
 
+## Clarifications
+
+### Session 2026-02-20
+
+- Q: How should the system identify "Verification Tools" to monitor? → A: Hardcoded whitelist of common verification tools (eslint, jest, vitest, npm test).
+- Q: How should large error outputs be handled to avoid bloated lesson files? → A: Smart filtering: Extract lines containing filenames, line numbers, and "Error" or "Fail" keywords.
+- Q: When should the lesson recording be triggered? → A: Automatic (Always): Record immediately on any non-zero exit code for whitelisted tools.
+- Q: How should affected files be identified from tool output? → A: Regex-based extraction: Scan output for strings matching file path patterns (e.g., src/\*\*/\*.ts).
+- Q: What is the minimum metadata required for an automated lesson? → A: Standard: Tool Name, Filtered Error Snippet, and Affected Files.
+- Q: How should missing analysis fields (cause, resolution, rule) be handled for automated recordings? → A: Update Lesson schema to make cause, resolution, and rule optional for auto-recorded failures.
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Automated Linter Failure Recording (Priority: P1)
@@ -67,24 +78,24 @@ As a system component, the hook must ensure that failures in the recording proce
 ### Functional Requirements
 
 - **FR-001**: System MUST intercept the completion of CLI-based tool execution.
-- **FR-002**: System MUST identify "Verification Tools" based on command patterns (e.g., those matching linter or test runner signatures).
+- **FR-002**: System MUST identify "Verification Tools" using a hardcoded whitelist of common commands (e.g., `eslint`, `jest`, `vitest`, `npm test`, `npm run lint`).
 - **FR-003**: System MUST detect non-zero exit codes from monitored tools.
 - **FR-004**: System MUST capture the name of the tool or command being executed.
-- **FR-005**: System MUST capture the error messages (stderr/stdout) produced by the failing tool.
-- **FR-006**: System MUST attempt to extract file paths mentioned in the error output to identify affected files.
+- **FR-005**: System MUST capture error messages via smart filtering: Extract lines containing filenames, line numbers, and "Error" or "Fail" keywords to minimize noise.
+- **FR-006**: System MUST extract affected file paths using regex-based scanning of the tool output for common path patterns.
 - **FR-007**: System MUST automatically invoke the lesson recording mechanism upon detection of a verification failure.
 - **FR-008**: The recording process MUST NOT block or crash the main tool execution flow if it fails.
 
 ### Key Entities
 
-- **Verification Failure**: A data structure representing the failure event, containing command, exit code, output, and identified files.
-- **Lesson**: The resulting artifact recorded by the `LessonRecorder`, now including failure context automatically.
+- **Verification Failure**: A data structure representing the failure event, containing the whitelisted tool name, filtered error snippet, and identified affected files.
+- **Lesson**: The resulting artifact recorded by the `LessonRecorder`, now including failure context automatically. Analysis fields (`cause`, `resolution`, `corrective_rule`) are OPTIONAL for automated recordings to allow for immediate capture.
 
 ## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of detected lint/test failures trigger an automatic recording attempt.
+- **SC-001**: 100% of non-zero exit codes from whitelisted tools trigger an automatic recording attempt without user intervention.
 - **SC-002**: Zero (0) system crashes or task interruptions caused by recording failures.
 - **SC-003**: Lessons recorded from failures include at least the tool name and a snippet of the error output.
 - **SC-004**: Automatic identification of at least one affected file path for 80% of standard linter/test outputs.
