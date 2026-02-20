@@ -213,11 +213,15 @@ describe("writeToFileTool", () => {
 			params: {
 				path: testFilePath,
 				content: testContent,
+				intent_id: "test-intent",
+				mutation_class: "INTENT_EVOLUTION",
 				...params,
 			},
 			nativeArgs: {
-				path: (params.path ?? testFilePath) as any,
-				content: (params.content ?? testContent) as any,
+				path: ("path" in params ? params.path : testFilePath) as any,
+				content: ("content" in params ? params.content : testContent) as any,
+				intent_id: ("intent_id" in params ? params.intent_id : "test-intent") as any,
+				mutation_class: ("mutation_class" in params ? params.mutation_class : "INTENT_EVOLUTION") as any,
 			},
 			partial: isPartial,
 		}
@@ -462,6 +466,53 @@ describe("writeToFileTool", () => {
 			// Second call with same path - path is now stabilized, error occurs
 			await executeWriteFileTool({}, { isPartial: true })
 			expect(mockHandleError).toHaveBeenCalledWith("handling partial write_to_file", expect.any(Error))
+		})
+	})
+
+	describe("metadata validation", () => {
+		it("accepts valid metadata (T004)", async () => {
+			await executeWriteFileTool({
+				intent_id: "INT-123",
+				mutation_class: "AST_REFACTOR",
+			})
+
+			expect(mockCline.consecutiveMistakeCount).toBe(0)
+			expect(mockCline.diffViewProvider.open).toHaveBeenCalled()
+		})
+
+		it("rejects missing intent_id (T006)", async () => {
+			await executeWriteFileTool({ intent_id: undefined })
+
+			expect(mockCline.recordToolError).toHaveBeenCalledWith("write_to_file")
+			expect(mockCline.sayAndCreateMissingParamError).toHaveBeenCalledWith("write_to_file", "intent_id")
+		})
+
+		it("rejects empty intent_id (T006)", async () => {
+			await executeWriteFileTool({ intent_id: "" })
+
+			expect(mockCline.recordToolError).toHaveBeenCalledWith("write_to_file")
+			expect(mockCline.sayAndCreateMissingParamError).toHaveBeenCalledWith("write_to_file", "intent_id")
+		})
+
+		it("rejects missing mutation_class (T006)", async () => {
+			await executeWriteFileTool({ mutation_class: undefined })
+
+			expect(mockCline.recordToolError).toHaveBeenCalledWith("write_to_file")
+			expect(mockCline.sayAndCreateMissingParamError).toHaveBeenCalledWith("write_to_file", "mutation_class")
+		})
+
+		it("rejects invalid mutation_class enum value (T009)", async () => {
+			await executeWriteFileTool({ mutation_class: "INVALID_CLASS" as any })
+
+			expect(mockCline.recordToolError).toHaveBeenCalledWith("write_to_file")
+			expect(mockPushToolResult).toHaveBeenCalledWith(expect.stringContaining("Invalid value for mutation_class"))
+		})
+
+		it("rejects lower-case mutation_class enum value (T009)", async () => {
+			await executeWriteFileTool({ mutation_class: "ast_refactor" as any })
+
+			expect(mockCline.recordToolError).toHaveBeenCalledWith("write_to_file")
+			expect(mockPushToolResult).toHaveBeenCalledWith(expect.stringContaining("Invalid value for mutation_class"))
 		})
 	})
 })
