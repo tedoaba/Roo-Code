@@ -2,6 +2,9 @@ import { OrchestrationService } from "../services/orchestration/OrchestrationSer
 import { StateMachine } from "../core/state/StateMachine"
 import { HookResponse, CommandClassification } from "../services/orchestration/types"
 import { TraceabilityError } from "../errors/TraceabilityError"
+import { TurnContext } from "../core/concurrency/TurnContext"
+import { ITurnContext } from "../core/concurrency/types"
+import { executeConcurrencyHook } from "./pre/ConcurrencyHook"
 
 /**
  * Hook Engine - The Sole Execution Gateway (T007)
@@ -79,10 +82,12 @@ export class HookEngine {
 	private orchestrationService: OrchestrationService
 	private stateMachine: StateMachine
 	private lastToolCalls: ToolCallRecord[] = []
+	public readonly turnContext: ITurnContext
 
 	constructor(orchestrationService: OrchestrationService, stateMachine: StateMachine) {
 		this.orchestrationService = orchestrationService
 		this.stateMachine = stateMachine
+		this.turnContext = new TurnContext()
 	}
 
 	/**
@@ -156,6 +161,46 @@ export class HookEngine {
 					`[Invalid Traceability Identifier Format] The provided intentId '${req.intentId}' does not follow the required project standard (must match /^REQ-[a-zA-Z0-9\-]+$/).`,
 				)
 			}
+		}
+
+		// Concurrency Protection: Optimistic Locking (US1)
+		const concurrencyResult = await executeConcurrencyHook(req, this)
+		if (concurrencyResult.action === "DENY") {
+			const { randomUUID } = await import("crypto")
+			await this.orchestrationService
+				.logTrace({
+					trace_id: randomUUID(),
+					timestamp: new Date().toISOString(),
+					mutation_class: "N/A",
+					intent_id: req.intentId || "N/A",
+					related: req.intentId ? [req.intentId] : [],
+					ranges: {
+						file: req.params.path || req.params.file_path || "n/a",
+						content_hash: "n/a",
+						start_line: 0,
+						end_line: 0,
+					},
+					actor: "roo-code-agent",
+					summary: `Mutation Conflict for ${req.params.path || req.params.file_path}`,
+					metadata: {
+						session_id: "current",
+					},
+					action_type: "MUTATION_CONFLICT",
+					payload: {
+						tool_name: req.toolName,
+						target_file: req.params.path || req.params.file_path,
+						baseline_hash: concurrencyResult.details?.baseline_hash,
+						current_hash: concurrencyResult.details?.current_disk_hash,
+					},
+					result: {
+						status: "DENIED",
+						error_type: "STALE_FILE",
+						output_summary: concurrencyResult.reason,
+					},
+				} as any)
+				.catch(() => {})
+
+			return concurrencyResult
 		}
 
 		// 3. Scope enforcement for file-based destructive tools
@@ -307,6 +352,14 @@ export class HookEngine {
 		// For file-destructive tools, compute hash and update intent map
 		if (result.success && result.filePath && result.fileContent && this.isDestructiveTool(result.toolName)) {
 			await this.orchestrationService.logMutation(result.intentId, result.filePath, result.fileContent)
+
+			// US1: Update TurnContext after successful write to provide new baseline for subsequent writes
+			this.turnContext.recordWrite(result.filePath, result.fileContent)
+		}
+
+		// US1: Capture baseline from read_file successful result
+		if (result.success && result.toolName === "read_file" && result.filePath && result.fileContent) {
+			this.turnContext.recordRead(result.filePath, result.fileContent)
 		}
 
 		// Agent Trace Hook integration (US1/US2/US3)
@@ -452,9 +505,10 @@ export class HookEngine {
 	}
 
 	/**
-	 * Reset the circuit breaker tracking.
+	 * Reset the circuit breaker tracking and turn context.
 	 */
 	resetCircuitBreaker(): void {
 		this.lastToolCalls = []
+		this.turnContext.reset()
 	}
 }
