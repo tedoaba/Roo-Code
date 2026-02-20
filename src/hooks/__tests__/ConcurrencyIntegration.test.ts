@@ -66,7 +66,11 @@ describe("ConcurrencyHook Integration (US1, US2)", () => {
 
 		expect(response.action).toBe("DENY")
 		expect(response.error_type).toBe("STALE_FILE")
-		expect(response.reason).toContain("File modified by another actor")
+		// reason is now the serialized JSON payload
+		const payload = JSON.parse(response.reason!)
+		expect(payload.error_type).toBe("STALE_FILE")
+		expect(payload.file_path).toBe(filePath)
+		expect(payload.resolution).toBe("RE_READ_REQUIRED")
 	})
 
 	it("T009a: allows write when file has NOT changed (US1)", async () => {
@@ -127,7 +131,8 @@ describe("ConcurrencyHook Integration (US1, US2)", () => {
 
 		expect(response.action).toBe("DENY")
 		expect(response.error_type).toBe("STALE_FILE")
-		expect(response.details?.current_disk_hash).toBe("MISSING")
+		// details now contains the full StaleFileErrorPayload
+		expect(response.details?.actual_hash).toBe("DELETED")
 	})
 
 	it("T016: allows write after re-reading the file (US2 Recovery)", async () => {

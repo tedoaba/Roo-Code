@@ -2,6 +2,7 @@ import { OrchestrationService } from "../services/orchestration/OrchestrationSer
 import { StateMachine } from "../core/state/StateMachine"
 import { HookResponse, CommandClassification } from "../services/orchestration/types"
 import { TraceabilityError } from "../errors/TraceabilityError"
+import { StaleWriteError } from "./errors/StaleWriteError"
 import { TurnContext } from "../core/concurrency/TurnContext"
 import { ITurnContext } from "../core/concurrency/types"
 import { executeConcurrencyHook } from "./pre/ConcurrencyHook"
@@ -163,44 +164,67 @@ export class HookEngine {
 			}
 		}
 
-		// Concurrency Protection: Optimistic Locking (US1)
-		const concurrencyResult = await executeConcurrencyHook(req, this)
-		if (concurrencyResult.action === "DENY") {
-			const { randomUUID } = await import("crypto")
-			await this.orchestrationService
-				.logTrace({
-					trace_id: randomUUID(),
-					timestamp: new Date().toISOString(),
-					mutation_class: "N/A",
-					intent_id: req.intentId || "N/A",
-					related: req.intentId ? [req.intentId] : [],
-					ranges: {
-						file: req.params.path || req.params.file_path || "n/a",
-						content_hash: "n/a",
-						start_line: 0,
-						end_line: 0,
-					},
-					actor: "roo-code-agent",
-					summary: `Mutation Conflict for ${req.params.path || req.params.file_path}`,
-					metadata: {
-						session_id: "current",
-					},
-					action_type: "MUTATION_CONFLICT",
-					payload: {
-						tool_name: req.toolName,
-						target_file: req.params.path || req.params.file_path,
-						baseline_hash: concurrencyResult.details?.baseline_hash,
-						current_hash: concurrencyResult.details?.current_disk_hash,
-					},
-					result: {
-						status: "DENIED",
-						error_type: "STALE_FILE",
-						output_summary: concurrencyResult.reason,
-					},
-				} as any)
-				.catch(() => {})
+		// Concurrency Protection: Optimistic Locking (US1/US2)
+		// The ConcurrencyHook/OptimisticGuard now throws StaleWriteError on hash mismatch.
+		// We catch it here to: (1) log the conflict to the trace ledger, and (2) serialize
+		// it as a pure JSON StaleFileErrorPayload for the Agent Controller.
+		try {
+			const concurrencyResult = await executeConcurrencyHook(req, this)
+			if (concurrencyResult.action === "DENY") {
+				return concurrencyResult
+			}
+		} catch (error) {
+			if (error instanceof StaleWriteError) {
+				// Step 1: Log the conflict to the Agent Trace Ledger (FR-005)
+				const { randomUUID } = await import("crypto")
+				await this.orchestrationService
+					.logTrace({
+						trace_id: randomUUID(),
+						timestamp: new Date().toISOString(),
+						mutation_class: "STALE_FILE_CONFLICT",
+						intent_id: req.intentId || "N/A",
+						related: req.intentId ? [req.intentId] : [],
+						ranges: {
+							file: error.file_path,
+							content_hash: error.actual_hash,
+							start_line: 0,
+							end_line: 0,
+						},
+						actor: "roo-code-agent",
+						summary: `Stale write rejected for ${error.file_path}: expected ${error.expected_hash}, actual ${error.actual_hash}`,
+						metadata: {
+							session_id: "current",
+							expected_hash: error.expected_hash,
+							actual_hash: error.actual_hash,
+						},
+						action_type: "MUTATION_CONFLICT",
+						payload: {
+							tool_name: req.toolName,
+							target_file: error.file_path,
+							baseline_hash: error.expected_hash,
+							current_hash: error.actual_hash,
+						},
+						result: {
+							status: "DENIED",
+							error_type: "STALE_FILE",
+							output_summary: error.message,
+						},
+					} as any)
+					.catch(() => {})
 
-			return concurrencyResult
+				// Step 2: Serialize to pure JSON StaleFileErrorPayload (FR-003/FR-004)
+				const jsonPayload = JSON.stringify(error.toPayload())
+
+				return {
+					action: "DENY",
+					reason: jsonPayload,
+					error_type: "STALE_FILE",
+					details: error.toPayload(),
+					recovery_hint: "RE_READ_REQUIRED",
+				}
+			}
+			// Re-throw non-StaleWriteError exceptions
+			throw error
 		}
 
 		// 3. Scope enforcement for file-based destructive tools
