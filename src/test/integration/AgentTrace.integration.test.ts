@@ -77,11 +77,10 @@ describe("Agent Trace Integration", () => {
 		const lines = content.trim().split("\n")
 
 		// Find the line relevant to our test (in case there are other traces)
-		const ourTrace = lines.map((l) => JSON.parse(l)).find((t) => t.intentId === "intent-integration-test")
+		const ourTrace = lines.map((l) => JSON.parse(l)).find((t) => t.intent_id === "intent-integration-test")
 
 		expect(ourTrace).toBeDefined()
-		expect(ourTrace.mutation.target).toBe(testFilePath)
-		expect(ourTrace.mutation.type).toBe("write")
+		expect(ourTrace.ranges.file).toBe(testFilePath)
 		expect(ourTrace.metadata.requestId).toBe("req-123")
 	})
 })
