@@ -5,7 +5,7 @@
 
 ## Summary
 
-Consolidation of the duplicate `AgentTraceEntry` interface into a single canonical definition in `src/contracts/AgentTrace.ts`, addition of structured contributor attribution (`entity_type`, `model_identifier`), migration of all 8 import sites, deprecation of `metadata.contributor` in favor of the new top-level `contributor` object, update of all trace entry producers to populate the new field, and alignment of ARCHITECTURE_NOTES.md §7.2 with the actual flat schema.
+Consolidation of the duplicate `AgentTraceEntry` interface into a single canonical definition in `src/contracts/AgentTrace.ts`, addition of structured contributor attribution (`entity_type`, `model_identifier`), resolution of all 8 import sites (3 direct path updates + 5 already correct or covered by deprecation re-export), deprecation of `metadata.contributor` in favor of the new top-level `contributor` object, update of all trace entry producers to populate the new field, and alignment of ARCHITECTURE_NOTES.md §7.2 with the actual flat schema.
 
 ## Technical Context
 

@@ -39,7 +39,7 @@
 - [ ] T004 Add `ExecutionState` type alias to `src/contracts/AgentTrace.ts` — define `export type ExecutionState = "REQUEST" | "REASONING" | "ACTION"` before the `AgentTraceEntry` interface (resolves RQ-1: avoids circular dependency with services)
 - [ ] T005 Add `Contributor` interface to `src/contracts/AgentTrace.ts` — define `export interface Contributor { entity_type: "AI" | "HUMAN"; model_identifier?: string }` with JSDoc comments per the contract specification
 - [ ] T006 Update `AgentTraceEntry` interface in `src/contracts/AgentTrace.ts` — add `contributor?: Contributor` field, change `state?: string` to `state?: ExecutionState`, change `metadata?: Record<string, any>` to `metadata?: { session_id: string; vcs_ref?: string; [key: string]: any }` with deprecation notice for `metadata.contributor`
-- [ ] T007 Remove duplicate `AgentTraceEntry` interface and `ExecutionState` type from `src/services/orchestration/types.ts` — replace with deprecation-commented re-exports: `export { AgentTraceEntry, ExecutionState, type Contributor } from "../../contracts/AgentTrace"` (preserves all existing imports via re-export)
+- [ ] T007 Remove duplicate `AgentTraceEntry` interface and `ExecutionState` type from `src/services/orchestration/types.ts` — replace with deprecation-commented re-exports: `export { AgentTraceEntry, ExecutionState, type Contributor } from "../../contracts/AgentTrace"` (preserves all existing imports via re-export) (FR-012: deprecation comment is mandatory)
 - [ ] T008 Run `npx tsc --noEmit` to verify zero compile errors after type consolidation and re-export
 
 **Checkpoint**: Single canonical `AgentTraceEntry` exists. All imports resolve via re-export. Zero compile errors.
@@ -59,7 +59,7 @@
 - [ ] T011 [P] [US1] Update import in `src/core/prompts/sections/intent-handshake.ts` — change `import { AgentTraceEntry } from "../../../services/orchestration/types"` to `import { AgentTraceEntry } from "../../../contracts/AgentTrace"`
 - [ ] T012 [US1] Run `npx tsc --noEmit` to verify zero compile errors after import migration
 - [ ] T013 [US1] Run `npx vitest run` to verify all existing tests pass after import migration (FR-010)
-- [ ] T014 [US1] Add validation test in `src/contracts/__tests__/AgentTraceEntry.test.ts` — verify that `grep -r "export interface AgentTraceEntry" src/` returns exactly 1 result (SC-001), and verify the canonical interface includes all expected fields: `trace_id`, `timestamp`, `mutation_class`, `intent_id`, `related`, `ranges`, `actor`, `summary`, `contributor`, `state`, `action_type`, `payload`, `result`, `metadata`
+- [ ] T014 [US1] Add validation test in `src/contracts/__tests__/AgentTraceEntry.test.ts` — verify that `grep -r "export interface AgentTraceEntry" src/` returns exactly 1 result (SC-001), verify the canonical interface includes all expected fields: `trace_id`, `timestamp`, `mutation_class`, `intent_id`, `related`, `ranges`, `actor`, `summary`, `contributor`, `state`, `action_type`, `payload`, `result`, `metadata`, and verify `ILedgerManager` interface remains co-located in `src/contracts/AgentTrace.ts` (FR-008)
 
 **Checkpoint**: US1 complete. Single canonical type, all imports migrated, all tests passing.
 
@@ -74,7 +74,7 @@
 ### Implementation for User Story 2
 
 - [ ] T015 [US2] Extend `LedgerManager.recordMutation()` params in `src/utils/orchestration/LedgerManager.ts` — add optional `contributor?: Contributor` parameter (import `Contributor` from `../../contracts/AgentTrace`), propagate it to the constructed `AgentTraceEntry` object in the method body
-- [ ] T016 [US2] Update `AgentTraceHook.execute()` in `src/hooks/post/AgentTraceHook.ts` — pass `contributor: { entity_type: "AI" as const, model_identifier: "roo-code" }` to `this.ledgerManager.recordMutation()` call
+- [ ] T016 [US2] Update `AgentTraceHook.execute()` in `src/hooks/post/AgentTraceHook.ts` — pass `contributor: { entity_type: "AI" as const, model_identifier: "roo-code" }` to `this.ledgerManager.recordMutation()` call (note: `"roo-code"` is a placeholder; dynamic model detection is a future enhancement per spec.md US2 AS-2)
 - [ ] T017 [US2] Update `AuditHook.recordMutation()` in `src/hooks/post/AuditHook.ts` — add top-level `contributor: { entity_type: "AI" as const, model_identifier: "roo-code" }` to the `logTrace()` entry, remove the `metadata.contributor: "roo-code-agent"` field (FR-014)
 - [ ] T018 [US2] Update `HookEngine` logTrace calls in `src/hooks/HookEngine.ts` — add `contributor: { entity_type: "AI" as const, model_identifier: "roo-code" }` to all 4 `logTrace()` call sites (lines ~150, ~220, ~280, ~387-412), remove all `as any` casts that workaround the old type mismatch (RQ-4)
 - [ ] T019 [P] [US2] Update `ScopeEnforcementHook` logTrace call in `src/hooks/pre/ScopeEnforcementHook.ts` — add `contributor: { entity_type: "AI" as const, model_identifier: "roo-code" }` to the scope denial `logTrace()` entry
@@ -119,7 +119,7 @@
 - [ ] T036 Run full test suite `npx vitest run` and verify all tests pass (SC-005)
 - [ ] T037 Run `npx tsc --noEmit` for final compilation check (SC-006)
 - [ ] T038 Verify SC-001: `grep -r "export interface AgentTraceEntry" src/` returns exactly 1 match
-- [ ] T039 Verify SC-002: all source files importing `AgentTraceEntry` resolve to canonical definition (search for remaining direct imports from `services/orchestration/types` and confirm only the re-export path exists)
+- [ ] T039 Verify SC-002 and FR-011: run `grep -r "import.*AgentTraceEntry" src/ --include="*.ts"` and confirm every match imports from either `contracts/AgentTrace` (direct) or `services/orchestration/types` (re-export only — no local definition). Verify no file defines its own `AgentTraceEntry` interface outside `src/contracts/AgentTrace.ts`
 - [ ] T040 Run quickstart.md verification checklist — confirm all 5 items pass
 
 ---
