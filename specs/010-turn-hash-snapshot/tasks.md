@@ -11,8 +11,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create project structure for `src/core/concurrency` and `src/utils/` if missing
-- [ ] T002 Ensure SHA-256 utility exists in `src/utils/hashing.ts`
+- [x] T001 Create project structure for `src/core/concurrency` and `src/utils/` if missing
+- [x] T002 Ensure SHA-256 utility exists in `src/utils/hashing.ts`
 
 ---
 
@@ -22,7 +22,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Update `ITurnContext` interface in `src/core/concurrency/types.ts` to include `startTurn`, `endTurn`, and `get_initial_hash`
+- [x] T003 Update `ITurnContext` interface in `src/core/concurrency/types.ts` to include `startTurn`, `endTurn`, and `get_initial_hash`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -38,13 +38,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [P] [US1] Create unit test for initial hash capture and error-state snapshotting (EACCES/ENOENT) in `src/core/concurrency/__tests__/TurnLifecycle.test.ts`
+- [x] T004 [P] [US1] Create unit test for initial hash capture and error-state snapshotting (EACCES/ENOENT) in `src/core/concurrency/__tests__/TurnLifecycle.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T005 [P] [US1] Implement `initialHashes` Map as `Map<string, Promise<string | null>>` in `src/core/concurrency/TurnContext.ts`
-- [ ] T006 [US1] Implement "Compute-If-Absent" pattern in `get_initial_hash` method in `src/core/concurrency/TurnContext.ts`
-- [ ] T007 [US1] Handle file read errors (e.g. EACCES) by snapshotting the error state (null) in `src/core/concurrency/TurnContext.ts`
+- [x] T005 [P] [US1] Implement `initialHashes` Map as `Map<string, Promise<string | null>>` in `src/core/concurrency/TurnContext.ts`
+- [x] T006 [US1] Implement "Compute-If-Absent" pattern in `get_initial_hash` method in `src/core/concurrency/TurnContext.ts`
+- [x] T007 [US1] Handle file read errors (e.g. EACCES) by snapshotting the error state (null) in `src/core/concurrency/TurnContext.ts`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently.
 
@@ -58,11 +58,11 @@
 
 ### Tests for User Story 2
 
-- [ ] T008 [P] [US2] Create unit test for hash immutability (re-read behavior and persistence after file deletion) in `src/core/concurrency/__tests__/TurnLifecycle.test.ts`
+- [x] T008 [P] [US2] Create unit test for hash immutability (re-read behavior and persistence after file deletion) in `src/core/concurrency/__tests__/TurnLifecycle.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Ensure `get_initial_hash` returns the stored promise without re-invoking disk read in `src/core/concurrency/TurnContext.ts`
+- [x] T009 [US2] Ensure `get_initial_hash` returns the stored promise without re-invoking disk read in `src/core/concurrency/TurnContext.ts`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently.
 
@@ -76,11 +76,11 @@
 
 ### Tests for User Story 3
 
-- [ ] T010 [P] [US3] Create unit test for turn lifecycle and memory cleanup in `src/core/concurrency/__tests__/TurnLifecycle.test.ts`
+- [x] T010 [P] [US3] Create unit test for turn lifecycle and memory cleanup in `src/core/concurrency/__tests__/TurnLifecycle.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T011 [US3] Implement `startTurn()` and `endTurn()` to clear `initialHashes` in `src/core/concurrency/TurnContext.ts`
+- [x] T011 [US3] Implement `startTurn()` and `endTurn()` to clear `initialHashes` in `src/core/concurrency/TurnContext.ts`
 
 **Checkpoint**: All user stories should now be independently functional.
 
@@ -90,9 +90,9 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T012 Run all tests in `src/core/concurrency/__tests__/TurnLifecycle.test.ts` and verify 100% pass rate
-- [ ] T013 Verify performance target: sub-millisecond retrieval for cached hashes in `src/core/concurrency/TurnContext.ts`
-- [ ] T014 Run quickstart.md validation to ensure developer usage guide is accurate
+- [x] T012 Run all tests in `src/core/concurrency/__tests__/TurnLifecycle.test.ts` and verify 100% pass rate
+- [x] T013 Verify performance target: sub-millisecond retrieval for cached hashes in `src/core/concurrency/TurnContext.ts`
+- [x] T014 Run quickstart.md validation to ensure developer usage guide is accurate
 
 ---
 
