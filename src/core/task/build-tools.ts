@@ -9,6 +9,7 @@ import type { ClineProvider } from "../webview/ClineProvider"
 import { getRooDirectoriesForCwd } from "../../services/roo-config/index.js"
 
 import { getNativeTools, getMcpServerTools } from "../prompts/tools/native-tools"
+import { COMMAND_CLASSIFICATION } from "../../services/orchestration/types"
 import {
 	filterNativeToolsForMode,
 	filterMcpToolsForMode,
@@ -149,9 +150,12 @@ export async function buildNativeToolsArrayWithRestrictions(options: BuildToolsO
 	// Combine filtered tools (for backward compatibility and for allowedFunctionNames)
 	let filteredTools = [...filteredNativeTools, ...filteredMcpTools, ...nativeCustomTools]
 
-	// Enforcement Hook: If no intent is active, only allow select_active_intent
+	// Enforcement Hook: If no intent is active, only allow SAFE tools (FR-009)
 	if (options.isIntentActive === false) {
-		filteredTools = filteredTools.filter((tool) => getToolName(tool) === "select_active_intent")
+		filteredTools = filteredTools.filter((tool) => {
+			const name = getToolName(tool)
+			return COMMAND_CLASSIFICATION[name] === "SAFE"
+		})
 	}
 
 	// If includeAllToolsWithRestrictions is true, return ALL tools but provide
