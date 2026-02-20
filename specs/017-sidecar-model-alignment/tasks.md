@@ -26,7 +26,7 @@
 
 - [ ] T003 [P] [US1] Create unit tests for sidecar initialization in `src/services/orchestration/__tests__/OrchestrationService.test.ts`
 - [ ] T004 [US1] Update `intent_map.md` template in `OrchestrationService.initializeOrchestration()` (lines 258-265) in `src/services/orchestration/OrchestrationService.ts`
-- [ ] T005 [US1] Update `active_intents.yaml` initial template root key to `active_intents` in `OrchestrationService.initializeOrchestration()` (line 243) in `src/services/orchestration/OrchestrationService.ts`
+- [ ] T005 [US1] Update active_intents.yaml initial template to use canonical `active_intents:` root key in OrchestrationService.initializeOrchestration() (line 243) in src/services/orchestration/OrchestrationService.ts
 
 ## Phase 4: User Story 2 - Canonical Data Format (P1)
 
@@ -40,7 +40,7 @@
 **Implementation Tasks**:
 
 - [ ] T006 [P] [US2] Add unit tests for canonical saving in `src/services/orchestration/__tests__/OrchestrationService.test.ts`
-- [ ] T007 [US2] Update `OrchestrationService.saveIntents()` (line 529) to write the canonical `active_intents` key in `src/services/orchestration/OrchestrationService.ts`
+- [ ] T007 [US2] Update OrchestrationService.saveIntents() (line 529) to write the canonical `active_intents:` root key in src/services/orchestration/OrchestrationService.ts
 
 ## Phase 5: User Story 3 - Graceful Migration (P2)
 
@@ -58,7 +58,7 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T010 Final verification: Run all tests in `src/services/orchestration/__tests__/OrchestrationService.test.ts` and ensure no regressions in orchestration health checks.
+- [ ] T010 Final verification: Run all tests in `src/services/orchestration/__tests__/OrchestrationService.test.ts` and verify success criteria SC-001 to SC-004 are met.
 
 ## Dependency Graph
 
