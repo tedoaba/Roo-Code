@@ -85,6 +85,7 @@ As a system component, the hook must ensure that failures in the recording proce
 - **FR-006**: System MUST extract affected file paths using regex-based scanning of the tool output for common path patterns.
 - **FR-007**: System MUST automatically invoke the lesson recording mechanism upon detection of a verification failure.
 - **FR-008**: The recording process MUST NOT block or crash the main tool execution flow if it fails.
+- **FR-009**: The "Verification Tools" whitelist SHOULD be easily configurable (e.g., via a constant or settings file) to allow future extensibility.
 
 ### Key Entities
 

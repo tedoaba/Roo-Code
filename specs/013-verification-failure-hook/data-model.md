@@ -6,14 +6,14 @@
 
 A temporary data structure used during the hook's execution to aggregate failure context.
 
-| Field            | Type       | Description                                |
-| :--------------- | :--------- | :----------------------------------------- |
-| `tool`           | `string`   | Name of the tool (e.g., "eslint", "jest")  |
-| `command`        | `string`   | The full command string executed           |
-| `exitCode`       | `number`   | The non-zero exit code returned            |
-| `rawOutput`      | `string`   | Full stdout/stderr from the tool           |
-| `filteredOutput` | `string`   | Summarized error message (Smart Filtering) |
-| `affectedFiles`  | `string[]` | List of file paths extracted via regex     |
+| Field           | Type       | Description                                             |
+| :-------------- | :--------- | :------------------------------------------------------ |
+| `tool`          | `string`   | Name of the tool (e.g., "eslint", "jest")               |
+| `command`       | `string`   | The full command string executed                        |
+| `exitCode`      | `number`   | The non-zero exit code returned                         |
+| `rawOutput`     | `string`   | Full stdout/stderr from the tool                        |
+| `errorSummary`  | `string`   | Summarized error message (Maps to Lesson.error_summary) |
+| `affectedFiles` | `string[]` | List of file paths extracted via regex                  |
 
 ### 2. Lesson (Updated)
 
@@ -33,9 +33,10 @@ Extends the existing `Lesson` interface in `src/core/lessons/types.ts`.
 
 ## Validation Rules
 
-1. **Tool Whitelist**: Only trigger for commands starting with or matching: `eslint`, `jest`, `vitest`, `npm test`, `npm run lint`.
-2. **File Extraction**: Paths must be normalized to relative paths from the workspace root.
-3. **De-duplication**: `signature` is computed as `hash(file + error_summary)`. Skip recording if signature already exists in `AGENT.md`.
+1. **Tool Whitelist**: Trigger for commands in the configurable whitelist. Default: `eslint`, `jest`, `vitest`, `npm test`, `npm run lint`.
+2. **Configuration**: Whitelist should be stored in a constant or config file for easy extensibility.
+3. **File Extraction**: Paths must be normalized to relative paths from the workspace root.
+4. **De-duplication**: `signature` is computed as `hash(file + error_summary)`. Skip recording if signature already exists in `AGENT.md`.
 
 ## State Transitions
 

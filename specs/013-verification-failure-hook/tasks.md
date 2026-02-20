@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/013-verification-failure-hook/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md
 
-**Tests**: Vitest unit and integration tests are required for this feature to ensure robustness and correct parsing.
+**Tests**: Vitest unit and integration tests are MANDATORY for this feature to ensure robustness (SC-002) and parsing accuracy (SC-004).
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -54,7 +54,8 @@
 - [ ] T008 [US1] Implement linter command whitelisting and exit code detection in `src/hooks/post/VerificationFailureHook.ts`
 - [ ] T009 [US1] Implement smart filtering for linter output (extract filenames and "Error" lines) in `src/hooks/post/VerificationFailureHook.ts`
 - [ ] T010 [US1] Integrate `VerificationFailureHook` into `src/hooks/HookEngine.ts`'s `postToolUse` method
-- [ ] T011 [US1] Validate linter failure recording by running a failing lint command in the terminal
+- [ ] T011 [US1] Implement a configurable whitelist mechanism (constant or config file) for monitored tools
+- [ ] T012 [US1] Validate linter failure recording by running a failing lint command in the terminal
 
 **Checkpoint**: User Story 1 (Linter Recording) is fully functional and testable independently.
 
@@ -68,13 +69,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T012 [P] [US2] Create unit tests for test failure parsing (Jest/Vitest output) in `tests/hooks/VerificationFailureHook.testrunner.test.ts`
+- [ ] T013 [P] [US2] Create unit tests for test failure parsing (Jest/Vitest output) in `tests/hooks/VerificationFailureHook.testrunner.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Add test runner commands (`jest`, `vitest`, `npm test`) to the whitelist in `src/hooks/post/VerificationFailureHook.ts`
-- [ ] T014 [US2] Implement output filtering for test failures (FAIL blocks, expectation diffs) in `src/hooks/post/VerificationFailureHook.ts`
-- [ ] T015 [US2] Validate test failure recording by running a failing test in the terminal
+- [ ] T014 [US2] Add test runner commands (`jest`, `vitest`, `npm test`) to the whitelist in `src/hooks/post/VerificationFailureHook.ts`
+- [ ] T015 [US2] Implement output filtering for test failures (FAIL blocks, expectation diffs) in `src/hooks/post/VerificationFailureHook.ts`
+- [ ] T016 [US2] Validate test failure recording by running a failing test in the terminal
 
 **Checkpoint**: User Story 2 (Test Failure Recording) is fully functional and testable independently.
 
@@ -88,12 +89,12 @@
 
 ### Tests for User Story 3
 
-- [ ] T016 [P] [US3] Create robustness tests with injected errors in `tests/hooks/VerificationFailureHook.robustness.test.ts`
+- [ ] T017 [P] [US3] Create robustness tests with injected errors in `tests/hooks/VerificationFailureHook.robustness.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Wrap hook execution in a try/catch block with async execution in `src/hooks/HookEngine.ts`
-- [ ] T018 [US3] Ensure errors in the hook are logged to the extension output but do not propagate to the AI caller
+- [ ] T018 [US3] Wrap hook execution in a try/catch block with async execution in `src/hooks/HookEngine.ts`
+- [ ] T019 [US3] Ensure errors in the hook are logged to the extension output but do not propagate to the AI caller
 
 **Checkpoint**: All user stories should now be independently functional and the system is robust.
 
@@ -103,9 +104,9 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T019 [P] Update `AGENT.md` template documentation to reflect automated lesson entries
-- [ ] T020 Run `quickstart.md` validation scenarios
-- [ ] T021 [P] Code cleanup and optimization of regex patterns in `VerificationFailureHook.ts`
+- [ ] T020 [P] Update `AGENT.md` template documentation to reflect automated lesson entries
+- [ ] T021 Run `quickstart.md` validation scenarios
+- [ ] T022 [P] Code cleanup and optimization of regex patterns in `VerificationFailureHook.ts`
 
 ---
 
