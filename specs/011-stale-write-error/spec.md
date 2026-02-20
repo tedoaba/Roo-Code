@@ -4,6 +4,13 @@
 **Created**: 2026-02-20  
 **Status**: Ready for Planning
 
+## Clarifications
+
+### Session 2026-02-20
+
+- Q: What is the exact expected value for `actual_hash` when the target file has been concurrently deleted? → A: Use the explicit string `"DELETED"`.
+- Q: Where exactly should these conflict events be logged? → A: The Agent Trace Ledger (append-only ledger).
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Stale Write Detection & Rejection (Priority: P1)
@@ -37,7 +44,7 @@ As an Agent Controller, I need to receive a structured, machine-readable error p
 
 ### Edge Cases
 
-- What happens when the file was deleted concurrently? (Should return actual_hash as empty, null, or a specific deleted representation, while still maintaining the STALE_FILE error structure).
+- What happens when the file was deleted concurrently? (The system will return the explicit string `"DELETED"` for `actual_hash`, while still maintaining the `STALE_FILE` error structure).
 - What happens when a user modifies the file externally while the agent is in the middle of executing a large multi-replace block? (The entire operation must be treated as atomic; rejection must happen before ANY partial changes are written to disk).
 
 ## Requirements _(mandatory)_
@@ -48,7 +55,7 @@ As an Agent Controller, I need to receive a structured, machine-readable error p
 - **FR-002**: The system MUST prevent any partial writes to the file when a hash mismatch is detected (atomic guarantee).
 - **FR-003**: The system MUST generate a structured error response formatted exactly as a predefined JSON object upon rejection.
 - **FR-004**: The system MUST propagate this structured error directly back to the Agent Controller without wrapping it in untyped string messages that break parsing.
-- **FR-005**: The system MUST log the stale conflict event containing the file path, expected hash, and actual hash into the central operational logs or trace ledger.
+- **FR-005**: The system MUST log the stale conflict event containing the file path, expected hash, and actual hash into the Agent Trace Ledger (append-only ledger) for auditing.
 - **FR-006**: The system MUST support representing the structured error in a way that the Agent Controller explicitly recognizes and triggers its internal `RE_READ_REQUIRED` handling flow.
 
 ### Key Entities
