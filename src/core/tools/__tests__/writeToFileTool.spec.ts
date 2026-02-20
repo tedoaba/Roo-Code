@@ -135,6 +135,9 @@ describe("writeToFileTool", () => {
 		mockCline.rooIgnoreController = {
 			validateAccess: vi.fn().mockReturnValue(true),
 		}
+		mockCline.orchestrationService = {
+			logMutation: vi.fn().mockResolvedValue("mock-hash"),
+		}
 		mockCline.diffViewProvider = {
 			editType: undefined,
 			isEditing: false,

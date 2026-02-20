@@ -45,6 +45,9 @@ describe("presentAssistantMessage - Unknown Tool Handling", () => {
 			toolRepetitionDetector: {
 				check: vi.fn().mockReturnValue({ allowExecution: true }),
 			},
+			hookEngine: {
+				preToolUse: vi.fn().mockResolvedValue({ action: "CONTINUE" }),
+			},
 			providerRef: {
 				deref: () => ({
 					getState: vi.fn().mockResolvedValue({
