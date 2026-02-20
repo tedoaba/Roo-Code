@@ -62,12 +62,23 @@ export class StateMachine {
 		const previousState = this.currentState
 		this.currentState = newState
 
+		const { randomUUID } = await import("crypto")
 		// Log the state transition
 		await this.orchestrationService
 			.logTrace({
+				trace_id: randomUUID(),
 				timestamp: new Date().toISOString(),
-				agent_id: "roo-code-agent",
+				mutation_class: "N/A",
 				intent_id: intentId || null,
+				related: intentId ? [intentId] : [],
+				ranges: {
+					file: "n/a",
+					content_hash: "n/a",
+					start_line: 0,
+					end_line: 0,
+				},
+				actor: "roo-code-agent",
+				summary: `Transitioned from ${previousState} to ${newState}`,
 				state: newState,
 				action_type: "STATE_TRANSITION",
 				payload: {
@@ -77,11 +88,10 @@ export class StateMachine {
 					status: "SUCCESS",
 					output_summary: `State: ${previousState} → ${newState}`,
 				},
-				related: intentId ? [intentId] : [],
 				metadata: {
 					session_id: this.sessionId,
 				},
-			})
+			} as any)
 			.catch((err) => console.error("Failed to log state transition:", err))
 
 		return { success: true }

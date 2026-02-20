@@ -51,18 +51,28 @@ export class SelectActiveIntentTool extends BaseTool<"select_active_intent"> {
 			// Set active intent on task
 			task.activeIntentId = intent_id
 
+			const { randomUUID } = await import("crypto")
 			// Log this selection to trace
 			await service.logTrace({
+				trace_id: randomUUID(),
 				timestamp: new Date().toISOString(),
-				agent_id: "roo-code-agent",
+				mutation_class: "N/A",
 				intent_id: intent_id,
+				related: [intent_id],
+				ranges: {
+					file: "n/a",
+					content_hash: "n/a",
+					start_line: 0,
+					end_line: 0,
+				},
+				actor: "roo-code-agent",
+				summary: `Selected intent ${intent_id}`,
 				state: "REASONING",
 				action_type: "INTENT_SELECTION",
 				payload: { tool_name: "select_active_intent", tool_input: params },
 				result: { status: "SUCCESS", output_summary: `Selected intent ${intent_id}` },
-				related: [intent_id],
 				metadata: { session_id: task.taskId },
-			})
+			} as any)
 
 			// T017: Load Shared Brain content
 			const sharedBrain = await service.loadSharedBrain()
