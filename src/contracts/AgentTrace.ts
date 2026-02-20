@@ -1,6 +1,26 @@
 /**
+ * Execution state for the Three-State Flow (Invariant 9).
+ * Moved to contracts to avoid circular dependency.
+ */
+export type ExecutionState = "REQUEST" | "REASONING" | "ACTION"
+
+/**
+ * Structured contributor attribution for trace entries.
+ * Satisfies Invariant 3's contributor attribution requirement.
+ */
+export interface Contributor {
+	/** Whether this action was performed by an AI agent or a human. */
+	entity_type: "AI" | "HUMAN"
+	/** Model identifier when entity_type is "AI" (e.g., "claude-3-5-sonnet"). */
+	model_identifier?: string
+}
+
+/**
  * Represents a single mutation record in the agent trace ledger.
  * Follows Invariant 3 of the System Constitution.
+ *
+ * This is the CANONICAL definition. All code MUST import from this file.
+ * Do NOT define AgentTraceEntry elsewhere.
  */
 export interface AgentTraceEntry {
 	trace_id: string
@@ -27,13 +47,29 @@ export interface AgentTraceEntry {
 	/** Brief summary of the change */
 	summary: string
 
-	state?: string
+	/**
+	 * Structured contributor attribution (NEW).
+	 * Identifies whether the change was made by AI (with model identifier) or human.
+	 * Optional for backward compatibility with legacy entries.
+	 */
+	contributor?: Contributor
+
+	/** Execution state at time of event */
+	state?: ExecutionState
 	action_type?: string
 	payload?: any
 	result?: any
 
-	/** Optional extra metadata */
-	metadata?: Record<string, any>
+	/**
+	 * Optional metadata. When present, session_id is required.
+	 * NOTE: metadata.contributor (string) is DEPRECATED.
+	 * Use the top-level contributor object instead.
+	 */
+	metadata?: {
+		session_id: string
+		vcs_ref?: string
+		[key: string]: any
+	}
 }
 
 /**

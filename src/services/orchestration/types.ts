@@ -22,34 +22,12 @@ export interface ActiveIntent {
 
 export type IntentStatus = ActiveIntent["status"]
 
-export type ExecutionState = "REQUEST" | "REASONING" | "ACTION"
-
-export interface AgentTraceEntry {
-	trace_id: string
-	timestamp: string
-	mutation_class: string
-	intent_id: string | null
-	related: string[]
-	ranges: {
-		file: string
-		content_hash: string
-		start_line: number
-		end_line: number
-	}
-	actor: string
-	summary: string
-	// Existing fields for orchestration
-	state?: ExecutionState
-	action_type?: string
-	payload?: any
-	result?: any
-	metadata: {
-		vcs_ref?: string
-		session_id: string
-		contributor?: string
-		[key: string]: any
-	}
-}
+/**
+ * @deprecated Import AgentTraceEntry directly from '../../contracts/AgentTrace' instead.
+ * This re-export exists for backward compatibility during migration and will be removed.
+ */
+import type { AgentTraceEntry, ExecutionState, Contributor } from "../../contracts/AgentTrace"
+export type { AgentTraceEntry, ExecutionState, Contributor }
 
 export interface IntentContextBlock {
 	intent: ActiveIntent
