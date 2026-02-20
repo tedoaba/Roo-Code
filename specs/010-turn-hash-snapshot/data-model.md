@@ -6,7 +6,7 @@
 
 Represents the transient collection of file states captured during a single agent turn.
 
-- **`entries`**: `Map<AbsolutePath, HashPromise>`
+- **initialHashes**: `Map<AbsolutePath, HashPromise>`
     - Key: `string` (Absolute file path)
     - Value: `Promise<string | null>` (The SHA-256 hash or null on error)
 - **`lifecycle`**: `PENDING | IN_PROGRESS | COMPLETED`

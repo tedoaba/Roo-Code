@@ -38,11 +38,11 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [P] [US1] Create unit test for initial hash capture in `src/core/concurrency/__tests__/TurnLifecycle.test.ts`
+- [ ] T004 [P] [US1] Create unit test for initial hash capture and error-state snapshotting (EACCES/ENOENT) in `src/core/concurrency/__tests__/TurnLifecycle.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T005 [P] [US1] Implement `initialHashes` Map in `src/core/concurrency/TurnContext.ts`
+- [ ] T005 [P] [US1] Implement `initialHashes` Map as `Map<string, Promise<string | null>>` in `src/core/concurrency/TurnContext.ts`
 - [ ] T006 [US1] Implement "Compute-If-Absent" pattern in `get_initial_hash` method in `src/core/concurrency/TurnContext.ts`
 - [ ] T007 [US1] Handle file read errors (e.g. EACCES) by snapshotting the error state (null) in `src/core/concurrency/TurnContext.ts`
 
@@ -58,7 +58,7 @@
 
 ### Tests for User Story 2
 
-- [ ] T008 [P] [US2] Create unit test for hash immutability and re-read behavior in `src/core/concurrency/__tests__/TurnLifecycle.test.ts`
+- [ ] T008 [P] [US2] Create unit test for hash immutability (re-read behavior and persistence after file deletion) in `src/core/concurrency/__tests__/TurnLifecycle.test.ts`
 
 ### Implementation for User Story 2
 
