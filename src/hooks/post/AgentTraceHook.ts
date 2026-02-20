@@ -53,6 +53,7 @@ export class AgentTraceHook implements IAgentTraceHook {
 				type: "write",
 				target: filePath,
 				summary: summary,
+				contributor: { entity_type: "AI", model_identifier: "roo-code" },
 				metadata: { requestId },
 			})
 

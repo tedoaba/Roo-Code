@@ -44,7 +44,7 @@ export class PreCompactHook {
 				toolCounts.set(toolName, (toolCounts.get(toolName) || 0) + 1)
 
 				if (entry.payload.target_files) {
-					entry.payload.target_files.forEach((f) => filesMutated.add(f))
+					entry.payload.target_files.forEach((f: string) => filesMutated.add(f))
 				}
 
 				if (entry.result.status === "SUCCESS") successCount++

@@ -36,15 +36,22 @@ export class ScopeEnforcementHook {
 			return { action: "CONTINUE" }
 		}
 
+		const { randomUUID } = await import("crypto")
 		// Check scope
 		const scopeResult = await this.orchestrationService.validateScope(intentId, filePath)
 		if (!scopeResult.allowed) {
 			// Log scope violation
 			await this.orchestrationService
 				.logTrace({
+					trace_id: randomUUID(),
 					timestamp: new Date().toISOString(),
-					agent_id: "roo-code-agent",
+					actor: "roo-code-agent",
 					intent_id: intentId,
+					mutation_class: "N/A",
+					related: [intentId],
+					ranges: { file: filePath, content_hash: "n/a", start_line: 0, end_line: 0 },
+					summary: scopeResult.reason || "Scope violation",
+					contributor: { entity_type: "AI", model_identifier: "roo-code" },
 					state: "ACTION",
 					action_type: "SCOPE_VIOLATION",
 					payload: {
@@ -55,7 +62,6 @@ export class ScopeEnforcementHook {
 						status: "DENIED",
 						output_summary: scopeResult.reason || "Scope violation",
 					},
-					related: [intentId],
 					metadata: { session_id: "current" },
 				})
 				.catch(() => {})

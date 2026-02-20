@@ -52,14 +52,20 @@ export class BudgetHook {
 			}
 		}
 
+		const { randomUUID } = await import("crypto")
 		// Check budget limits
 		const budgetResult = await this.orchestrationService.updateBudget(intentId)
 		if (!budgetResult.withinBudget) {
 			await this.orchestrationService
 				.logTrace({
+					trace_id: randomUUID(),
 					timestamp: new Date().toISOString(),
-					agent_id: "roo-code-agent",
+					actor: "roo-code-agent",
 					intent_id: intentId,
+					mutation_class: "N/A",
+					ranges: { file: "n/a", content_hash: "n/a", start_line: 0, end_line: 0 },
+					summary: budgetResult.reason || "Budget exhausted",
+					contributor: { entity_type: "AI", model_identifier: "roo-code" },
 					state: "ACTION",
 					action_type: "BUDGET_EXHAUSTED",
 					payload: { tool_name: toolName },

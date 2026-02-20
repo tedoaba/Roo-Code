@@ -43,11 +43,23 @@ export class AuditHook {
 		// T023b: functional scope extraction
 		const symbols = await this.orchestrationService.extractFunctionalScope(filePath)
 
+		const { randomUUID } = await import("crypto")
+
 		// Log to audit ledger with cryptographic proof
 		await this.orchestrationService.logTrace({
+			trace_id: randomUUID(),
 			timestamp: new Date().toISOString(),
-			agent_id: "roo-code-agent",
+			mutation_class: "file_mutation",
+			ranges: {
+				file: filePath,
+				content_hash: `sha256:${hash}`,
+				start_line: 1,
+				end_line: -1,
+			},
+			summary: `Tool ${toolName} on ${filePath}`,
+			actor: "roo-code-agent",
 			intent_id: intentId,
+			contributor: { entity_type: "AI", model_identifier: "roo-code" },
 			state: "ACTION",
 			action_type: "TOOL_EXECUTION",
 			payload: {
@@ -64,7 +76,6 @@ export class AuditHook {
 			related: [intentId],
 			metadata: {
 				session_id: sessionId,
-				contributor: "roo-code-agent",
 			},
 		})
 
