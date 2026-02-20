@@ -4,6 +4,9 @@ Auto-generated from all feature plans. Last updated: 2026-02-18
 
 ## Active Technologies
 
+- TypeScript / Node.js (v20+) + `node:fs`, `node:path`, `node:crypto` (for hashing/de-duplication) (012-lesson-recorder)
+- Flat file (`AGENT.md`) with structured Markdown blocks. (012-lesson-recorder)
+
 - TypeScript (Node.js/VSCode Extension context) + `HookEngine`, `AgentTraceHook`, generic `vscode` FS APIs. (011-stale-write-error)
 - Agent Trace Ledger (`.orchestration/agent_trace.jsonl`) for audit logs. (011-stale-write-error)
 
@@ -48,11 +51,11 @@ General: Follow standard conventions
 
 ## Recent Changes
 
+- 012-lesson-recorder: Added TypeScript / Node.js (v20+) + `node:fs`, `node:path`, `node:crypto` (for hashing/de-duplication)
+
 - 011-stale-write-error: Added TypeScript (Node.js/VSCode Extension context) + `HookEngine`, `AgentTraceHook`, generic `vscode` FS APIs.
 
 - 010-turn-hash-snapshot: Added TypeScript 5.0+ + `fs/promises`, SHA-256 Utility (`src/utils/hashing.ts`)
-
-- 009-optimistic-locking-guard: Added TypeScript 5.x + `crypto` (standard library), `HookEngine`, `LedgerManager`.
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

@@ -1,0 +1,62 @@
+{
+	"name": "record-lesson",
+	"description": "CLI tool for appending failure lessons to AGENT.md",
+	"arguments": [
+		{
+			"name": "type",
+			"type": "string",
+			"enum": ["LINT", "TEST", "ANALYSIS", "OTHER"],
+			"required": true
+		},
+		{
+			"name": "file",
+			"type": "string",
+			"description": "Relative path to file involved",
+			"required": true
+		},
+		{
+			"name": "error",
+			"type": "string",
+			"description": "The raw or summarized error message",
+			"required": true
+		},
+		{
+			"name": "cause",
+			"type": "string",
+			"description": "Analyzed root cause",
+			"required": true
+		},
+		{
+			"name": "resolution",
+			"type": "string",
+			"description": "Specific fix applied",
+			"required": true
+		},
+		{
+			"name": "rule",
+			"type": "string",
+			"description": "Preventative rule for future",
+			"required": true
+		},
+		{
+			"name": "intent-id",
+			"type": "string",
+			"description": "Current active intent ID",
+			"required": false
+		}
+	],
+	"outputs": {
+		"success": {
+			"status": 0,
+			"message": "Lesson recorded successfully"
+		},
+		"duplicate": {
+			"status": 0,
+			"message": "Lesson skipped: duplicate detected"
+		},
+		"error": {
+			"status": 1,
+			"message": "String: Error details"
+		}
+	}
+}
