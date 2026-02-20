@@ -33,10 +33,10 @@ interface BuildToolsOptions {
 	 */
 	includeAllToolsWithRestrictions?: boolean
 	/**
-	 * Whether an intent is currently active in the session.
-	 * If false, tools may be restricted to only select_active_intent.
+	 * The current conversational phase of the agent (REQUEST, REASONING, ACTION)
+	 * When in REQUEST or REASONING, only SAFE tools are allowed.
 	 */
-	isIntentActive?: boolean
+	currentState?: "REQUEST" | "REASONING" | "ACTION"
 }
 
 interface BuildToolsResult {
@@ -96,6 +96,7 @@ export async function buildNativeToolsArrayWithRestrictions(options: BuildToolsO
 		disabledTools,
 		modelInfo,
 		includeAllToolsWithRestrictions,
+		currentState,
 	} = options
 
 	const mcpHub = provider.getMcpHub()
@@ -150,11 +151,19 @@ export async function buildNativeToolsArrayWithRestrictions(options: BuildToolsO
 	// Combine filtered tools (for backward compatibility and for allowedFunctionNames)
 	let filteredTools = [...filteredNativeTools, ...filteredMcpTools, ...nativeCustomTools]
 
-	// Enforcement Hook: If no intent is active, only allow SAFE tools (FR-009)
-	if (options.isIntentActive === false) {
+	// Enforcement Hook: Check state constraints to hide DESTRUCTIVE tools during REASONING phases
+	if (options.currentState === "REQUEST" || options.currentState === "REASONING") {
 		filteredTools = filteredTools.filter((tool) => {
 			const name = getToolName(tool)
-			return COMMAND_CLASSIFICATION[name] === "SAFE"
+
+			// Always allow intent selection transition capability
+			if (name === "select_active_intent") {
+				return true
+			}
+
+			// Default missing classifications to DESTRUCTIVE (fail-safe)
+			const classification = COMMAND_CLASSIFICATION[name] || "DESTRUCTIVE"
+			return classification === "SAFE"
 		})
 	}
 
