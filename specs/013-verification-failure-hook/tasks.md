@@ -17,8 +17,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create directory structure `src/hooks/post/` and `tests/hooks/` per implementation plan
-- [ ] T002 [P] Verify or configure Vitest setup for internal hook testing in `vitest.config.ts`
+- [x] T001 Create directory structure `src/hooks/post/` and `tests/hooks/` per implementation plan
+- [x] T002 [P] Verify or configure Vitest setup for internal hook testing in `vitest.config.ts`
 
 ---
 
@@ -28,9 +28,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Update Lesson schema in `src/core/lessons/types.ts` to make `cause`, `resolution`, and `corrective_rule` optional for auto-recordings
-- [ ] T004 Update `LessonRecorder.ts` to support de-duplication using the `signature` field (SHA-256 of error summary)
-- [ ] T005 Create `VerificationFailureHook.ts` class scaffold in `src/hooks/post/VerificationFailureHook.ts`
+- [x] T003 Update Lesson schema in `src/core/lessons/types.ts` to make `cause`, `resolution`, and `corrective_rule` optional for auto-recordings
+- [x] T004 Update `LessonRecorder.ts` to support de-duplication using the `signature` field (SHA-256 of error summary)
+- [x] T005 Create `VerificationFailureHook.ts` class scaffold in `src/hooks/post/VerificationFailureHook.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -46,16 +46,16 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US1] Create unit tests for linter failure parsing in `tests/hooks/VerificationFailureHook.linter.test.ts`
-- [ ] T007 [P] [US1] Create integration test for `postToolUse` hook trigger in `tests/integration/HookEngine.linter.test.ts`
+- [x] T006 [P] [US1] Create unit tests for linter failure parsing in `tests/hooks/VerificationFailureHook.linter.test.ts`
+- [x] T007 [P] [US1] Create integration test for `postToolUse` hook trigger in `tests/integration/HookEngine.linter.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implement linter command whitelisting and exit code detection in `src/hooks/post/VerificationFailureHook.ts`
-- [ ] T009 [US1] Implement smart filtering for linter output (extract filenames and "Error" lines) in `src/hooks/post/VerificationFailureHook.ts`
-- [ ] T010 [US1] Integrate `VerificationFailureHook` into `src/hooks/HookEngine.ts`'s `postToolUse` method
-- [ ] T011 [US1] Implement a configurable whitelist mechanism (constant or config file) for monitored tools
-- [ ] T012 [US1] Validate linter failure recording by running a failing lint command in the terminal
+- [x] T008 [US1] Implement linter command whitelisting and exit code detection in `src/hooks/post/VerificationFailureHook.ts`
+- [x] T009 [US1] Implement smart filtering for linter output (extract filenames and "Error" lines) in `src/hooks/post/VerificationFailureHook.ts`
+- [x] T010 [US1] Integrate `VerificationFailureHook` into `src/hooks/HookEngine.ts`'s `postToolUse` method
+- [x] T011 [US1] Implement a configurable whitelist mechanism (constant or config file) for monitored tools
+- [x] T012 [US1] Validate linter failure recording by running a failing lint command in the terminal
 
 **Checkpoint**: User Story 1 (Linter Recording) is fully functional and testable independently.
 
@@ -69,13 +69,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T013 [P] [US2] Create unit tests for test failure parsing (Jest/Vitest output) in `tests/hooks/VerificationFailureHook.testrunner.test.ts`
+- [x] T013 [P] [US2] Create unit tests for test failure parsing (Jest/Vitest output) in `tests/hooks/VerificationFailureHook.testrunner.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Add test runner commands (`jest`, `vitest`, `npm test`) to the whitelist in `src/hooks/post/VerificationFailureHook.ts`
-- [ ] T015 [US2] Implement output filtering for test failures (FAIL blocks, expectation diffs) in `src/hooks/post/VerificationFailureHook.ts`
-- [ ] T016 [US2] Validate test failure recording by running a failing test in the terminal
+- [x] T014 [US2] Add test runner commands (`jest`, `vitest`, `npm test`) to the whitelist in `src/hooks/post/VerificationFailureHook.ts`
+- [x] T015 [US2] Implement output filtering for test failures (FAIL blocks, expectation diffs) in `src/hooks/post/VerificationFailureHook.ts`
+- [x] T016 [US2] Validate test failure recording by running a failing test in the terminal
 
 **Checkpoint**: User Story 2 (Test Failure Recording) is fully functional and testable independently.
 
@@ -89,12 +89,12 @@
 
 ### Tests for User Story 3
 
-- [ ] T017 [P] [US3] Create robustness tests with injected errors in `tests/hooks/VerificationFailureHook.robustness.test.ts`
+- [x] T017 [P] [US3] Create robustness tests with injected errors in `tests/hooks/VerificationFailureHook.robustness.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Wrap hook execution in a try/catch block with async execution in `src/hooks/HookEngine.ts`
-- [ ] T019 [US3] Ensure errors in the hook are logged to the extension output but do not propagate to the AI caller
+- [x] T018 [US3] Wrap hook execution in a try/catch block with async execution in `src/hooks/HookEngine.ts`
+- [x] T019 [US3] Ensure errors in the hook are logged to the extension output but do not propagate to the AI caller
 
 **Checkpoint**: All user stories should now be independently functional and the system is robust.
 
@@ -104,9 +104,9 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T020 [P] Update `AGENT.md` template documentation to reflect automated lesson entries
-- [ ] T021 Run `quickstart.md` validation scenarios
-- [ ] T022 [P] Code cleanup and optimization of regex patterns in `VerificationFailureHook.ts`
+- [x] T020 [P] Update `AGENT.md` template documentation to reflect automated lesson entries
+- [x] T021 Run `quickstart.md` validation scenarios
+- [x] T022 [P] Code cleanup and optimization of regex patterns in `VerificationFailureHook.ts`
 
 ---
 
