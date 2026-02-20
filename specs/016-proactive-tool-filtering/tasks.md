@@ -19,7 +19,7 @@ description: "Task list for Proactive Tool Filtering for Intent Handshake implem
 
 **Purpose**: Project initialization and basic structure verification
 
-- [ ] T001 Review `src/core/task/build-tools.ts` and `src/core/task/Task.ts` to understand existing mode filtering and hookEngine integration
+- [x] T001 Review `src/core/task/build-tools.ts` and `src/core/task/Task.ts` to understand existing mode filtering and hookEngine integration
 
 ---
 
@@ -27,8 +27,8 @@ description: "Task list for Proactive Tool Filtering for Intent Handshake implem
 
 **Purpose**: Core infrastructure updates to pass execution state down to the tool builder.
 
-- [ ] T002 Update `buildNativeToolsArray` signature in `src/core/task/build-tools.ts` to accept an `ExecutionState` parameter (e.g. `currentState: "REQUEST" | "REASONING" | "ACTION"`).
-- [ ] T003 Update `Task.ts` in `src/core/task/Task.ts` to fetch `this.hookEngine.getCurrentState()` and pass it when calling `buildNativeToolsArray`.
+- [x] T002 Update `buildNativeToolsArray` signature in `src/core/task/build-tools.ts` to accept an `ExecutionState` parameter (e.g. `currentState: "REQUEST" | "REASONING" | "ACTION"`).
+- [x] T003 Update `Task.ts` in `src/core/task/Task.ts` to fetch `this.hookEngine.getCurrentState()` and pass it when calling `buildNativeToolsArray`.
 
 **Checkpoint**: Foundation ready - the state is now accessible inside the tool builder.
 
@@ -42,12 +42,12 @@ description: "Task list for Proactive Tool Filtering for Intent Handshake implem
 
 ### Tests for User Story 1
 
-- [ ] T004 [US1] Add unit tests in `src/core/task/__tests__/build-tools.spec.ts` (or appropriate test file) to verify `buildNativeToolsArray` returns only SAFE tools when in REQUEST or REASONING state.
+- [x] T004 [US1] Add unit tests in `src/core/task/__tests__/build-tools.spec.ts` (or appropriate test file) to verify `buildNativeToolsArray` returns only SAFE tools when in REQUEST or REASONING state.
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Implement filtering logic in `src/core/task/build-tools.ts` to check the classification of each tool against `COMMAND_CLASSIFICATION` (from `src/services/orchestration/types.ts`) and drop `DESTRUCTIVE` tools when `currentState` is `REQUEST` or `REASONING`.
-- [ ] T006 [US1] Explicitly ensure `select_active_intent` is always preserved in the filtered list regardless of strict safety classifications.
+- [x] T005 [US1] Implement filtering logic in `src/core/task/build-tools.ts` to check the classification of each tool against `COMMAND_CLASSIFICATION` (from `src/services/orchestration/types.ts`) and drop `DESTRUCTIVE` tools when `currentState` is `REQUEST` or `REASONING`.
+- [x] T006 [US1] Explicitly ensure `select_active_intent` is always preserved in the filtered list regardless of strict safety classifications.
 
 **Checkpoint**: At this point, User Story 1 is functional. The LLM cannot see destructive tools before intent selection.
 
@@ -61,11 +61,11 @@ description: "Task list for Proactive Tool Filtering for Intent Handshake implem
 
 ### Tests for User Story 2
 
-- [ ] T007 [P] [US2] Add unit tests in `src/core/task/__tests__/build-tools.spec.ts` to verify `buildNativeToolsArray` does not enforce execution-state restrictions when `currentState` is `ACTION`.
+- [x] T007 [P] [US2] Add unit tests in `src/core/task/__tests__/build-tools.spec.ts` to verify `buildNativeToolsArray` does not enforce execution-state restrictions when `currentState` is `ACTION`.
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Update logic in `src/core/task/build-tools.ts` to bypass execution-state filtering when `currentState === 'ACTION'`, fully deferring to the normal mode-based visibility logic.
+- [x] T008 [US2] Update logic in `src/core/task/build-tools.ts` to bypass execution-state filtering when `currentState === 'ACTION'`, fully deferring to the normal mode-based visibility logic.
 
 **Checkpoint**: At this point, the tool catalog dynamically shrinks and expands based on the current AI conversational state.
 
@@ -79,7 +79,7 @@ description: "Task list for Proactive Tool Filtering for Intent Handshake implem
 
 ### Tests for User Story 3
 
-- [ ] T009 [P] [US3] Add an assertion to the test suite verifying that the serialized JSON size of the tool array in `REASONING` state is strictly smaller than in `ACTION` state.
+- [x] T009 [P] [US3] Add an assertion to the test suite verifying that the serialized JSON size of the tool array in `REASONING` state is strictly smaller than in `ACTION` state.
 
 ---
 
@@ -87,8 +87,8 @@ description: "Task list for Proactive Tool Filtering for Intent Handshake implem
 
 **Purpose**: Final validations and cleanups.
 
-- [ ] T010 Run existing tests for `build-tools.ts` and `Task.ts` to ensure no regressions in mode filtering.
-- [ ] T011 [P] Ensure Edge Cases are met: default unknown tools to DESTRUCTIVE if missing classification (fail-safe).
+- [x] T010 Run existing tests for `build-tools.ts` and `Task.ts` to ensure no regressions in mode filtering.
+- [x] T011 [P] Ensure Edge Cases are met: default unknown tools to DESTRUCTIVE if missing classification (fail-safe).
 
 ---
 
