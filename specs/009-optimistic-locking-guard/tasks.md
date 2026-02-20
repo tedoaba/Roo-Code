@@ -52,6 +52,8 @@
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
 - [ ] T009 [US1] Create integration test in `src/hooks/__tests__/ConcurrencyIntegration.test.ts` simulating a stale write conflict
+- [ ] T009a [US1] [P] Verify "Zero False Positives" (SC-002) in integration tests for files that haven't changed
+- [ ] T009b [US1] [P] Test "File Deletion" edge case (Target missing) produces a `STALE_FILE` error
 
 ### Implementation for User Story 1
 
@@ -59,7 +61,7 @@
 - [ ] T011 [US1] Register `ConcurrencyHook` in `src/hooks/HookEngine.ts` within the `preToolUse` pipeline
 - [ ] T012 [US1] Add `postToolUse` interceptor in `src/hooks/HookEngine.ts` to capture `read_file` results and update `TurnContext`
 - [ ] T013 [US1] Add `postToolUse` interceptor in `src/hooks/HookEngine.ts` to update `TurnContext` after successful `write_to_file`
-- [ ] T014 [US1] Integrate `LedgerManager` in `src/hooks/pre/ConcurrencyHook.ts` to log `MUTATION_CONFLICT` events
+- [ ] T014 [US1] Integrate `LedgerManager` in `src/hooks/pre/ConcurrencyHook.ts` to log `MUTATION_CONFLICT` events (per research.md)
 - [ ] T015 [US1] Implement structured error return with `STALE_FILE` code and diagnostic hashes in `ConcurrencyHook.ts`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently.

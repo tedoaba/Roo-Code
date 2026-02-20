@@ -14,9 +14,13 @@ This feature prevents the agent from overwriting files that were modified extern
 
 ```json
 {
-	"action": "DENY",
-	"reason": "STALE_FILE",
-	"details": "File modified by another actor. Re-read required.",
+	"error_type": "STALE_FILE",
+	"message": "File modified by another actor. Re-read required.",
+	"details": {
+		"path": "c:/repo/src/app.ts",
+		"baseline_hash": "sha256:abc...",
+		"current_disk_hash": "sha256:xyz..."
+	},
 	"recovery_hint": "Perform a new 'read_file' to see the latest changes before attempting to write again."
 }
 ```

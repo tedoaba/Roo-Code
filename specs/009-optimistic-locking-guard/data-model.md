@@ -34,7 +34,8 @@ Returned when `baselineHash !== currentHash`.
 		"path": "/src/main.ts",
 		"baseline_hash": "sha256:...",
 		"current_disk_hash": "sha256:..."
-	}
+	},
+	"recovery_hint": "Perform a new 'read_file' to see the latest changes before attempting to write again."
 }
 ```
 

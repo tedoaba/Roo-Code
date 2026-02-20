@@ -63,7 +63,11 @@ As an agent, I want to be able to recover from a blocked write by re-reading the
 - **FR-006**: When a write is blocked, the system MUST return a structured error with:
     - `error_type`: "STALE_FILE"
     - `message`: "File modified by another actor. Re-read required."
-    - `current_disk_hash`: "<hash_of_file_on_disk>"
+    - `details`:
+        - `path`: "<absolute_file_path>"
+        - `baseline_hash`: "<hash_agent_saw_last>"
+        - `current_disk_hash`: "<current_hash_on_disk>"
+    - `recovery_hint`: "Perform a new 'read_file' to see the latest changes before attempting to write again."
 - **FR-007**: System MUST update the stored `initial_content_hash` whenever a file is successfully read or written, to ensure the next write has a valid baseline.
 - **FR-008**: Detection MUST integrate with the existing write validation pipeline (e.g., hooks or tool middleware).
 - **FR-009**: All blocked write attempts MUST be recorded in the `AgentTraceLedger` as rejected mutation attempts.
