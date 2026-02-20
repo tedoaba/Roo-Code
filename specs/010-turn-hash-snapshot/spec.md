@@ -5,6 +5,14 @@
 **Status**: Draft  
 **Input**: User description: "Implement Agent Turn Hash Snapshot: Create a mechanism to snapshot file hashes when an agent begins execution. When agent reads a file, compute SHA-256 hash and store in memory. Hash must remain immutable during the turn. Expose getter get_initial_hash(file_path). Constraints: No recomputation mid-turn, snapshot reflects disk state at read time, memory-scoped to agent execution turn."
 
+## Clarifications
+
+### Session 2026-02-20
+
+- Q: How is the system notified that a "Turn" has started or ended to initialize/clear memory? → A: Explicit `startTurn()` and `endTurn()` method calls on the snapshot manager.
+- Q: If a file exists but cannot be read (e.g., EACCES) during the first attempt, how should `get_initial_hash` behave in subsequent calls? → A: Snapshot the error: future calls for that path in the same turn return null/error without retrying disk.
+- Q: How should concurrent reads of the same file be handled for the first snapshot? → A: Atomic "Compute-If-Absent" pattern with internal locks or pending promises per file path.
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Initial File State Capture (Priority: P1)
@@ -55,7 +63,7 @@ As a system, I want to ensure that file hash snapshots are cleared at the end of
 - **File Deletion**: What happens when a file is deleted from disk AFTER the first read?
     - _Response_: `get_initial_hash` should still return the hash captured at the time of the first read.
 - **Permission Errors**: What happens if a file cannot be read for hashing?
-    - _Response_: The system should handle read failures gracefully, potentially storing an "error" state or null hash, but the failure must not crash the turn.
+    - _Response_: The system handles read failures gracefully by snapshoting the failure state (null/error). All subsequent requests for the same file path in the same turn will return this failure state without retrying the disk access.
 - **Empty Files**: How does the system handle zero-byte files?
     - _Response_: It should compute and store the valid SHA-256 hash of an empty string.
 
@@ -67,8 +75,9 @@ As a system, I want to ensure that file hash snapshots are cleared at the end of
 - **FR-002**: System MUST store the computed hash in a memory-based snapshot keyed by the absolute file path.
 - **FR-003**: System MUST ensure that once a hash is stored for a file path in a turn, it remains immutable for the remainder of that turn.
 - **FR-004**: System MUST expose a public interface `get_initial_hash(file_path)` to retrieve the stored hash for a given file.
-- **FR-005**: System MUST automatically clear or replace the hash snapshot when an agent turn ends or a new one begins.
+- **FR-005**: System MUST expose explicit lifecycle methods (e.g., `startTurn()`, `endTurn()`) to initialize and clear the hash snapshot for the current execution context.
 - **FR-006**: System MUST NOT recompute the hash from disk if a hash already exists in the turn's snapshot for the requested file path.
+- **FR-007**: System MUST handle concurrent read requests for the same file path atomically, ensuring only one disk read occurs and all callers receive the same initial hash.
 
 ### Key Entities _(include if feature involves data)_
 
