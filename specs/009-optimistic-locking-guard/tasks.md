@@ -19,8 +19,8 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Initialize `009-optimistic-locking-guard` feature workspace and confirm branch status
-- [ ] T002 Define shared interfaces `ITurnContext` and `OptimisticLockResult` in `src/core/concurrency/types.ts` per `concurrency-internal.md`
+- [x] T001 Initialize `009-optimistic-locking-guard` feature workspace and confirm branch status
+- [x] T002 Define shared interfaces `ITurnContext` and `OptimisticLockResult` in `src/core/concurrency/types.ts` per `concurrency-internal.md`
 
 ---
 
@@ -30,12 +30,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Implement `TurnContext` class in `src/core/concurrency/TurnContext.ts` with `Map`-based baseline hash storage
-- [ ] T004 Implement `verifyOptimisticLock` verification logic in `src/core/concurrency/OptimisticGuard.ts` per `concurrency-internal.md`
-- [ ] T005 [P] Verify existing SHA-256 utility in `src/utils/hashing.ts` meets `OptimisticGuard` requirements
-- [ ] T006 [P] Create unit tests for `TurnContext` in `src/core/concurrency/__tests__/TurnContext.test.ts`
-- [ ] T007 [P] Create unit tests for `OptimisticGuard` in `src/core/concurrency/__tests__/OptimisticGuard.test.ts`
-- [ ] T008 Configure `HookEngine` registry to allow `ConcurrencyHook` integration in `src/hooks/HookEngine.ts`
+- [x] T003 Implement `TurnContext` class in `src/core/concurrency/TurnContext.ts` with `Map`-based baseline hash storage
+- [x] T004 Implement `verifyOptimisticLock` verification logic in `src/core/concurrency/OptimisticGuard.ts` per `concurrency-internal.md`
+- [x] T005 [P] Verify existing SHA-256 utility in `src/utils/hashing.ts` meets `OptimisticGuard` requirements
+- [x] T006 [P] Create unit tests for `TurnContext` in `src/core/concurrency/__tests__/TurnContext.test.ts`
+- [x] T007 [P] Create unit tests for `OptimisticGuard` in `src/core/concurrency/__tests__/OptimisticGuard.test.ts`
+- [x] T008 Configure `HookEngine` registry to allow `ConcurrencyHook` integration in `src/hooks/HookEngine.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -51,18 +51,18 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T009 [US1] Create integration test in `src/hooks/__tests__/ConcurrencyIntegration.test.ts` simulating a stale write conflict
-- [ ] T009a [US1] [P] Verify "Zero False Positives" (SC-002) in integration tests for files that haven't changed
-- [ ] T009b [US1] [P] Test "File Deletion" edge case (Target missing) produces a `STALE_FILE` error
+- [x] T009 [US1] Create integration test in `src/hooks/__tests__/ConcurrencyIntegration.test.ts` simulating a stale write conflict
+- [x] T009a [US1] [P] Verify "Zero False Positives" (SC-002) in integration tests for files that haven't changed
+- [x] T009b [US1] [P] Test "File Deletion" edge case (Target missing) produces a `STALE_FILE` error
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement `ConcurrencyHook` in `src/hooks/pre/ConcurrencyHook.ts` to perform pre-mutation validation
-- [ ] T011 [US1] Register `ConcurrencyHook` in `src/hooks/HookEngine.ts` within the `preToolUse` pipeline
-- [ ] T012 [US1] Add `postToolUse` interceptor in `src/hooks/HookEngine.ts` to capture `read_file` results and update `TurnContext`
-- [ ] T013 [US1] Add `postToolUse` interceptor in `src/hooks/HookEngine.ts` to update `TurnContext` after successful `write_to_file`
-- [ ] T014 [US1] Integrate `LedgerManager` in `src/hooks/pre/ConcurrencyHook.ts` to log `MUTATION_CONFLICT` events (per research.md)
-- [ ] T015 [US1] Implement structured error return with `STALE_FILE` code and diagnostic hashes in `ConcurrencyHook.ts`
+- [x] T010 [US1] Implement `ConcurrencyHook` in `src/hooks/pre/ConcurrencyHook.ts` to perform pre-mutation validation
+- [x] T011 [US1] Register `ConcurrencyHook` in `src/hooks/HookEngine.ts` within the `preToolUse` pipeline
+- [x] T012 [US1] Add `postToolUse` interceptor in `src/hooks/HookEngine.ts` to capture `read_file` results and update `TurnContext`
+- [x] T013 [US1] Add `postToolUse` interceptor in `src/hooks/HookEngine.ts` to update `TurnContext` after successful `write_to_file`
+- [x] T014 [US1] Integrate `LedgerManager` in `src/hooks/pre/ConcurrencyHook.ts` to log `MUTATION_CONFLICT` events (per research.md)
+- [x] T015 [US1] Implement structured error return with `STALE_FILE` code and diagnostic hashes in `ConcurrencyHook.ts`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently.
 
@@ -76,12 +76,12 @@
 
 ### Tests for User Story 2
 
-- [ ] T016 [US2] Add recovery flow scenario test in `src/hooks/__tests__/ConcurrencyIntegration.test.ts` (Read -> Conflict -> Read -> Success)
+- [x] T016 [US2] Add recovery flow scenario test in `src/hooks/__tests__/ConcurrencyIntegration.test.ts` (Read -> Conflict -> Read -> Success)
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Ensure `TurnContext.recordRead` correctly updates existing entries to reset baseline for recovery
-- [ ] T018 [US2] Verify integration with `read_file` tool properly resets the guard for the target file
+- [x] T017 [US2] Ensure `TurnContext.recordRead` correctly updates existing entries to reset baseline for recovery
+- [x] T018 [US2] Verify integration with `read_file` tool properly resets the guard for the target file
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently.
 
@@ -91,10 +91,10 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T019 [P] Performance benchmark for hashing large files (>1MB) in `src/utils/__tests__/hashing_perf.test.ts`
-- [ ] T020 Review and finalize error recovery hints in `STALE_FILE` response per `quickstart.md`
-- [ ] T021 [P] Update implementation status in `specs/009-optimistic-locking-guard/tasks.md`
-- [ ] T022 Run `quickstart.md` validation scenarios against final build
+- [x] T019 [P] Performance benchmark for hashing large files (>1MB) in `src/utils/__tests__/hashing_perf.test.ts`
+- [x] T020 Review and finalize error recovery hints in `STALE_FILE` response per `quickstart.md`
+- [x] T021 [P] Update implementation status in `specs/009-optimistic-locking-guard/tasks.md`
+- [x] T022 Run `quickstart.md` validation scenarios against final build
 
 ---
 
