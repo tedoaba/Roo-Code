@@ -4,6 +4,9 @@ Auto-generated from all feature plans. Last updated: 2026-02-18
 
 ## Active Technologies
 
+- TypeScript 5.8+ (Node.js 20.x runtime) + Node.js `crypto` module (built-in) (005-content-hashing)
+- N/A (Pure stateless utility) (005-content-hashing)
+
 - TypeScript 5.x + `typescript` (AST parser), `ts-morph` (optional, for easier AST traversal) or native TS Compiler API. (004-mutation-classifier)
 - N/A (Stateless library) (004-mutation-classifier)
 
@@ -27,9 +30,9 @@ General: Follow standard conventions
 
 ## Recent Changes
 
-- 004-mutation-classifier: Added TypeScript 5.x + `typescript` (AST parser), `ts-morph` (optional, for easier AST traversal) or native TS Compiler API.
+- 005-content-hashing: Added TypeScript 5.8+ (Node.js 20.x runtime) + Node.js `crypto` module (built-in)
 
-- 003-enforce-intent-metadata: Added TypeScript + VS Code API, Anthropic SDK (for blocks/types), @roo-code/types
+- 004-mutation-classifier: Added TypeScript 5.x + `typescript` (AST parser), `ts-morph` (optional, for easier AST traversal) or native TS Compiler API.
 
 - 003-enforce-intent-metadata: Added TypeScript + VS Code API, Anthropic SDK (for blocks/types), @roo-code/types
 
