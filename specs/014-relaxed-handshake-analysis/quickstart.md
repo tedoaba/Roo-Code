@@ -44,7 +44,7 @@ If the user's request is purely informational (e.g., "Where is the login logic?"
 
 ## Key Files
 
-- `src/hooks/HookEngine.ts`: Defines `COMMAND_CLASSIFICATION`.
+- `src/services/orchestration/types.ts`: Defines `COMMAND_CLASSIFICATION`.
 - `src/core/state/StateMachine.ts`: Implements state-based tool filtering.
 - `src/core/task/build-tools.ts`: Filters available tools for the model.
 - `src/core/prompts/sections/intent-handshake.ts`: System prompt instructions.
