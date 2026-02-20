@@ -442,6 +442,20 @@ export class HookEngine {
 				metadata: { session_id: "current" },
 			} as any) // Use any temporarily as OrchestrationService.logTrace expects old schema
 			.catch((err) => console.error("Failed to log post-tool trace:", err))
+
+		// US1/US2: Verification Failure Detection Hook (Automated Lesson Recording)
+		if (result.toolName === "execute_command") {
+			try {
+				const { VerificationFailureHook } = await import("./post/VerificationFailureHook")
+				const verificationHook = new VerificationFailureHook()
+				// Run as a side-effect, do not await if we want maximum performance,
+				// but since it's already async and we are at the end of postToolUse, it's fine.
+				await verificationHook.execute(result)
+			} catch (err) {
+				// US3: Robustness - hook failures MUST NOT crash the system
+				console.error("[HookEngine] Failed to execute VerificationFailureHook:", err)
+			}
+		}
 	}
 
 	// ── PreLLMRequest Hook (T027) ──
