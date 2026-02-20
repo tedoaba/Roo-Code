@@ -14,9 +14,10 @@ Implement a recording tool that captures verification failures (linter, tests, s
 **Storage**: Flat file (`AGENT.md`) with structured Markdown blocks.
 **Testing**: Jest (Unit and Integration tests)
 **Target Platform**: Local development environment (Node.js)
+**Traceability**: MUST log all mutations to `.orchestration/agent_trace.jsonl` using `LedgerManager`.
 **Project Type**: System Utility / Agent Middleware
 **Performance Goals**: Append operations < 50ms; Deduplication check < 20ms.
-**Constraints**: MUST be atomic; MUST NOT crash the main agent flow on write failure; MUST handle concurrent execution (file locking).
+**Constraints**: MUST be atomic; MUST NOT crash the main agent flow on write failure; MUST handle concurrent execution (file locking); MUST truncate error summaries to 500 chars.
 **Scale/Scope**: Support for thousands of entries in `AGENT.md`.
 
 ## Constitution Check

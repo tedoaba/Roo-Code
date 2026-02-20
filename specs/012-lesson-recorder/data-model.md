@@ -15,7 +15,7 @@ Represents a single failure incident and its subsequent resolution.
 | `cause`           | String          | Root cause analyzed by the agent.                     | Required                            |
 | `resolution`      | String          | The specific fix applied.                             | Required                            |
 | `corrective_rule` | String          | General guideline for preventing recurrence.          | Required                            |
-| `intent_id`       | String          | ID of the active intent during failure.               | Optional                            |
+| `intent_id`       | String          | ID of the active intent during failure.               | Required                            |
 | `signature`       | String (SHA256) | `hash(file + error_summary)` used for de-duplication. | Generated                           |
 
 ## Persistence

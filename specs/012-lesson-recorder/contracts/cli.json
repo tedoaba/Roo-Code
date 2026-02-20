@@ -42,7 +42,7 @@
 			"name": "intent-id",
 			"type": "string",
 			"description": "Current active intent ID",
-			"required": false
+			"required": true
 		}
 	],
 	"outputs": {

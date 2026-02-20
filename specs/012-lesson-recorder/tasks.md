@@ -20,7 +20,7 @@
 - [ ] T001 Create project structure per implementation plan (src/core/lessons, src/cli, src/hooks, tests/unit, tests/integration)
 - [ ] T002 Initialize TypeScript project with Node.js v20+ and Jest dependencies in package.json
 - [ ] T003 [P] Configure linting and formatting (ESLint/Prettier) in .eslintrc.json and .prettierrc
-- [ ] T004 Define `Lesson` entity and types in `src/core/lessons/types.ts` per data-model.md
+- [ ] T004 Define `Lesson` entity and types in `src/core/lessons/types.ts` per updated data-model.md (intent_id required)
 
 ---
 
@@ -32,6 +32,7 @@
 
 - [ ] T005 [P] Implement file locking utility for cross-process atomic writes in `src/core/lessons/LockManager.ts`
 - [ ] T006 [P] Implement SHA256 signature generation helper in `src/core/lessons/Deduplicator.ts` per research.md
+- [ ] T007 [P] Implement audit logging integration using `LedgerManager` to write to `.orchestration/agent_trace.jsonl`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -39,22 +40,23 @@
 
 ## Phase 3: User Story 1 - Automatic Recording of Verification Failures (Priority: P1) 🎯 MVP
 
-**Goal**: Automatically record failed verification steps into `AGENT.md` with full metadata.
+**Goal**: Automatically record failed verification steps into `AGENT.md` with full metadata and audit trail.
 
-**Independent Test**: Trigger a failure (e.g., a dummy lint error), run the recorder, and verify a new entry exists in `AGENT.md`.
+**Independent Test**: Trigger a failure, run the recorder with a valid intent_id, and verify entries in BOTH `AGENT.md` and `audit_trace.jsonl`.
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Create unit tests for `LessonRecorder` in `tests/unit/LessonRecorder.test.ts`
-- [ ] T008 [P] [US1] Create integration test for CLI in `tests/integration/record-lesson.test.ts`
+- [ ] T008 [P] [US1] Create unit tests for `LessonRecorder` in `tests/unit/LessonRecorder.test.ts`
+- [ ] T009 [P] [US1] Create integration test for CLI in `tests/integration/record-lesson.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implement `LessonRecorder` core logic (atomic append to EOF with Markdown formatting) in `src/core/lessons/LessonRecorder.ts`
-- [ ] T010 [US1] Implement CLI entry point in `src/cli/record-lesson.ts` using the CLI contract from `contracts/cli.json`
-- [ ] T011 [US1] Add basic error handling (fail silently after retry) per spec.md in `src/core/lessons/LessonRecorder.ts`
+- [ ] T010 [US1] Implement `LessonRecorder` core logic (atomic append, EOS formatting, 500-char truncation) in `src/core/lessons/LessonRecorder.ts`
+- [ ] T011 [US1] Implement CLI entry point in `src/cli/record-lesson.ts` strictly enforcing `contracts/cli.json` (required intent-id)
+- [ ] T012 [US1] Integrate `LedgerManager` into `LessonRecorder` to log every recording event to the audit ledger
+- [ ] T013 [US1] Add basic error handling (fail silently after retry after 100ms delay) per spec.md in `src/core/lessons/LessonRecorder.ts`
 
-**Checkpoint**: At this point, the core recording functionality is functional and testable.
+**Checkpoint**: Core recording functionality with traceability is functional.
 
 ---
 
@@ -66,12 +68,12 @@
 
 ### Tests for User Story 2
 
-- [ ] T012 [US2] Add unit tests for file/section existence checks and creation in `tests/unit/LessonRecorder.test.ts`
+- [ ] T014 [US2] Add unit tests for file/section existence checks and creation in `tests/unit/LessonRecorder.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Implement section detection and automatic creation logic in `src/core/lessons/LessonRecorder.ts`
-- [ ] T014 [US2] Ensure atomic creation of the file and header using the `LockManager`
+- [ ] T015 [US2] Implement section detection and automatic creation logic in `src/core/lessons/LessonRecorder.ts`
+- [ ] T016 [US2] Ensure atomic creation of the file and header using the `LockManager`
 
 **Checkpoint**: The system is now robust against missing storage files or headers.
 
@@ -85,12 +87,12 @@
 
 ### Tests for User Story 3
 
-- [ ] T015 [P] [US3] Create unit tests for signature-based de-duplication in `tests/unit/Deduplicator.test.ts`
+- [ ] T017 [P] [US3] Create unit tests for signature-based de-duplication in `tests/unit/Deduplicator.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Implement de-duplication logic using the SHA256 signature in `src/core/lessons/Deduplicator.ts`
-- [ ] T017 [US3] Integrate `Deduplicator` into the `LessonRecorder` write flow in `src/core/lessons/LessonRecorder.ts`
+- [ ] T018 [US3] Implement de-duplication logic using the SHA256 signature in `src/core/lessons/Deduplicator.ts`
+- [ ] T019 [US3] Integrate `Deduplicator` into the `LessonRecorder` write flow in `src/core/lessons/LessonRecorder.ts`
 
 **Checkpoint**: The log remains clean and free of redundant entries.
 
@@ -100,10 +102,11 @@
 
 **Purpose**: Improvements, hooks, and final documentation.
 
-- [ ] T018 [P] Implement `PostVerificationHook` skeleton in `src/hooks/PostVerificationHook.ts` for future automated triggers.
-- [ ] T019 [P] Implement a basic lesson retrieval utility (FR-011) in `src/core/lessons/LessonRetriever.ts` for prompt-based injection.
-- [ ] T020 Run final end-to-end validation of all scenarios in `quickstart.md`.
-- [ ] T021 Final code cleanup, JSDoc comments, and documentation review.
+- [ ] T020 [P] Implement `PostVerificationHook` skeleton in `src/hooks/PostVerificationHook.ts` to suggest recording to the agent.
+- [ ] T021 [P] Implement lesson retrieval utility (FR-011) in `src/core/lessons/LessonRetriever.ts`
+- [ ] T022 [US1] Integrate `LessonRetriever` with the main Prompt Injection logic (e.g., in `src/core/PromptEngine.ts` or equivalent)
+- [ ] T023 Run final end-to-end validation of all scenarios in `quickstart.md`.
+- [ ] T024 Final code cleanup, JSDoc comments, and documentation review.
 
 ---
 
@@ -119,10 +122,10 @@
 ### Parallel Opportunities
 
 - T003, T004 (Setup)
-- T005, T006 (Foundational)
-- T007, T008 (US1 Tests)
-- T015 (US3 Tests)
-- T018, T019 (Polish)
+- T005, T006, T007 (Foundational)
+- T008, T009 (US1 Tests)
+- T017 (US3 Tests)
+- T020, T021 (Polish)
 
 ---
 
@@ -131,10 +134,10 @@
 ### MVP First (User Story 1 & 2)
 
 1. Complete Phase 1 & 2.
-2. Complete Phase 3 (Core Recording).
+2. Complete Phase 3 (Core Recording + Traceability).
 3. Complete Phase 4 (Self-healing).
-4. **VALIDATE**: Run `record-lesson.test.ts`.
+4. **VALIDATE**: Run `record-lesson.test.ts` and check audit ledger.
 
 ### Incremental Delivery
 
-1. Foundation -> Core Features (US1) -> Robustness (US2) -> Cleanliness (US3) -> Polish.
+1. Foundation -> Core Features (US1) -> Robustness (US2) -> Cleanliness (US3) -> Injection (Phase 6) -> Polish.
