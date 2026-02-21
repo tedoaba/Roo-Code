@@ -36,6 +36,10 @@ vi.mock("execa", () => ({
 	execa: vi.fn(),
 }))
 
+vi.mock("minimatch", () => ({
+	minimatch: vi.fn(),
+}))
+
 vi.mock("fs/promises", async (importOriginal) => {
 	const actual = (await importOriginal()) as Record<string, any>
 	const mockFunctions = {
@@ -2186,5 +2190,126 @@ describe("pushToolResultToUserContent", () => {
 		expect(task.userMessageContent[0].type).toBe("text")
 		expect(task.userMessageContent[1].type).toBe("image")
 		expect(task.userMessageContent[2]).toEqual(toolResult)
+	})
+
+	describe("attemptApiRequest: Context Compaction Wiring", () => {
+		let task: Task
+		let taskPromise: Promise<void>
+		let preLLMRequestSpy: any
+
+		beforeEach(() => {
+			const [cline, promise] = Task.create({
+				provider: mockProvider,
+				apiConfiguration: mockApiConfig,
+				task: "test task",
+			})
+			task = cline
+			taskPromise = promise
+
+			Object.defineProperty(task, "abort", {
+				get: () => false,
+				set: () => {},
+				configurable: true,
+			})
+
+			// We only want to test the prompt construction before calling createMessage
+			vi.spyOn(task.api, "createMessage").mockImplementation(() => {
+				return (async function* () {
+					yield { type: "text", text: "done" }
+				})() as any
+			})
+			preLLMRequestSpy = vi.spyOn(task.hookEngine, "preLLMRequest")
+		})
+
+		afterEach(async () => {
+			task.abandoned = true
+			await taskPromise.catch(() => {})
+		})
+
+		it("should call preLLMRequest exactly once with activeIntentId (T009)", async () => {
+			task.activeIntentId = "REQ-123"
+			preLLMRequestSpy.mockResolvedValue(null)
+			const iterator = task.attemptApiRequest(0)
+			await iterator.next()
+			expect(preLLMRequestSpy).toHaveBeenCalledTimes(1)
+			expect(preLLMRequestSpy).toHaveBeenCalledWith("REQ-123")
+		})
+
+		it("should prepend compacted summary when preLLMRequest returns a string (T010)", async () => {
+			task.activeIntentId = "REQ-123"
+			preLLMRequestSpy.mockResolvedValue("## Context Summary\n\n- Write: 1 calls")
+			const createMessageSpy = task.api.createMessage as any
+			const iterator = task.attemptApiRequest(0)
+			await iterator.next()
+
+			const calledPrompt = createMessageSpy.mock.calls[0][0]
+			expect(calledPrompt).toMatch(/^## Context Summary\n\n- Write: 1 calls\n\n/)
+		})
+
+		it("should not modify system prompt when preLLMRequest returns null (T011)", async () => {
+			task.activeIntentId = "REQ-123"
+			preLLMRequestSpy.mockResolvedValue(null)
+			const createMessageSpy = task.api.createMessage as any
+			const iterator = task.attemptApiRequest(0)
+			await iterator.next()
+
+			const calledPrompt = createMessageSpy.mock.calls[0][0]
+			expect(calledPrompt).not.toContain("## Context Summary")
+		})
+
+		it("should not modify system prompt when preLLMRequest returns empty string (T012)", async () => {
+			task.activeIntentId = "REQ-123"
+			preLLMRequestSpy.mockResolvedValue("")
+			const createMessageSpy = task.api.createMessage as any
+			const iterator = task.attemptApiRequest(0)
+			await iterator.next()
+
+			const calledPrompt = createMessageSpy.mock.calls[0][0]
+			expect(calledPrompt).not.toContain("## Context Summary")
+		})
+
+		it("should handle undefined intentId gracefully and return unmodified prompt (T013)", async () => {
+			task.activeIntentId = undefined
+			preLLMRequestSpy.mockResolvedValue(null)
+			const createMessageSpy = task.api.createMessage as any
+			const iterator = task.attemptApiRequest(0)
+			await iterator.next()
+
+			expect(preLLMRequestSpy).toHaveBeenCalledWith(undefined)
+			const calledPrompt = createMessageSpy.mock.calls[0][0]
+			expect(calledPrompt).not.toContain("## Context Summary")
+		})
+
+		it("should catch errors from preLLMRequest, log them, and proceed with unmodified prompt (T014, T015)", async () => {
+			task.activeIntentId = "REQ-123"
+			const error = new Error("Simulated compaction failure")
+			preLLMRequestSpy.mockRejectedValue(error)
+			const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
+
+			const createMessageSpy = task.api.createMessage as any
+			const iterator = task.attemptApiRequest(0)
+			await iterator.next()
+
+			expect(consoleErrorSpy).toHaveBeenCalledWith(
+				`[Task#${task.taskId}] preLLMRequest failed for intent REQ-123:`,
+				error,
+			)
+			const calledPrompt = createMessageSpy.mock.calls[0][0]
+			expect(calledPrompt).not.toContain("## Context Summary")
+			consoleErrorSpy.mockRestore()
+		})
+
+		it("should skip preLLMRequest if hookEngine is undefined (T016)", async () => {
+			task.activeIntentId = "REQ-123"
+			Object.defineProperty(task, "hookEngine", { value: undefined })
+
+			const createMessageSpy = task.api.createMessage as any
+			const iterator = task.attemptApiRequest(0)
+			await iterator.next()
+
+			// If it reached here without crashing, we're good.
+			const calledPrompt = createMessageSpy.mock.calls[0][0]
+			expect(calledPrompt).not.toContain("## Context Summary")
+		})
 	})
 })

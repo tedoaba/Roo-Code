@@ -4,6 +4,9 @@ Auto-generated from all feature plans. Last updated: 2026-02-18
 
 ## Active Technologies
 
+- TypeScript 5.x (VS Code extension) + Anthropic SDK, OpenAI types, vscode API (015-prellm-compaction-wiring)
+- `.orchestration/` sidecar directory (JSONL, YAML) (015-prellm-compaction-wiring)
+
 - TypeScript / Node.js + VS Code Extension API, Orchestration Service, State Machine, Hook Engine (014-relaxed-handshake-analysis)
 - `.orchestration/` (Sidecar data model) (014-relaxed-handshake-analysis)
 
@@ -57,11 +60,11 @@ General: Follow standard conventions
 
 ## Recent Changes
 
+- 015-prellm-compaction-wiring: Added TypeScript 5.x (VS Code extension) + Anthropic SDK, OpenAI types, vscode API
+
 - 014-relaxed-handshake-analysis: Added TypeScript / Node.js + VS Code Extension API, Orchestration Service, State Machine, Hook Engine
 
 - 013-verification-failure-hook: Added TypeScript / Node.js 20+ + Node.js `fs`, `path`, `crypto`. Existing `LessonRecorder`.
-
-- 012-lesson-recorder: Added TypeScript / Node.js (v20+) + `node:fs`, `node:path`, `node:crypto` (for hashing/de-duplication)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
