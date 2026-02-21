@@ -6,6 +6,13 @@
 **Task ID**: REQ-ARCH-020  
 **Input**: User description: "Extract hook management from HookEngine into a dedicated HookRegistry that supports dynamic registration, ordering, and lifecycle management of pre-hooks and post-hooks."
 
+## Clarifications
+
+### Session 2026-02-21
+
+- Q: Post-Hook Execution Concurrency: Should post-hooks execute sequentially or concurrently? → A: Sequential (Option A). Preserves logging order and prevents resource contention.
+- Q: Initial Hook Registration Hook Points: Where should default hooks be registered? → A: HookEngine Constructor (Option A). Ensures they are registered during initialization before any tool execution.
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Register and Execute Pre-Hooks in Priority Order (Priority: P1)
@@ -123,13 +130,13 @@ As a test author, I should be able to register mock hooks in the registry for in
 - **FR-004**: The system MUST provide a `deregister(phase: "PRE" | "POST", hookId: string)` method for removing hooks by identifier.
 - **FR-005**: Pre-hooks MUST execute in ascending priority order (lower number = higher priority = runs first).
 - **FR-006**: If a pre-hook returns `DENY` or `HALT`, all subsequent pre-hooks in the chain MUST be skipped, and the denying response MUST be returned immediately.
-- **FR-007**: Post-hooks MUST all execute regardless of individual failures. Errors from individual post-hooks MUST be caught and logged, not propagated to the caller.
+- **FR-007**: Post-hooks MUST all execute regardless of individual failures. They MUST execute sequentially in the order they were registered to preserve logging determinism and prevent resource contention. Errors from individual post-hooks MUST be caught and logged, not propagated to the caller.
 - **FR-008**: The system MUST provide `executePre(req: ToolRequest): Promise<HookResponse>` to run all registered pre-hooks in order.
 - **FR-009**: The system MUST provide `executePost(result: ToolResult, requestId?: string): Promise<void>` to run all registered post-hooks.
 - **FR-010**: The system MUST provide a `getRegisteredHooks(phase: "PRE" | "POST")` method that returns descriptors of all registered hooks for the given phase, in execution order.
 - **FR-011**: `HookEngine.preToolUse()` MUST delegate to `hookRegistry.executePre(req)` instead of containing inline hook calls.
 - **FR-012**: `HookEngine.postToolUse()` MUST delegate to `hookRegistry.executePost(result, requestId)` instead of containing inline hook calls.
-- **FR-013**: All existing pre-hooks and post-hooks MUST be registered in the HookRegistry during HookEngine construction, preserving their current execution order exactly.
+- **FR-013**: All existing pre-hooks and post-hooks MUST be registered in the HookRegistry during HookEngine construction (within the constructor), preserving their current execution order exactly.
 - **FR-014**: Every registered hook MUST have a unique string identifier (hookId) within its phase. Re-registering with the same id replaces the previous hook (upsert semantics).
 - **FR-015**: When no pre-hooks are registered, `executePre()` MUST return a default `{ action: "CONTINUE" }` response.
 - **FR-016**: When no post-hooks are registered, `executePost()` MUST complete silently.
