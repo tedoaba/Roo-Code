@@ -1,22 +1,35 @@
 import { OrchestrationService } from "../services/orchestration/OrchestrationService"
 import { StateMachine } from "../core/state/StateMachine"
 import { HookResponse, CommandClassification, COMMAND_CLASSIFICATION } from "../services/orchestration/types"
-import { TraceabilityError } from "../errors/TraceabilityError"
-import { StaleWriteError } from "./errors/StaleWriteError"
-import { TurnContext } from "../core/concurrency/TurnContext"
 import { ITurnContext } from "../core/concurrency/types"
-import { executeConcurrencyHook } from "./pre/ConcurrencyHook"
+import { TurnContext } from "../core/concurrency/TurnContext"
+
+import { HookRegistry } from "./engine/HookRegistry"
+import { FailSafeHook } from "./pre/FailSafeHook"
+import { StateCheckHook } from "./pre/StateCheckHook"
+import { TraceabilityHook } from "./pre/TraceabilityHook"
+import { ConcurrencyHook } from "./pre/ConcurrencyHook"
+import { ScopeEnforcementHook } from "./pre/ScopeEnforcementHook"
+import { BudgetHook } from "./pre/BudgetHook"
+import { CircuitBreakerHook } from "./pre/CircuitBreakerHook"
+
+import { MutationLogHook } from "./post/MutationLogHook"
+import { TurnContextHook } from "./post/TurnContextHook"
+import { GeneralTraceHook } from "./post/GeneralTraceHook"
+import { ReadFileBaselineHook } from "./post/ReadFileBaselineHook"
+import { AgentTraceHook } from "./post/AgentTraceHook"
+import { VerificationFailureHook } from "./post/VerificationFailureHook"
+import { IntentProgressHook } from "./post/IntentProgressHook"
+import { ScopeDriftDetectionHook } from "./post/ScopeDriftDetectionHook"
+import { SharedBrainHook } from "./post/SharedBrainHook"
 
 /**
  * Hook Engine - The Sole Execution Gateway (T007)
  *
- * Central dispatcher for all governance checks.
- * Implements the middleware pattern for:
- *   - PreToolUse: Scope enforcement, budget checking, loop detection
- *   - PostToolUse: SHA-256 hashing, audit logging, intent_map updates
- *   - PreLLMRequest: Context compaction
- *
- * Enforces Invariant 2: All operations pass through this engine.
+ * Orchestrates pre-tool and post-tool execution hooks through a dynamic
+ * HookRegistry. This architecture follows the Open/Closed Principle,
+ * allowing for modular attachment of governance, tracing, and validation
+ * logic without modifying the core engine.
  */
 
 export interface ToolRequest {
@@ -47,15 +60,39 @@ interface ToolCallRecord {
 const CIRCUIT_BREAKER_THRESHOLD = 3
 
 export class HookEngine {
-	private orchestrationService: OrchestrationService
+	public readonly orchestrationService: OrchestrationService
 	private stateMachine: StateMachine
-	private lastToolCalls: ToolCallRecord[] = []
+	public readonly registry: HookRegistry
+	public readonly circuitBreaker: CircuitBreakerHook
 	public readonly turnContext: ITurnContext
 
 	constructor(orchestrationService: OrchestrationService, stateMachine: StateMachine) {
 		this.orchestrationService = orchestrationService
 		this.stateMachine = stateMachine
 		this.turnContext = new TurnContext()
+		this.registry = new HookRegistry()
+
+		// --- Register Pre-Hooks (Phase 3) ---
+		this.registry.register("PRE", new FailSafeHook(orchestrationService))
+		this.registry.register("PRE", new StateCheckHook(stateMachine))
+		this.registry.register("PRE", new TraceabilityHook())
+		this.registry.register("PRE", new ConcurrencyHook(orchestrationService))
+		this.registry.register("PRE", new ScopeEnforcementHook(orchestrationService))
+		this.registry.register("PRE", new BudgetHook(orchestrationService))
+
+		this.circuitBreaker = new CircuitBreakerHook()
+		this.registry.register("PRE", this.circuitBreaker)
+
+		// --- Register Post-Hooks (Phase 4) ---
+		this.registry.register("POST", new MutationLogHook(orchestrationService))
+		this.registry.register("POST", new TurnContextHook())
+		this.registry.register("POST", new GeneralTraceHook(orchestrationService))
+		this.registry.register("POST", new ReadFileBaselineHook())
+		this.registry.register("POST", new AgentTraceHook())
+		this.registry.register("POST", new VerificationFailureHook())
+		this.registry.register("POST", new IntentProgressHook(orchestrationService))
+		this.registry.register("POST", new ScopeDriftDetectionHook(orchestrationService))
+		this.registry.register("POST", new SharedBrainHook())
 	}
 
 	/**
@@ -75,387 +112,39 @@ export class HookEngine {
 	// ── PreToolUse Hook ──
 
 	/**
-	 * Pre-tool-use validation. Returns CONTINUE to allow, DENY to block.
-	 *
-	 * Checks performed:
-	 * 1. Fail-Safe Default (Invariant 8): Blocks all if orchestration missing
-	 * 2. State-based tool filtering (Invariant 9)
-	 * 3. Scope enforcement (Law 3.2.1)
-	 * 4. Budget checking (Law 3.1.5)
-	 * 5. Circuit breaker / loop detection (Law 4.6)
-	 * 6. File ownership contention
+	 * Pre-Tool Execution Hook Gateway.
+	 * Delegates validation to the HookRegistry (Law 3.1.5, 3.2.1, 4.6).
 	 */
 	async preToolUse(req: ToolRequest): Promise<HookResponse> {
-		// 1. Fail-Safe Default (T029): Deny all mutations if orchestration is unhealthy
-		const isHealthy = await this.orchestrationService.isOrchestrationHealthy()
-		if (!isHealthy) {
-			// Allow select_active_intent to potentially re-initialize
-			if (req.toolName === "select_active_intent") {
-				return { action: "CONTINUE" }
-			}
-			return {
-				action: "DENY",
-				reason: "Fail-Safe Default: .orchestration/ directory is missing or corrupted. All mutating actions are blocked until orchestration state is restored.",
-			}
-		}
-
-		// 2. State-based tool filtering
-		const stateCheck = this.stateMachine.isToolAllowed(req.toolName)
-		if (!stateCheck.allowed) {
-			return { action: "DENY", reason: stateCheck.reason }
-		}
-
-		// Classify the tool
 		const classification = this.classifyTool(req.toolName)
 
-		// select_active_intent is always allowed past this point.
-		// NOTE: SAFE tools (read-only) also bypass scope checks below to allow
-		// project-wide analysis during the handshake (FR-009).
+		// select_active_intent is always allowed if health check passes
 		if (req.toolName === "select_active_intent") {
-			return { action: "CONTINUE", classification }
-		}
-
-		// US1/US2: Traceability Enforcement (Law 3.3.1)
-		// All destructive tools MUST have a valid REQ-ID intent identifier.
-		if (this.isDestructiveTool(req.toolName)) {
-			if (req.intentId === undefined || req.intentId === null) {
-				throw new TraceabilityError(
-					`[Traceability Requirement Violation] Tool '${req.toolName}' is classified as DESTRUCTIVE and requires an active traceability identifier (intentId), but none was provided.`,
-				)
-			}
-
-			// Validate REQ-ID format (US2)
-			const reqIdRegex = /^REQ-[a-zA-Z0-9\-]+$/
-			if (!reqIdRegex.test(req.intentId)) {
-				throw new TraceabilityError(
-					`[Invalid Traceability Identifier Format] The provided intentId '${req.intentId}' does not follow the required project standard (must match /^REQ-[a-zA-Z0-9\-]+$/).`,
-				)
+			const isHealthy = await this.orchestrationService.isOrchestrationHealthy()
+			if (isHealthy) {
+				return { action: "CONTINUE", classification }
 			}
 		}
 
-		// Concurrency Protection: Optimistic Locking (US1/US2)
-		// The ConcurrencyHook/OptimisticGuard now throws StaleWriteError on hash mismatch.
-		// We catch it here to: (1) log the conflict to the trace ledger, and (2) serialize
-		// it as a pure JSON StaleFileErrorPayload for the Agent Controller.
-		try {
-			const concurrencyResult = await executeConcurrencyHook(req, this)
-			if (concurrencyResult.action === "DENY") {
-				return concurrencyResult
-			}
-		} catch (error) {
-			if (error instanceof StaleWriteError) {
-				// Step 1: Log the conflict to the Agent Trace Ledger (FR-005)
-				const { randomUUID } = await import("crypto")
-				await this.orchestrationService
-					.logTrace({
-						trace_id: randomUUID(),
-						timestamp: new Date().toISOString(),
-						mutation_class: "STALE_FILE_CONFLICT",
-						intent_id: req.intentId || "N/A",
-						related: req.intentId ? [req.intentId] : [],
-						ranges: {
-							file: error.file_path,
-							content_hash: error.actual_hash,
-							start_line: 0,
-							end_line: 0,
-						},
-						actor: "roo-code-agent",
-						summary: `Stale write rejected for ${error.file_path}: expected ${error.expected_hash}, actual ${error.actual_hash}`,
-						contributor: { entity_type: "AI", model_identifier: "roo-code" },
-						metadata: {
-							session_id: "current",
-							expected_hash: error.expected_hash,
-							actual_hash: error.actual_hash,
-						},
-						action_type: "MUTATION_CONFLICT",
-						payload: {
-							tool_name: req.toolName,
-							target_file: error.file_path,
-							baseline_hash: error.expected_hash,
-							current_hash: error.actual_hash,
-						},
-						result: {
-							status: "DENIED",
-							error_type: "STALE_FILE",
-							output_summary: error.message,
-						},
-					})
-					.catch(() => {})
+		// Delegate to registry for all other checks
+		const response = await this.registry.executePre(req, this)
 
-				// Step 2: Serialize to pure JSON StaleFileErrorPayload (FR-003/FR-004)
-				const jsonPayload = JSON.stringify(error.toPayload())
-
-				return {
-					action: "DENY",
-					reason: jsonPayload,
-					error_type: "STALE_FILE",
-					details: error.toPayload(),
-					recovery_hint: "RE_READ_REQUIRED",
-				}
-			}
-			// Re-throw non-StaleWriteError exceptions
-			throw error
+		// Attach classification to CONTINUE responses
+		if (response.action === "CONTINUE") {
+			return { ...response, classification }
 		}
 
-		// 3. Scope enforcement for file-based destructive tools
-		if (req.intentId && this.isFileDestructiveTool(req.toolName)) {
-			const filePath = req.params.path || req.params.file_path || req.params.cwd
-			if (filePath) {
-				// Check .intentignore first (highest precedence)
-				if (this.orchestrationService.isIntentIgnored(filePath)) {
-					return {
-						action: "DENY",
-						classification,
-						reason: `File '${filePath}' is excluded by .intentignore. This file is globally protected.`,
-						details: `${req.intentId} attempted to modify a protected file.`,
-						recovery_hint:
-							"This file cannot be modified by any intent. Try a different file or update .intentignore.",
-					}
-				}
-
-				const scopeResult = await this.orchestrationService.validateScope(req.intentId, filePath)
-				const { randomUUID } = await import("crypto")
-				if (!scopeResult.allowed) {
-					// Log scope violation
-					await this.orchestrationService
-						.logTrace({
-							trace_id: randomUUID(),
-							timestamp: new Date().toISOString(),
-							mutation_class: "N/A",
-							intent_id: req.intentId,
-							related: [req.intentId],
-							ranges: {
-								file: filePath,
-								content_hash: "n/a",
-								start_line: 0,
-								end_line: 0,
-							},
-							actor: "roo-code-agent",
-							summary: `Scope Violation for ${filePath}`,
-							contributor: { entity_type: "AI", model_identifier: "roo-code" },
-							metadata: {
-								session_id: "current",
-							},
-							action_type: "SCOPE_VIOLATION",
-							payload: {
-								tool_name: req.toolName,
-								target_files: [filePath],
-							},
-							result: {
-								status: "DENIED",
-								output_summary: scopeResult.reason || "Scope violation",
-							},
-						})
-						.catch(() => {})
-
-					return {
-						action: "DENY",
-						classification,
-						reason: "Scope Violation",
-						details: scopeResult.reason || "File is outside the active intent's scope.",
-						recovery_hint:
-							"Cite a different file within the intent's owned_scope, or use 'select_active_intent' to expand scope.",
-					}
-				}
-
-				// Check file ownership contention
-				const owningIntent = await this.orchestrationService.checkFileOwnership(filePath, req.intentId)
-				if (owningIntent) {
-					return {
-						action: "DENY",
-						classification,
-						reason: "File Ownership Contention",
-						details: `File owned by Intent [${owningIntent}]. Cannot mutate files locked by another active intent.`,
-						recovery_hint:
-							"Wait for the owning intent to release the file, or select the owning intent to make changes.",
-					}
-				}
-			}
-		}
-
-		// 4. Budget checking
-		if (req.intentId) {
-			const budgetResult = await this.orchestrationService.updateBudget(req.intentId)
-			if (!budgetResult.withinBudget) {
-				const { randomUUID } = await import("crypto")
-				await this.orchestrationService
-					.logTrace({
-						trace_id: randomUUID(),
-						timestamp: new Date().toISOString(),
-						mutation_class: "N/A",
-						intent_id: req.intentId,
-						related: [req.intentId],
-						ranges: {
-							file: "n/a",
-							content_hash: "n/a",
-							start_line: 0,
-							end_line: 0,
-						},
-						actor: "roo-code-agent",
-						summary: budgetResult.reason || "Budget exceeded",
-						contributor: { entity_type: "AI", model_identifier: "roo-code" },
-						metadata: {
-							session_id: "current",
-						},
-						action_type: "BUDGET_EXHAUSTED",
-						payload: { tool_name: req.toolName },
-						result: {
-							status: "DENIED",
-							output_summary: budgetResult.reason || "Budget exceeded",
-						},
-					})
-					.catch(() => {})
-
-				return {
-					action: "HALT",
-					classification,
-					reason: "Budget Exceeded",
-					details: budgetResult.reason || "Execution budget exceeded. Intent marked BLOCKED.",
-					recovery_hint:
-						"Select a different intent with remaining budget, or request budget expansion for this intent.",
-				}
-			}
-		}
-
-		// 5. Circuit breaker (T026): Detect identical tool call loops
-		const circuitResult = this.checkCircuitBreaker(req)
-		if (!circuitResult.allowed) {
-			return {
-				action: "HALT",
-				classification,
-				reason: "Circuit Breaker Tripped",
-				details: circuitResult.reason || "Identical tool calls detected in a loop.",
-				recovery_hint: "Break the loop by trying a different approach or different parameters.",
-			}
-		}
-
-		return { action: "CONTINUE", classification }
+		return response
 	}
 
 	// ── PostToolUse Hook ──
 
 	/**
-	 * Post-tool-use processing.
-	 *
-	 * Actions performed:
-	 * 1. SHA-256 content hashing for mutations (T021)
-	 * 2. Audit ledger logging (T020)
-	 * 3. Intent map updates (T022)
+	 * Post-Tool Execution Hook Gateway.
+	 * Delegates side-effects and cleanup to the HookRegistry (Mutation logs, Tracing, Progress eval).
 	 */
 	async postToolUse(result: ToolResult, requestId?: string): Promise<void> {
-		if (!result.intentId) return
-
-		// For file-destructive tools, compute hash and update intent map
-		if (result.success && result.filePath && result.fileContent && this.isDestructiveTool(result.toolName)) {
-			await this.orchestrationService.logMutation(result.intentId, result.filePath, result.fileContent)
-
-			// US1: Update TurnContext after successful write to provide new baseline for subsequent writes
-			this.turnContext.recordWrite(result.filePath, result.fileContent)
-		}
-
-		// US1: Capture baseline from read_file successful result
-		if (result.success && result.toolName === "read_file" && result.filePath && result.fileContent) {
-			this.turnContext.recordRead(result.filePath, result.fileContent)
-		}
-
-		// Agent Trace Hook integration (US1/US2/US3)
-		if (
-			result.success &&
-			result.filePath &&
-			(result.toolName === "write_to_file" || this.isFileDestructiveTool(result.toolName))
-		) {
-			try {
-				const { AgentTraceHook } = await import("./post/AgentTraceHook")
-				const traceHook = new AgentTraceHook()
-
-				// Extract mutation info from tool params or result
-				const mutationClass = result.mutationClass || result.params.mutation_class || "INTENT_EVOLUTION"
-				const summary = result.summary || `Agent mutation via ${result.toolName}`
-
-				// We fall back to intentId if requestId is missing as a basic mapping mechanism
-				await traceHook.execute({
-					intentId: result.intentId,
-					filePath: result.filePath,
-					requestId: requestId || result.intentId,
-					mutationClass,
-					summary,
-				})
-			} catch (err) {
-				console.error("[HookEngine] Failed to execute AgentTraceHook:", err)
-			}
-		}
-
-		// Log general tool execution trace
-		await this.orchestrationService
-			.logTrace({
-				trace_id: (await import("crypto")).randomUUID(),
-				timestamp: new Date().toISOString(),
-				actor: "roo-code-agent",
-				intent_id: result.intentId || null,
-				mutation_class: result.params.mutation_class || "N/A",
-				contributor: { entity_type: "AI", model_identifier: "roo-code" },
-				action_type: "TOOL_EXECUTION",
-				payload: {
-					tool_name: result.toolName,
-					tool_input: result.params,
-					target_files: result.filePath ? [result.filePath] : undefined,
-				},
-				result: {
-					status: result.success ? "SUCCESS" : "FAILURE",
-					output_summary: result.output?.slice(0, 200) || "(no output)",
-				},
-				related: [result.intentId],
-				summary: result.summary || `Executed tool ${result.toolName}`,
-				ranges: {
-					file: result.filePath || "n/a",
-					content_hash: "n/a",
-					start_line: 1,
-					end_line: -1,
-				},
-				metadata: { session_id: "current" },
-			})
-			.catch((err) => console.error("Failed to log post-tool trace:", err))
-
-		// US1/US2: Verification Failure Detection Hook (Automated Lesson Recording)
-		if (result.toolName === "execute_command") {
-			try {
-				const { VerificationFailureHook } = await import("./post/VerificationFailureHook")
-				const verificationHook = new VerificationFailureHook()
-				// Run as a side-effect, do not await if we want maximum performance,
-				// but since it's already async and we are at the end of postToolUse, it's fine.
-				await verificationHook.execute(result)
-			} catch (err) {
-				// US3: Robustness - hook failures MUST NOT crash the system
-				console.error("[HookEngine] Failed to execute VerificationFailureHook:", err)
-			}
-		}
-
-		// US1: Intent Progress Evaluation
-		try {
-			const { IntentProgressHook } = await import("./post/IntentProgressHook")
-			const progressHook = new IntentProgressHook(this.orchestrationService)
-			await progressHook.execute(result)
-		} catch (err) {
-			console.error("[HookEngine] Failed to execute IntentProgressHook:", err)
-		}
-
-		// US2: Scope Drift Detection
-		try {
-			const { ScopeDriftDetectionHook } = await import("./post/ScopeDriftDetectionHook")
-			const driftHook = new ScopeDriftDetectionHook(this.orchestrationService)
-			await driftHook.execute(result)
-		} catch (err) {
-			console.error("[HookEngine] Failed to execute ScopeDriftDetectionHook:", err)
-		}
-
-		// US3: Shared Brain Governance Lessons
-		try {
-			const { SharedBrainHook } = await import("./post/SharedBrainHook")
-			const brainHook = new SharedBrainHook()
-			await brainHook.execute(result)
-		} catch (err) {
-			console.error("[HookEngine] Failed to execute SharedBrainHook:", err)
-		}
+		return this.registry.executePost(result, this, requestId)
 	}
 
 	// ── PreLLMRequest Hook (T027) ──
@@ -488,33 +177,7 @@ export class HookEngine {
 
 	// ── Circuit Breaker (T026) ──
 
-	private checkCircuitBreaker(req: ToolRequest): { allowed: boolean; reason?: string } {
-		const paramsHash = this.hashParams(req.params)
-		const existing = this.lastToolCalls.find((r) => r.toolName === req.toolName && r.paramsHash === paramsHash)
-
-		if (existing) {
-			existing.count++
-			if (existing.count >= CIRCUIT_BREAKER_THRESHOLD) {
-				return {
-					allowed: false,
-					reason: `Circuit Breaker Tripped: Tool '${req.toolName}' called ${existing.count} times with identical parameters. Execution halted to prevent infinite loops. Intent will be marked BLOCKED.`,
-				}
-			}
-		} else {
-			// Reset tracking when a different tool/params combo is used
-			this.lastToolCalls = [{ toolName: req.toolName, paramsHash, count: 1 }]
-		}
-
-		return { allowed: true }
-	}
-
-	private hashParams(params: any): string {
-		try {
-			return JSON.stringify(params)
-		} catch {
-			return ""
-		}
-	}
+	// Circuit breaker logic moved to CircuitBreakerHook (T026)
 
 	/**
 	 * Classify a tool as SAFE or DESTRUCTIVE using the COMMAND_CLASSIFICATION map.
@@ -546,7 +209,7 @@ export class HookEngine {
 	 * Reset the circuit breaker tracking and turn context.
 	 */
 	resetCircuitBreaker(): void {
-		this.lastToolCalls = []
+		this.circuitBreaker.reset()
 		this.turnContext.reset()
 	}
 }
