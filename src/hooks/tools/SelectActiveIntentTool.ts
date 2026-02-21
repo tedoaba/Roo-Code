@@ -51,6 +51,9 @@ export class SelectActiveIntentTool extends BaseTool<"select_active_intent"> {
 			// Set active intent on task
 			task.activeIntentId = intent_id
 
+			// Enforce state machine transition to ACTION phase
+			await task.hookEngine.onIntentSelected(intent_id)
+
 			const { randomUUID } = await import("crypto")
 			// Log this selection to trace
 			await service.logTrace({

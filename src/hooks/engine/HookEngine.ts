@@ -109,6 +109,22 @@ export class HookEngine {
 		return this.stateMachine.transitionTo(state, intentId)
 	}
 
+	/**
+	 * Signal a new user request to the state machine.
+	 * Transitions from REQUEST or ACTION to REASONING.
+	 */
+	async onUserRequest() {
+		return this.stateMachine.onUserRequest()
+	}
+
+	/**
+	 * Signal that an intent has been selected to the state machine.
+	 * Transitions from REASONING to ACTION.
+	 */
+	async onIntentSelected(intentId: string) {
+		return this.stateMachine.onIntentSelected(intentId)
+	}
+
 	// ── PreToolUse Hook ──
 
 	/**

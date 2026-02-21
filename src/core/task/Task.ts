@@ -1519,6 +1519,13 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		}
 
 		this.emit(RooCodeEventName.TaskAskResponded)
+
+		if (result.response === "messageResponse") {
+			await this.hookEngine
+				.onUserRequest()
+				.catch((err) => console.error("Failed to transition to REASONING on user message:", err))
+		}
+
 		return result
 	}
 
@@ -2432,6 +2439,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	 * - Immediately continues task loop without user interaction
 	 */
 	public async resumeAfterDelegation(): Promise<void> {
+		// Signal a new turn when resuming
+		await this.hookEngine.onUserRequest().catch((err) => console.error("Failed to transition to REASONING:", err))
+
 		// Clear any ask states that might have been set during history load
 		this.idleAsk = undefined
 		this.resumableAsk = undefined
@@ -2498,6 +2508,9 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	// Task Loop
 
 	private async initiateTaskLoop(userContent: Anthropic.Messages.ContentBlockParam[]): Promise<void> {
+		// Signal a new user interaction Turn (Transitions to REASONING state)
+		await this.hookEngine.onUserRequest().catch((err) => console.error("Failed to transition to REASONING:", err))
+
 		// Kicks off the checkpoints initialization process in the background.
 		getCheckpointService(this)
 
