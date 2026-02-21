@@ -4,6 +4,9 @@ Auto-generated from all feature plans. Last updated: 2026-02-18
 
 ## Active Technologies
 
+- TypeScript / Node.js 20+ + Node.js `fs`, `path`, `crypto`. Existing `LessonRecorder`. (013-verification-failure-hook)
+- Append-only markdown (`AGENT.md`, `.lessons/`). (013-verification-failure-hook)
+
 - TypeScript / Node.js (v20+) + `node:fs`, `node:path`, `node:crypto` (for hashing/de-duplication) (012-lesson-recorder)
 - Flat file (`AGENT.md`) with structured Markdown blocks. (012-lesson-recorder)
 
@@ -51,11 +54,11 @@ General: Follow standard conventions
 
 ## Recent Changes
 
+- 013-verification-failure-hook: Added TypeScript / Node.js 20+ + Node.js `fs`, `path`, `crypto`. Existing `LessonRecorder`.
+
 - 012-lesson-recorder: Added TypeScript / Node.js (v20+) + `node:fs`, `node:path`, `node:crypto` (for hashing/de-duplication)
 
 - 011-stale-write-error: Added TypeScript (Node.js/VSCode Extension context) + `HookEngine`, `AgentTraceHook`, generic `vscode` FS APIs.
-
-- 010-turn-hash-snapshot: Added TypeScript 5.0+ + `fs/promises`, SHA-256 Utility (`src/utils/hashing.ts`)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

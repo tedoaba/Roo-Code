@@ -83,9 +83,9 @@ export class LessonRecorder {
 		return `- [${lesson.timestamp}] **Failure Type:** ${lesson.type} <!-- sig: ${lesson.signature} -->
     - **File:** \`${lesson.file}\`
     - **Error Summary:** ${lesson.error_summary}
-    - **Cause:** ${lesson.cause}
-    - **Resolution:** ${lesson.resolution}
-    - **Corrective Rule:** ${lesson.corrective_rule}
+    - **Cause:** ${lesson.cause ?? ""}
+    - **Resolution:** ${lesson.resolution ?? ""}
+    - **Corrective Rule:** ${lesson.corrective_rule ?? ""}
 `
 	}
 
