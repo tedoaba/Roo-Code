@@ -1,12 +1,14 @@
-import { ToolResult } from "../HookEngine"
+import { ToolResult, HookEngine } from "../HookEngine"
 import { OrchestrationService } from "../../services/orchestration/OrchestrationService"
+import { IPostHook } from "../engine/types"
 import * as path from "path"
 import * as crypto from "crypto"
 
-export class ScopeDriftDetectionHook {
+export class ScopeDriftDetectionHook implements IPostHook {
+	id = "scope-drift"
 	constructor(private orchestrationService: OrchestrationService) {}
 
-	async execute(result: ToolResult): Promise<void> {
+	async execute(result: ToolResult, _engine: HookEngine): Promise<void> {
 		if (!result.intentId || !result.success || !result.filePath) return
 
 		// Only process file mutations

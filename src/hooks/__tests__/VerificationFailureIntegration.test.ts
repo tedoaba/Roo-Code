@@ -6,10 +6,12 @@ import { VerificationFailureHook } from "../post/VerificationFailureHook"
 
 // Mock VerificationFailureHook
 vi.mock("../post/VerificationFailureHook", () => {
+	const mockExecute = vi.fn().mockResolvedValue(undefined)
 	return {
 		VerificationFailureHook: vi.fn().mockImplementation(() => {
 			return {
-				execute: vi.fn().mockResolvedValue(undefined),
+				id: "verification-failure",
+				execute: mockExecute,
 			}
 		}),
 	}
@@ -51,10 +53,10 @@ describe("VerificationFailureHook Integration", () => {
 
 		const { VerificationFailureHook: MockHook } = await import("../post/VerificationFailureHook")
 		const mockHookInstance = (MockHook as any).mock.results[0].value
-		expect(mockHookInstance.execute).toHaveBeenCalledWith(result)
+		expect(mockHookInstance.execute).toHaveBeenCalledWith(result, hookEngine, undefined)
 	})
 
-	it("should NOT trigger VerificationFailureHook on other tools", async () => {
+	it("should trigger VerificationFailureHook execute on all tools (filtering is now internal to hook)", async () => {
 		const result: ToolResult = {
 			toolName: "read_file",
 			params: { path: "test.ts" },
@@ -66,7 +68,8 @@ describe("VerificationFailureHook Integration", () => {
 		await hookEngine.postToolUse(result)
 
 		const { VerificationFailureHook: MockHook } = await import("../post/VerificationFailureHook")
-		expect(MockHook).not.toHaveBeenCalled()
+		const mockHookInstance = (MockHook as any).mock.results[0].value
+		expect(mockHookInstance.execute).toHaveBeenCalledWith(result, hookEngine, undefined)
 	})
 
 	it("should handle VerificationFailureHook errors gracefully (US3)", async () => {

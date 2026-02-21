@@ -1,101 +1,90 @@
-import { OrchestrationService } from "../../services/orchestration/OrchestrationService"
 import { HookResponse } from "../../services/orchestration/types"
+import { HookEngine, ToolRequest } from "../HookEngine"
+import { IPreHook } from "../engine/types"
+import { OrchestrationService } from "../../services/orchestration/OrchestrationService"
 
 /**
- * Scope Enforcement Hook (T018) — Pre-tool-use hook.
- *
- * Blocks mutations outside the active intent's owned_scope.
- * Also checks for file ownership contention against intent_map.md.
- *
- * Implements:
- *   - FR-005: Scope Enforcement (Law 3.2.1)
- *   - Edge Case: Scope Leakage prevention
- *   - Edge Case: Ownership Contention blocking
+ * Scope Enforcement Hook (Law 3.2.1)
+ * Ensures file mutations stay within the active intent's scope.
  */
-export class ScopeEnforcementHook {
-	private orchestrationService: OrchestrationService
+export class ScopeEnforcementHook implements IPreHook {
+	id = "scope-enforcement"
+	priority = 30
 
-	constructor(orchestrationService: OrchestrationService) {
-		this.orchestrationService = orchestrationService
-	}
+	constructor(private orchestrationService: OrchestrationService) {}
 
-	/**
-	 * Validate that a file mutation is within the active intent's scope.
-	 *
-	 * @param intentId - The currently active intent ID
-	 * @param toolName - The tool being used
-	 * @param filePath - The target file path
-	 * @returns HookResponse indicating whether to CONTINUE or DENY
-	 */
-	async validate(intentId: string, toolName: string, filePath: string): Promise<HookResponse> {
-		if (!this.isMutatingTool(toolName)) {
-			return { action: "CONTINUE" }
-		}
+	async execute(req: ToolRequest, engine: HookEngine): Promise<HookResponse> {
+		if (req.intentId && engine.isFileDestructiveTool(req.toolName)) {
+			const filePath = req.params.path || req.params.file_path || req.params.cwd
+			if (filePath) {
+				// Check .intentignore first (highest precedence)
+				if (this.orchestrationService.isIntentIgnored(filePath)) {
+					return {
+						action: "DENY",
+						reason: `File '${filePath}' is excluded by .intentignore. This file is globally protected.`,
+						details: `${req.intentId} attempted to modify a protected file.`,
+						recovery_hint:
+							"This file cannot be modified by any intent. Try a different file or update .intentignore.",
+					}
+				}
 
-		if (!filePath) {
-			return { action: "CONTINUE" }
-		}
+				const scopeResult = await this.orchestrationService.validateScope(req.intentId, filePath)
+				const { randomUUID } = await import("crypto")
+				if (!scopeResult.allowed) {
+					// Log scope violation
+					await this.orchestrationService
+						.logTrace({
+							trace_id: randomUUID(),
+							timestamp: new Date().toISOString(),
+							mutation_class: "N/A",
+							intent_id: req.intentId,
+							related: [req.intentId],
+							ranges: {
+								file: filePath,
+								content_hash: "n/a",
+								start_line: 0,
+								end_line: 0,
+							},
+							actor: "roo-code-agent",
+							summary: `Scope Violation for ${filePath}`,
+							contributor: { entity_type: "AI", model_identifier: "roo-code" },
+							metadata: {
+								session_id: "current",
+							},
+							action_type: "SCOPE_VIOLATION",
+							payload: {
+								tool_name: req.toolName,
+								target_files: [filePath],
+							},
+							result: {
+								status: "DENIED",
+								output_summary: scopeResult.reason || "Scope violation",
+							},
+						})
+						.catch(() => {})
 
-		const { randomUUID } = await import("crypto")
-		// Check scope
-		const scopeResult = await this.orchestrationService.validateScope(intentId, filePath)
-		if (!scopeResult.allowed) {
-			// Log scope violation
-			await this.orchestrationService
-				.logTrace({
-					trace_id: randomUUID(),
-					timestamp: new Date().toISOString(),
-					actor: "roo-code-agent",
-					intent_id: intentId,
-					mutation_class: "N/A",
-					related: [intentId],
-					ranges: { file: filePath, content_hash: "n/a", start_line: 0, end_line: 0 },
-					summary: scopeResult.reason || "Scope violation",
-					contributor: { entity_type: "AI", model_identifier: "roo-code" },
-					state: "ACTION",
-					action_type: "SCOPE_VIOLATION",
-					payload: {
-						tool_name: toolName,
-						target_files: [filePath],
-					},
-					result: {
-						status: "DENIED",
-						output_summary: scopeResult.reason || "Scope violation",
-					},
-					metadata: { session_id: "current" },
-				})
-				.catch(() => {})
+					return {
+						action: "DENY",
+						reason: "Scope Violation",
+						details: scopeResult.reason || "File is outside the active intent's scope.",
+						recovery_hint:
+							"Cite a different file within the intent's owned_scope, or use 'select_active_intent' to expand scope.",
+					}
+				}
 
-			return {
-				action: "DENY",
-				reason: scopeResult.reason || `File '${filePath}' is outside the active intent's scope.`,
+				// Check file ownership contention
+				const owningIntent = await this.orchestrationService.checkFileOwnership(filePath, req.intentId)
+				if (owningIntent) {
+					return {
+						action: "DENY",
+						reason: "File Ownership Contention",
+						details: `File owned by Intent [${owningIntent}]. Cannot mutate files locked by another active intent.`,
+						recovery_hint:
+							"Wait for the owning intent to release the file, or select the owning intent to make changes.",
+					}
+				}
 			}
 		}
-
-		// Check ownership contention
-		const owningIntent = await this.orchestrationService.checkFileOwnership(filePath, intentId)
-		if (owningIntent) {
-			return {
-				action: "DENY",
-				reason: `Governance Violation: File owned by Intent [${owningIntent}]. Cannot mutate files locked by another active intent.`,
-			}
-		}
-
 		return { action: "CONTINUE" }
-	}
-
-	private isMutatingTool(toolName: string): boolean {
-		const mutatingTools = [
-			"write_to_file",
-			"apply_diff",
-			"edit",
-			"search_and_replace",
-			"search_replace",
-			"edit_file",
-			"apply_patch",
-			"execute_command",
-			"delete_file",
-		]
-		return mutatingTools.includes(toolName)
 	}
 }

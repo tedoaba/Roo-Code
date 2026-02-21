@@ -1,6 +1,7 @@
-import { ToolResult } from "../HookEngine"
+import { ToolResult, HookEngine } from "../HookEngine"
 import { LessonRecorder } from "../../core/lessons/LessonRecorder"
 import { Lesson } from "../../core/lessons/types"
+import { IPostHook } from "../engine/types"
 
 /**
  * VerificationFailureHook - User Story 1 & 2
@@ -8,7 +9,8 @@ import { Lesson } from "../../core/lessons/types"
  * Automatically detects linter and test failures from tool output
  * and records them as lessons in the ledger.
  */
-export class VerificationFailureHook {
+export class VerificationFailureHook implements IPostHook {
+	id = "verification-failure"
 	private readonly lessonRecorder: LessonRecorder
 	private readonly WHITELISTED_TOOLS = [
 		"eslint",
@@ -30,8 +32,9 @@ export class VerificationFailureHook {
 	 * Executes the hook logic.
 	 *
 	 * @param result The result of the tool execution.
+	 * @param engine The HookEngine instance.
 	 */
-	async execute(result: ToolResult): Promise<void> {
+	async execute(result: ToolResult, _engine: HookEngine): Promise<void> {
 		// Only monitor execute_command
 		if (result.toolName !== "execute_command") {
 			return

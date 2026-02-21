@@ -1,25 +1,13 @@
-import { AgentTraceEntry } from "../../contracts/AgentTrace"
 import { LedgerManager } from "../../utils/orchestration/LedgerManager"
-import * as path from "path"
-
-/**
- * Hook interface for the Agent Trace Ledger.
- */
-export interface IAgentTraceHook {
-	execute(params: {
-		intentId: string
-		filePath: string
-		requestId: string
-		mutationClass: string
-		summary: string
-	}): Promise<void>
-}
+import { HookEngine, ToolResult } from "../HookEngine"
+import { IPostHook } from "../engine/types"
 
 /**
  * Post-tool-use hook that records mutations to the audit ledger.
  * Satisfies Invariant 3 of the System Constitution.
  */
-export class AgentTraceHook implements IAgentTraceHook {
+export class AgentTraceHook implements IPostHook {
+	id = "agent-trace"
 	private ledgerManager: LedgerManager
 	private static readonly processedEvents = new Set<string>()
 
@@ -28,9 +16,32 @@ export class AgentTraceHook implements IAgentTraceHook {
 	}
 
 	/**
-	 * Asynchronous executor for tracing mutations.
+	 * Executes the hook for tool results.
 	 */
-	async execute(params: {
+	async execute(result: ToolResult, engine: HookEngine, requestId?: string): Promise<void> {
+		if (
+			result.success &&
+			result.filePath &&
+			result.intentId &&
+			(result.toolName === "write_to_file" || engine.isFileDestructiveTool(result.toolName))
+		) {
+			const mutationClass = result.mutationClass || result.params?.mutation_class || "INTENT_EVOLUTION"
+			const summary = result.summary || `Agent mutation via ${result.toolName}`
+
+			await this.recordTrace({
+				intentId: result.intentId,
+				filePath: result.filePath,
+				requestId: requestId || result.intentId,
+				mutationClass,
+				summary,
+			})
+		}
+	}
+
+	/**
+	 * Internal executor for tracing mutations.
+	 */
+	private async recordTrace(params: {
 		intentId: string
 		filePath: string
 		requestId: string
