@@ -4,6 +4,9 @@ Auto-generated from all feature plans. Last updated: 2026-02-18
 
 ## Active Technologies
 
+- TypeScript (Node.js 18+) + Node.js `fs/promises`, `crypto` (for SHA-256 hashing) (007-agent-trace-ledger)
+- Append-only JSONL file (`.orchestration/agent_trace.jsonl`) (007-agent-trace-ledger)
+
 - TypeScript 5.x + VS Code Extension API (`vscode`), Node.js `fs`/`crypto` (for hashing and file ops) (006-post-write-trace-hook)
 - Local File System, `.orchestration/agent_trace.jsonl` (006-post-write-trace-hook)
 
@@ -33,11 +36,11 @@ General: Follow standard conventions
 
 ## Recent Changes
 
+- 007-agent-trace-ledger: Added TypeScript (Node.js 18+) + Node.js `fs/promises`, `crypto` (for SHA-256 hashing)
+
 - 006-post-write-trace-hook: Added TypeScript 5.x + VS Code Extension API (`vscode`), Node.js `fs`/`crypto` (for hashing and file ops)
 
 - 005-content-hashing: Added TypeScript 5.8+ (Node.js 20.x runtime) + Node.js `crypto` module (built-in)
-
-- 004-mutation-classifier: Added TypeScript 5.x + `typescript` (AST parser), `ts-morph` (optional, for easier AST traversal) or native TS Compiler API.
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
