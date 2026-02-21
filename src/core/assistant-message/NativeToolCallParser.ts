@@ -468,6 +468,8 @@ export class NativeToolCallParser {
 					nativeArgs = {
 						path: partialArgs.path,
 						content: partialArgs.content,
+						intent_id: partialArgs.intent_id,
+						mutation_class: partialArgs.mutation_class,
 					}
 				}
 				break
@@ -486,6 +488,8 @@ export class NativeToolCallParser {
 					nativeArgs = {
 						path: partialArgs.path,
 						diff: partialArgs.diff,
+						intent_id: partialArgs.intent_id,
+						mutation_class: partialArgs.mutation_class,
 					}
 				}
 				break
@@ -568,6 +572,8 @@ export class NativeToolCallParser {
 				if (partialArgs.patch !== undefined) {
 					nativeArgs = {
 						patch: partialArgs.patch,
+						intent_id: partialArgs.intent_id,
+						mutation_class: partialArgs.mutation_class,
 					}
 				}
 				break
@@ -582,6 +588,8 @@ export class NativeToolCallParser {
 						file_path: partialArgs.file_path,
 						old_string: partialArgs.old_string,
 						new_string: partialArgs.new_string,
+						intent_id: partialArgs.intent_id,
+						mutation_class: partialArgs.mutation_class,
 					}
 				}
 				break
@@ -598,6 +606,8 @@ export class NativeToolCallParser {
 						old_string: partialArgs.old_string,
 						new_string: partialArgs.new_string,
 						replace_all: this.coerceOptionalBoolean(partialArgs.replace_all),
+						intent_id: partialArgs.intent_id,
+						mutation_class: partialArgs.mutation_class,
 					}
 				}
 				break
@@ -613,6 +623,8 @@ export class NativeToolCallParser {
 						old_string: partialArgs.old_string,
 						new_string: partialArgs.new_string,
 						expected_replacements: partialArgs.expected_replacements,
+						intent_id: partialArgs.intent_id,
+						mutation_class: partialArgs.mutation_class,
 					}
 				}
 				break
@@ -804,6 +816,8 @@ export class NativeToolCallParser {
 						nativeArgs = {
 							path: args.path,
 							diff: args.diff,
+							intent_id: args.intent_id,
+							mutation_class: args.mutation_class,
 						} as NativeArgsFor<TName>
 					}
 					break
@@ -828,6 +842,8 @@ export class NativeToolCallParser {
 							old_string: args.old_string,
 							new_string: args.new_string,
 							replace_all: this.coerceOptionalBoolean(args.replace_all),
+							intent_id: args.intent_id,
+							mutation_class: args.mutation_class,
 						} as NativeArgsFor<TName>
 					}
 					break
@@ -921,6 +937,8 @@ export class NativeToolCallParser {
 						nativeArgs = {
 							path: args.path,
 							content: args.content,
+							intent_id: args.intent_id,
+							mutation_class: args.mutation_class,
 						} as NativeArgsFor<TName>
 					}
 					break
@@ -948,6 +966,8 @@ export class NativeToolCallParser {
 					if (args.patch !== undefined) {
 						nativeArgs = {
 							patch: args.patch,
+							intent_id: args.intent_id,
+							mutation_class: args.mutation_class,
 						} as NativeArgsFor<TName>
 					}
 					break
@@ -962,6 +982,8 @@ export class NativeToolCallParser {
 							file_path: args.file_path,
 							old_string: args.old_string,
 							new_string: args.new_string,
+							intent_id: args.intent_id,
+							mutation_class: args.mutation_class,
 						} as NativeArgsFor<TName>
 					}
 					break
@@ -977,6 +999,8 @@ export class NativeToolCallParser {
 							old_string: args.old_string,
 							new_string: args.new_string,
 							expected_replacements: args.expected_replacements,
+							intent_id: args.intent_id,
+							mutation_class: args.mutation_class,
 						} as NativeArgsFor<TName>
 					}
 					break

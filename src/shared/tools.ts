@@ -98,12 +98,39 @@ export type NativeToolArgs = {
 	read_command_output: { artifact_id: string; search?: string; offset?: number; limit?: number }
 	attempt_completion: { result: string }
 	execute_command: { command: string; cwd?: string }
-	apply_diff: { path: string; diff: string }
-	edit: { file_path: string; old_string: string; new_string: string; replace_all?: boolean }
-	search_and_replace: { file_path: string; old_string: string; new_string: string; replace_all?: boolean }
-	search_replace: { file_path: string; old_string: string; new_string: string }
-	edit_file: { file_path: string; old_string: string; new_string: string; expected_replacements?: number }
-	apply_patch: { patch: string }
+	apply_diff: { path: string; diff: string; intent_id?: string; mutation_class?: MutationClass }
+	edit: {
+		file_path: string
+		old_string: string
+		new_string: string
+		replace_all?: boolean
+		intent_id?: string
+		mutation_class?: MutationClass
+	}
+	search_and_replace: {
+		file_path: string
+		old_string: string
+		new_string: string
+		replace_all?: boolean
+		intent_id?: string
+		mutation_class?: MutationClass
+	}
+	search_replace: {
+		file_path: string
+		old_string: string
+		new_string: string
+		intent_id?: string
+		mutation_class?: MutationClass
+	}
+	edit_file: {
+		file_path: string
+		old_string: string
+		new_string: string
+		expected_replacements?: number
+		intent_id?: string
+		mutation_class?: MutationClass
+	}
+	apply_patch: { patch: string; intent_id?: string; mutation_class?: MutationClass }
 	list_files: { path: string; recursive?: boolean }
 	new_task: { mode: string; message: string; todos?: string }
 	ask_followup_question: {
