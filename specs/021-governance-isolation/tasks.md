@@ -24,8 +24,8 @@
 
 **Purpose**: Create the target directory structure that all subsequent moves depend on
 
-- [ ] T001 Create target subdirectories under `src/hooks/`: `state/`, `state/lessons/`, `state/__tests__/`, `state/lessons/__tests__/`, `tools/`, `prompts/`, `contracts/`, `contracts/__tests__/` — per FR-001
-- [ ] T002 Verify existing directories are already in place: `src/hooks/engine/` (contains `HookRegistry.ts`, `types.ts`), `src/hooks/errors/` (contains `StaleWriteError.ts`), `src/hooks/pre/`, `src/hooks/post/` — per FR-018
+- [x] T001 Create target subdirectories under `src/hooks/`: `state/`, `state/lessons/`, `state/__tests__/`, `state/lessons/__tests__/`, `tools/`, `prompts/`, `contracts/`, `contracts/__tests__/` — per FR-001
+- [x] T002 Verify existing directories are already in place: `src/hooks/engine/` (contains `HookRegistry.ts`, `types.ts`), `src/hooks/errors/` (contains `StaleWriteError.ts`), `src/hooks/pre/`, `src/hooks/post/` — per FR-018
 
 **Checkpoint**: All target directories exist. No files moved yet. Tests pass (no changes to code).
 
@@ -37,14 +37,14 @@
 
 **⚠️ CRITICAL**: No user story module moves can begin until contracts/types are relocated.
 
-- [ ] T003 [US1] Copy `src/contracts/AgentTrace.ts` to `src/hooks/contracts/AgentTrace.ts`, update any internal imports to use canonical paths — per FR-012
-- [ ] T004 [US1] Replace `src/contracts/AgentTrace.ts` with a re-export shim containing `@deprecated` JSDoc tag pointing to `src/hooks/contracts/AgentTrace.ts` — per FR-014
-- [ ] T005 [US2] Verify all tests pass after AgentTrace move — per FR-016. Run `npx vitest run`
-- [ ] T006 [US1] Copy `src/contracts/__tests__/AgentTraceEntry.test.ts` to `src/hooks/contracts/__tests__/AgentTraceEntry.test.ts`, update test imports to reference `../AgentTrace` (new canonical path) — per FR-021
-- [ ] T007 [US2] Verify all tests pass after AgentTrace test move — per FR-016. Run `npx vitest run`
-- [ ] T008 [P] [US1] Copy `src/core/concurrency/types.ts` to `src/hooks/state/types.ts`, update any internal imports to use canonical paths — per FR-020
-- [ ] T009 [P] [US1] Replace `src/core/concurrency/types.ts` with a re-export shim containing `@deprecated` JSDoc tag pointing to `src/hooks/state/types.ts` — per FR-014
-- [ ] T010 [US2] Verify all tests pass after concurrency/types move — per FR-016. Run `npx vitest run`
+- [x] T003 [US1] Copy `src/contracts/AgentTrace.ts` to `src/hooks/contracts/AgentTrace.ts`, update any internal imports to use canonical paths — per FR-012
+- [x] T004 [US1] Replace `src/contracts/AgentTrace.ts` with a re-export shim containing `@deprecated` JSDoc tag pointing to `src/hooks/contracts/AgentTrace.ts` — per FR-014
+- [x] T005 [US2] Verify all tests pass after AgentTrace move — per FR-016. Run `npx vitest run`
+- [x] T006 [US1] Copy `src/contracts/__tests__/AgentTraceEntry.test.ts` to `src/hooks/contracts/__tests__/AgentTraceEntry.test.ts`, update test imports to reference `../AgentTrace` (new canonical path) — per FR-021
+- [x] T007 [US2] Verify all tests pass after AgentTrace test move — per FR-016. Run `npx vitest run`
+- [x] T008 [P] [US1] Copy `src/core/concurrency/types.ts` to `src/hooks/state/types.ts`, update any internal imports to use canonical paths — per FR-020
+- [x] T009 [P] [US1] Replace `src/core/concurrency/types.ts` with a re-export shim containing `@deprecated` JSDoc tag pointing to `src/hooks/state/types.ts` — per FR-014
+- [x] T010 [US2] Verify all tests pass after concurrency/types move — per FR-016. Run `npx vitest run`
 
 **Checkpoint**: Types & contracts relocated. All downstream modules can now import from canonical paths. Tests pass.
 
@@ -58,67 +58,67 @@
 
 ### 3a: Errors Migration (Phase 2 in data-model.md)
 
-- [ ] T011 [US1] Copy `src/errors/TraceabilityError.ts` to `src/hooks/errors/TraceabilityError.ts`, update any internal imports to use canonical paths — per FR-009
-- [ ] T012 [US1] Replace `src/errors/TraceabilityError.ts` with a re-export shim containing `@deprecated` JSDoc tag pointing to `src/hooks/errors/TraceabilityError.ts` — per FR-014
-- [ ] T013 [US2] Verify all tests pass after TraceabilityError move — per FR-016. Run `npx vitest run`
+- [x] T011 [US1] Copy `src/errors/TraceabilityError.ts` to `src/hooks/errors/TraceabilityError.ts`, update any internal imports to use canonical paths — per FR-009
+- [x] T012 [US1] Replace `src/errors/TraceabilityError.ts` with a re-export shim containing `@deprecated` JSDoc tag pointing to `src/hooks/errors/TraceabilityError.ts` — per FR-014
+- [x] T013 [US2] Verify all tests pass after TraceabilityError move — per FR-016. Run `npx vitest run`
 
 ### 3b: State & Concurrency Migration (Phase 3 in data-model.md)
 
-- [ ] T014 [US1] Copy `src/core/state/StateMachine.ts` to `src/hooks/state/StateMachine.ts`, update internal imports: change `../../contracts/AgentTrace` to `../contracts/AgentTrace` (canonical), update `OrchestrationService` import, update `types` import — per FR-003, FR-019
-- [ ] T015 [US1] Replace `src/core/state/StateMachine.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
-- [ ] T016 [US1] Copy `src/core/state/__tests__/StateMachine.test.ts` to `src/hooks/state/__tests__/StateMachine.test.ts`, update test imports to reference new canonical paths — per FR-021
-- [ ] T017 [US2] Verify all tests pass after StateMachine move — per FR-016. Run `npx vitest run`
-- [ ] T018 [P] [US1] Copy `src/core/concurrency/TurnContext.ts` to `src/hooks/state/TurnContext.ts`, update internal imports to canonical paths — per FR-004, FR-019
-- [ ] T019 [P] [US1] Replace `src/core/concurrency/TurnContext.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
-- [ ] T020 [P] [US1] Copy `src/core/concurrency/__tests__/TurnContext.test.ts` to `src/hooks/state/__tests__/TurnContext.test.ts`, update test imports — per FR-021
-- [ ] T021 [P] [US1] Copy `src/core/concurrency/OptimisticGuard.ts` to `src/hooks/state/OptimisticGuard.ts`, update internal imports to canonical paths — per FR-005, FR-019
-- [ ] T022 [P] [US1] Replace `src/core/concurrency/OptimisticGuard.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
-- [ ] T023 [P] [US1] Copy `src/core/concurrency/__tests__/OptimisticGuard.test.ts` to `src/hooks/state/__tests__/OptimisticGuard.test.ts`, update test imports — per FR-021
-- [ ] T024 [P] [US1] Copy `src/core/concurrency/__tests__/TurnLifecycle.test.ts` to `src/hooks/state/__tests__/TurnLifecycle.test.ts`, update test imports — per FR-021
-- [ ] T025 [US2] Verify all tests pass after TurnContext, OptimisticGuard, and TurnLifecycle moves — per FR-016. Run `npx vitest run`
-- [ ] T026 [US1] Copy `src/services/orchestration/OrchestrationService.ts` to `src/hooks/state/OrchestrationService.ts`, update internal imports to canonical paths. Keep the `./types` import pointing to `../../services/orchestration/types` (NOT moved — contains non-governance `COMMAND_CLASSIFICATION`). Update any imports of already-moved modules (e.g., `AgentTrace`) to their new canonical `src/hooks/` paths — per FR-010, FR-019
-- [ ] T027 [US1] Replace `src/services/orchestration/OrchestrationService.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
-- [ ] T028 [US2] Verify all tests pass after OrchestrationService move — per FR-016. Run `npx vitest run`
-- [ ] T029 [US1] Copy `src/utils/orchestration/LedgerManager.ts` to `src/hooks/state/LedgerManager.ts`, update internal imports to canonical paths — per FR-011, FR-019
-- [ ] T030 [US1] Replace `src/utils/orchestration/LedgerManager.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
-- [ ] T031 [US1] Copy `src/utils/orchestration/__tests__/LedgerManager.test.ts` to `src/hooks/state/__tests__/LedgerManager.test.ts`, update test imports — per FR-021
-- [ ] T032 [US2] Verify all tests pass after LedgerManager move — per FR-016. Run `npx vitest run`
+- [x] T014 [US1] Copy `src/core/state/StateMachine.ts` to `src/hooks/state/StateMachine.ts`, update internal imports: change `../../contracts/AgentTrace` to `../contracts/AgentTrace` (canonical), update `OrchestrationService` import, update `types` import — per FR-003, FR-019
+- [x] T015 [US1] Replace `src/core/state/StateMachine.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
+- [x] T016 [US1] Copy `src/core/state/__tests__/StateMachine.test.ts` to `src/hooks/state/__tests__/StateMachine.test.ts`, update test imports to reference new canonical paths — per FR-021
+- [x] T017 [US2] Verify all tests pass after StateMachine move — per FR-016. Run `npx vitest run`
+- [x] T018 [P] [US1] Copy `src/core/concurrency/TurnContext.ts` to `src/hooks/state/TurnContext.ts`, update internal imports to canonical paths — per FR-004, FR-019
+- [x] T019 [P] [US1] Replace `src/core/concurrency/TurnContext.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
+- [x] T020 [P] [US1] Copy `src/core/concurrency/__tests__/TurnContext.test.ts` to `src/hooks/state/__tests__/TurnContext.test.ts`, update test imports — per FR-021
+- [x] T021 [P] [US1] Copy `src/core/concurrency/OptimisticGuard.ts` to `src/hooks/state/OptimisticGuard.ts`, update internal imports to canonical paths — per FR-005, FR-019
+- [x] T022 [P] [US1] Replace `src/core/concurrency/OptimisticGuard.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
+- [x] T023 [P] [US1] Copy `src/core/concurrency/__tests__/OptimisticGuard.test.ts` to `src/hooks/state/__tests__/OptimisticGuard.test.ts`, update test imports — per FR-021
+- [x] T024 [P] [US1] Copy `src/core/concurrency/__tests__/TurnLifecycle.test.ts` to `src/hooks/state/__tests__/TurnLifecycle.test.ts`, update test imports — per FR-021
+- [x] T025 [US2] Verify all tests pass after TurnContext, OptimisticGuard, and TurnLifecycle moves — per FR-016. Run `npx vitest run`
+- [x] T026 [US1] Copy `src/services/orchestration/OrchestrationService.ts` to `src/hooks/state/OrchestrationService.ts`, update internal imports to canonical paths. Keep the `./types` import pointing to `../../services/orchestration/types` (NOT moved — contains non-governance `COMMAND_CLASSIFICATION`). Update any imports of already-moved modules (e.g., `AgentTrace`) to their new canonical `src/hooks/` paths — per FR-010, FR-019
+- [x] T027 [US1] Replace `src/services/orchestration/OrchestrationService.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
+- [x] T028 [US2] Verify all tests pass after OrchestrationService move — per FR-016. Run `npx vitest run`
+- [x] T029 [US1] Copy `src/utils/orchestration/LedgerManager.ts` to `src/hooks/state/LedgerManager.ts`, update internal imports to canonical paths — per FR-011, FR-019
+- [x] T030 [US1] Replace `src/utils/orchestration/LedgerManager.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
+- [x] T031 [US1] Copy `src/utils/orchestration/__tests__/LedgerManager.test.ts` to `src/hooks/state/__tests__/LedgerManager.test.ts`, update test imports — per FR-021
+- [x] T032 [US2] Verify all tests pass after LedgerManager move — per FR-016. Run `npx vitest run`
 
 ### 3c: Lessons Migration (Phase 4 in data-model.md)
 
-- [ ] T033 [P] [US1] Copy `src/core/lessons/types.ts` to `src/hooks/state/lessons/types.ts` — per FR-006
-- [ ] T034 [P] [US1] Replace `src/core/lessons/types.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
-- [ ] T035 [P] [US1] Copy `src/core/lessons/LockManager.ts` to `src/hooks/state/lessons/LockManager.ts`, update internal imports to canonical paths — per FR-006, FR-019
-- [ ] T036 [P] [US1] Replace `src/core/lessons/LockManager.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
-- [ ] T037 [P] [US1] Copy `src/core/lessons/Deduplicator.ts` to `src/hooks/state/lessons/Deduplicator.ts`, update internal imports — per FR-006, FR-019
-- [ ] T038 [P] [US1] Replace `src/core/lessons/Deduplicator.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
-- [ ] T039 [P] [US1] Copy `src/core/lessons/LessonAuditLogger.ts` to `src/hooks/state/lessons/LessonAuditLogger.ts`, update internal imports (note: imports `LedgerManager` — use canonical `../../LedgerManager`) — per FR-006, FR-019
-- [ ] T040 [P] [US1] Replace `src/core/lessons/LessonAuditLogger.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
-- [ ] T041 [P] [US1] Copy `src/core/lessons/LessonRecorder.ts` to `src/hooks/state/lessons/LessonRecorder.ts`, update internal imports — per FR-006, FR-019
-- [ ] T042 [P] [US1] Replace `src/core/lessons/LessonRecorder.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
-- [ ] T043 [P] [US1] Copy `src/core/lessons/LessonRetriever.ts` to `src/hooks/state/lessons/LessonRetriever.ts`, update internal imports — per FR-006, FR-019
-- [ ] T044 [P] [US1] Replace `src/core/lessons/LessonRetriever.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
-- [ ] T045 [P] [US1] Copy `src/core/lessons/__tests__/Deduplicator.test.ts` to `src/hooks/state/lessons/__tests__/Deduplicator.test.ts`, update test imports — per FR-021
-- [ ] T046 [P] [US1] Copy `src/core/lessons/__tests__/LessonRecorder.test.ts` to `src/hooks/state/lessons/__tests__/LessonRecorder.test.ts`, update test imports — per FR-021
-- [ ] T047 [US2] Verify all tests pass after all lessons module moves — per FR-016. Run `npx vitest run`
+- [x] T033 [US1] Copy `src/core/lessons/types.ts` to `src/hooks/state/lessons/types.ts` — per FR-012, FR-019
+- [x] T034 [US1] Replace `src/core/lessons/types.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
+- [x] T035 [US1] Copy `src/core/lessons/LockManager.ts` to `src/hooks/state/lessons/LockManager.ts` — per FR-012, FR-019
+- [x] T036 [US1] Replace `src/core/lessons/LockManager.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
+- [x] T037 [US1] Copy `src/core/lessons/Deduplicator.ts` to `src/hooks/state/lessons/Deduplicator.ts` — per FR-012, FR-019
+- [x] T038 [US1] Replace `src/core/lessons/Deduplicator.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
+- [x] T039 [US1] Copy `src/core/lessons/LessonAuditLogger.ts` to `src/hooks/state/lessons/LessonAuditLogger.ts`, update imports to reference `src/hooks/state/LedgerManager.ts` — per FR-012, FR-019
+- [x] T040 [US1] Replace `src/core/lessons/LessonAuditLogger.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
+- [x] T041 [US1] Copy `src/core/lessons/LessonRecorder.ts` to `src/hooks/state/lessons/LessonRecorder.ts`, update internal imports — per FR-012, FR-019
+- [x] T042 [US1] Replace `src/core/lessons/LessonRecorder.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
+- [x] T043 [US1] Copy `src/core/lessons/LessonRetriever.ts` to `src/hooks/state/lessons/LessonRetriever.ts`, update internal imports — per FR-012, FR-019
+- [x] T044 [US1] Replace `src/core/lessons/LessonRetriever.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
+- [x] T045 [US1] Copy `src/core/lessons/__tests__/*.ts` to `src/hooks/state/__tests__/lessons/`, update test imports — per FR-021
+- [x] T046 [US2] Verify all tests pass for Lessons migration — per FR-016. Run `npx vitest run`
+- [x] T047 [US2] Verify all tests pass after all Phase 3 moves — per FR-016. Run `npx vitest run`
 
 ### 3d: Tools Migration (Phase 5 in data-model.md)
 
-- [ ] T048 [US1] Copy `src/core/tools/SelectActiveIntent.ts` to `src/hooks/tools/SelectActiveIntentTool.ts`, update internal imports: change `./BaseTool` to `../../core/tools/BaseTool`, change `../../contracts/AgentTrace` to `../contracts/AgentTrace` — per FR-007, FR-019
-- [ ] T049 [US1] Replace `src/core/tools/SelectActiveIntent.ts` with a re-export shim containing `@deprecated` JSDoc tag pointing to `src/hooks/tools/SelectActiveIntentTool.ts` (re-exports `SelectActiveIntentTool` and `selectActiveIntentTool`) — per FR-014
-- [ ] T050 [US2] Verify all tests pass after SelectActiveIntentTool move — per FR-016. Run `npx vitest run`
+- [x] T048 [US1] Copy `src/core/tools/SelectActiveIntent.ts` to `src/hooks/tools/SelectActiveIntentTool.ts`, update internal imports: change `./BaseTool` to `../../core/tools/BaseTool`, change `../../contracts/AgentTrace` to `../contracts/AgentTrace` — per FR-007, FR-019
+- [x] T049 [US1] Replace `src/core/tools/SelectActiveIntent.ts` with a re-export shim containing `@deprecated` JSDoc tag pointing to `src/hooks/tools/SelectActiveIntentTool.ts` (re-exports `SelectActiveIntentTool` and `selectActiveIntentTool`) — per FR-014
+- [x] T050 [US2] Verify all tests pass after SelectActiveIntentTool move — per FR-016. Run `npx vitest run`
 
 ### 3e: Prompts Migration (Phase 6 in data-model.md)
 
-- [ ] T051 [US1] Copy `src/core/prompts/sections/intent-handshake.ts` to `src/hooks/prompts/intent-handshake.ts`, update internal imports to canonical paths — per FR-008, FR-019
-- [ ] T052 [US1] Replace `src/core/prompts/sections/intent-handshake.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
-- [ ] T053 [US2] Verify all tests pass after intent-handshake move — per FR-016. Run `npx vitest run`
+- [x] T051 [US1] Copy `src/core/prompts/sections/intent-handshake.ts` to `src/hooks/prompts/intent-handshake.ts`, update internal imports to canonical paths — per FR-008, FR-019
+- [x] T052 [US1] Replace `src/core/prompts/sections/intent-handshake.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
+- [x] T053 [US2] Verify all tests pass after intent-handshake move — per FR-016. Run `npx vitest run`
 
 ### 3f: Engine Restructuring (Phase 7 in data-model.md)
 
-- [ ] T054 [US1] Copy `src/hooks/HookEngine.ts` to `src/hooks/engine/HookEngine.ts`, update all internal imports to canonical paths: change `../services/orchestration/OrchestrationService` to `../state/OrchestrationService`, change `../core/state/StateMachine` to `../state/StateMachine`, change `../core/concurrency/types` to `../state/types`, change `../core/concurrency/TurnContext` to `../state/TurnContext`, change `./engine/HookRegistry` to `./HookRegistry` — per FR-002, FR-019
-- [ ] T055 [US1] Replace `src/hooks/HookEngine.ts` with a re-export (no `@deprecated` — internal restructuring within hooks/): re-exports `HookEngine`, `ToolRequest`, `ToolResult` from `./engine/HookEngine` — per FR-002
-- [ ] T056 [US2] Verify all tests pass after HookEngine restructuring — per FR-016. Run `npx vitest run`
+- [x] T054 [US1] Copy `src/hooks/HookEngine.ts` to `src/hooks/engine/HookEngine.ts`, update all internal imports to canonical paths: change `../services/orchestration/OrchestrationService` to `../state/OrchestrationService`, change `../core/state/StateMachine` to `../state/StateMachine`, change `../core/concurrency/types` to `../state/types`, change `../core/concurrency/TurnContext` to `../state/TurnContext`, change `./engine/HookRegistry` to `./HookRegistry` — per FR-002, FR-019
+- [x] T055 [US1] Replace `src/hooks/HookEngine.ts` with a re-export (no `@deprecated` — internal restructuring within hooks/): re-exports `HookEngine`, `ToolRequest`, `ToolResult` from `./engine/HookEngine` — per FR-002
+- [x] T056 [US2] Verify all tests pass after HookEngine restructuring — per FR-016. Run `npx vitest run`
 
 **Checkpoint**: All governance modules relocated. User Story 1 (Discoverability) and User Story 2 (Backward Compatibility) are both satisfied. All tests pass.
 
@@ -132,9 +132,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T057 [US3] Update `src/hooks/index.ts` to re-organize all exports by subdirectory namespace (engine, state, state/lessons, tools, contracts, errors, pre-hooks, post-hooks) with section comments — per FR-013, research.md RQ-6
-- [ ] T058 [US2] Verify all tests pass after barrel export update — per FR-016. Run `npx vitest run`
-- [ ] T059 [US3] Generate migration guide document at `specs/021-governance-isolation/migration-guide.md` mapping every old path to its new canonical path with exported symbols — per FR-015, data-model.md §4
+- [x] T057 [US3] Update `src/hooks/index.ts` to re-organize all exports by subdirectory namespace (engine, state, state/lessons, tools, contracts, errors, pre-hooks, post-hooks) with section comments — per FR-013, research.md RQ-6
+- [x] T058 [US2] Verify all tests pass after barrel export update — per FR-016. Run `npx vitest run`
+- [x] T059 [US3] Generate migration guide document at `specs/021-governance-isolation/migration-guide.md` mapping every old path to its new canonical path with exported symbols — per FR-015, data-model.md §4
 
 **Checkpoint**: User Story 3 complete. Barrel export is organized by subdirectory. Migration guide is complete.
 
@@ -148,8 +148,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T060 [US4] Audit all re-export shims to confirm they contain ONLY re-export statements and `@deprecated` JSDoc tags — no leftover governance logic in: `src/core/state/StateMachine.ts`, `src/core/concurrency/TurnContext.ts`, `src/core/concurrency/OptimisticGuard.ts`, `src/core/concurrency/types.ts`, `src/core/lessons/*.ts`, `src/core/tools/SelectActiveIntent.ts`, `src/core/prompts/sections/intent-handshake.ts`, `src/services/orchestration/OrchestrationService.ts`, `src/utils/orchestration/LedgerManager.ts`, `src/errors/TraceabilityError.ts`, `src/contracts/AgentTrace.ts`
-- [ ] T061 [US4] Verify `src/hooks/` directory structure matches §6.3 layout: confirm subdirectories `engine/`, `pre/`, `post/`, `state/`, `state/lessons/`, `tools/`, `prompts/`, `contracts/`, `errors/` all exist with expected files
+- [x] T060 [US4] Audit all re-export shims to confirm they contain ONLY re-export statements and `@deprecated` JSDoc tags — no leftover governance logic in: `src/core/state/StateMachine.ts`, `src/core/concurrency/TurnContext.ts`, `src/core/concurrency/OptimisticGuard.ts`, `src/core/concurrency/types.ts`, `src/core/lessons/*.ts`, `src/core/tools/SelectActiveIntent.ts`, `src/core/prompts/sections/intent-handshake.ts`, `src/services/orchestration/OrchestrationService.ts`, `src/utils/orchestration/LedgerManager.ts`, `src/errors/TraceabilityError.ts`, `src/contracts/AgentTrace.ts`
+- [x] T061 [US4] Verify `src/hooks/` directory structure matches §6.3 layout: confirm subdirectories `engine/`, `pre/`, `post/`, `state/`, `state/lessons/`, `tools/`, `prompts/`, `contracts/`, `errors/` all exist with expected files
 
 **Checkpoint**: User Story 4 complete. Codebase is lint-rule-ready.
 
@@ -159,9 +159,9 @@
 
 **Purpose**: Final validation and documentation
 
-- [ ] T062 Run full test suite one final time to confirm zero regressions: `npx vitest run` — per SC-003, SC-004
-- [ ] T063 [P] Verify success criteria SC-001 through SC-008 are all met by inspecting final codebase state
-- [ ] T064 [P] Update `specs/021-governance-isolation/spec.md` status from Draft to Complete
+- [x] T062 Run full test suite one final time to confirm zero regressions: `npx vitest run` — per SC-003, SC-004
+- [x] T063 [P] Verify success criteria SC-001 through SC-008 are all met by inspecting final codebase state
+- [x] T064 [P] Update `specs/021-governance-isolation/spec.md` status from Draft to Complete
 
 ---
 

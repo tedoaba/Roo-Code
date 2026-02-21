@@ -2,7 +2,7 @@
 
 **Feature Branch**: `021-governance-isolation`  
 **Created**: 2026-02-21  
-**Status**: Draft  
+**Status**: Complete  
 **Task ID**: REQ-ARCH-021  
 **Input**: User description: "Enforce the architectural principle that all governance logic lives in src/hooks/ by restructuring the directory to match the documented layout and relocating governance modules from forbidden directories into the src/hooks/ subtree."
 
