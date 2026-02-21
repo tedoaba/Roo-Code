@@ -1,6 +1,6 @@
 import { OrchestrationService } from "../services/orchestration/OrchestrationService"
 import { StateMachine } from "../core/state/StateMachine"
-import { HookResponse, CommandClassification } from "../services/orchestration/types"
+import { HookResponse, CommandClassification, COMMAND_CLASSIFICATION } from "../services/orchestration/types"
 import { TraceabilityError } from "../errors/TraceabilityError"
 import { StaleWriteError } from "./errors/StaleWriteError"
 import { TurnContext } from "../core/concurrency/TurnContext"
@@ -45,39 +45,6 @@ interface ToolCallRecord {
 }
 
 const CIRCUIT_BREAKER_THRESHOLD = 3
-
-/**
- * Command Classification Mapping (data-model.md §3)
- * Defines which tools are DESTRUCTIVE (require approval + scope check)
- * and which are SAFE (read-only, no approval needed).
- */
-export const COMMAND_CLASSIFICATION: Record<string, CommandClassification> = {
-	// Destructive (file-mutating, require scope check)
-	write_to_file: "DESTRUCTIVE",
-	apply_diff: "DESTRUCTIVE",
-	edit: "DESTRUCTIVE",
-	search_and_replace: "DESTRUCTIVE",
-	search_replace: "DESTRUCTIVE",
-	edit_file: "DESTRUCTIVE",
-	apply_patch: "DESTRUCTIVE",
-	delete_file: "DESTRUCTIVE",
-	// Destructive (non-file, user approval only)
-	execute_command: "DESTRUCTIVE",
-	new_task: "DESTRUCTIVE",
-	// Safe (read-only)
-	read_file: "SAFE",
-	list_files: "SAFE",
-	list_code_definition_names: "SAFE",
-	search_files: "SAFE",
-	codebase_search: "SAFE",
-	ask_followup_question: "SAFE",
-	select_active_intent: "SAFE",
-	switch_mode: "SAFE",
-	update_todo_list: "SAFE",
-	read_command_output: "SAFE",
-	access_mcp_resource: "SAFE",
-	attempt_completion: "SAFE",
-}
 
 export class HookEngine {
 	private orchestrationService: OrchestrationService
@@ -141,7 +108,9 @@ export class HookEngine {
 		// Classify the tool
 		const classification = this.classifyTool(req.toolName)
 
-		// select_active_intent is always allowed past this point
+		// select_active_intent is always allowed past this point.
+		// NOTE: SAFE tools (read-only) also bypass scope checks below to allow
+		// project-wide analysis during the handshake (FR-009).
 		if (req.toolName === "select_active_intent") {
 			return { action: "CONTINUE", classification }
 		}

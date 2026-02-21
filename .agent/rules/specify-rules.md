@@ -4,6 +4,9 @@ Auto-generated from all feature plans. Last updated: 2026-02-18
 
 ## Active Technologies
 
+- TypeScript / Node.js + VS Code Extension API, Orchestration Service, State Machine, Hook Engine (014-relaxed-handshake-analysis)
+- `.orchestration/` (Sidecar data model) (014-relaxed-handshake-analysis)
+
 - TypeScript / Node.js 20+ + Node.js `fs`, `path`, `crypto`. Existing `LessonRecorder`. (013-verification-failure-hook)
 - Append-only markdown (`AGENT.md`, `.lessons/`). (013-verification-failure-hook)
 
@@ -54,11 +57,11 @@ General: Follow standard conventions
 
 ## Recent Changes
 
+- 014-relaxed-handshake-analysis: Added TypeScript / Node.js + VS Code Extension API, Orchestration Service, State Machine, Hook Engine
+
 - 013-verification-failure-hook: Added TypeScript / Node.js 20+ + Node.js `fs`, `path`, `crypto`. Existing `LessonRecorder`.
 
 - 012-lesson-recorder: Added TypeScript / Node.js (v20+) + `node:fs`, `node:path`, `node:crypto` (for hashing/de-duplication)
-
-- 011-stale-write-error: Added TypeScript (Node.js/VSCode Extension context) + `HookEngine`, `AgentTraceHook`, generic `vscode` FS APIs.
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
