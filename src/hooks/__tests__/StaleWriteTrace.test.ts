@@ -25,13 +25,23 @@ describe("AgentTraceHook — StaleWriteError conflict logging (T005)", () => {
 	})
 
 	it("should record a conflict trace for a stale write rejection", async () => {
-		await hook.execute({
-			intentId: "REQ-STALE-001",
-			filePath: testFilePath,
-			requestId: "req-xyz",
-			mutationClass: "STALE_FILE_CONFLICT",
-			summary: "write_to_file_rejected: expected hash abc123 but found def456",
-		})
+		const mockEngine = {
+			isFileDestructiveTool: (name: string) => name === "write_to_file",
+		} as any
+
+		await hook.execute(
+			{
+				intentId: "REQ-STALE-001",
+				filePath: testFilePath,
+				success: true,
+				toolName: "write_to_file",
+				params: {},
+				mutationClass: "STALE_FILE_CONFLICT",
+				summary: "write_to_file_rejected: expected hash abc123 but found def456",
+			},
+			mockEngine,
+			"req-xyz",
+		)
 
 		const content = await fs.readFile(ledgerPath, "utf8")
 		const lines = content.trim().split("\n")
@@ -48,16 +58,23 @@ describe("AgentTraceHook — StaleWriteError conflict logging (T005)", () => {
 	})
 
 	it("should not record duplicate conflict events for the same stale write", async () => {
-		const params = {
+		const mockEngine = {
+			isFileDestructiveTool: (name: string) => name === "write_to_file",
+		} as any
+
+		const result = {
 			intentId: "REQ-STALE-DUP",
 			filePath: testFilePath,
-			requestId: "req-dup",
+			success: true,
+			toolName: "write_to_file",
+			params: {},
 			mutationClass: "STALE_FILE_CONFLICT",
 			summary: "Duplicate stale write conflict",
 		}
+		const requestId = "req-dup"
 
-		await hook.execute(params)
-		await hook.execute(params) // Duplicate call
+		await hook.execute(result, mockEngine, requestId)
+		await hook.execute(result, mockEngine, requestId) // Duplicate call
 
 		const content = await fs.readFile(ledgerPath, "utf8")
 		const lines = content.trim().split("\n")
