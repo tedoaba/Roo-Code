@@ -4,6 +4,9 @@ Auto-generated from all feature plans. Last updated: 2026-02-18
 
 ## Active Technologies
 
+- TypeScript 5.x + `crypto` (standard library), `HookEngine`, `LedgerManager`. (009-optimistic-locking-guard)
+- In-memory `TurnContext` (transient) for baseline hashes; `.orchestration/agent_trace.jsonl` (persistent) for audit records. (009-optimistic-locking-guard)
+
 - TypeScript 5.x + None (built-in orchestration hooks) (008-req-id-trace-injection)
 - Append-only JSONL (`.orchestration/agent_trace.jsonl`) (008-req-id-trace-injection)
 
@@ -39,11 +42,11 @@ General: Follow standard conventions
 
 ## Recent Changes
 
+- 009-optimistic-locking-guard: Added TypeScript 5.x + `crypto` (standard library), `HookEngine`, `LedgerManager`.
+
 - 008-req-id-trace-injection: Added TypeScript 5.x + None (built-in orchestration hooks)
 
 - 007-agent-trace-ledger: Added TypeScript (Node.js 18+) + Node.js `fs/promises`, `crypto` (for SHA-256 hashing)
-
-- 006-post-write-trace-hook: Added TypeScript 5.x + VS Code Extension API (`vscode`), Node.js `fs`/`crypto` (for hashing and file ops)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

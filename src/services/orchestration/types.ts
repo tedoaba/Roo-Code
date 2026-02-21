@@ -69,6 +69,7 @@ export interface HookResponse {
 	action: "CONTINUE" | "DENY" | "HALT"
 	classification?: CommandClassification
 	reason?: string
-	details?: string
+	error_type?: string
+	details?: any
 	recovery_hint?: string
 }
