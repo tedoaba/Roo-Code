@@ -4,6 +4,11 @@ Auto-generated from all feature plans. Last updated: 2026-02-18
 
 ## Active Technologies
 
+- [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION] (017-sidecar-model-alignment)
+- [if applicable, e.g., PostgreSQL, CoreData, files or N/A] (017-sidecar-model-alignment)
+- TypeScript + `js-yaml`, `fs/promises`, `vscode`, `minimatch` (017-sidecar-model-alignment)
+- Filesystem-based sidecar (`.orchestration/` directory) (017-sidecar-model-alignment)
+
 - N/A (Stateless functional filtering based on existing state) (016-proactive-tool-filtering)
 
 - TypeScript 5.x (VS Code extension) + Anthropic SDK, OpenAI types, vscode API (015-prellm-compaction-wiring)
@@ -62,11 +67,10 @@ General: Follow standard conventions
 
 ## Recent Changes
 
+- 017-sidecar-model-alignment: Added TypeScript + `js-yaml`, `fs/promises`, `vscode`, `minimatch`
+- 017-sidecar-model-alignment: Added [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
+
 - 016-proactive-tool-filtering: Added TypeScript 5.x + VS Code Extension API
-
-- 015-prellm-compaction-wiring: Added TypeScript 5.x (VS Code extension) + Anthropic SDK, OpenAI types, vscode API
-
-- 014-relaxed-handshake-analysis: Added TypeScript / Node.js + VS Code Extension API, Orchestration Service, State Machine, Hook Engine
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
