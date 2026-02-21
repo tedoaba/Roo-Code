@@ -1,6 +1,7 @@
-import { ToolResult } from "../HookEngine"
+import { ToolResult, HookEngine } from "../HookEngine"
 import { LessonRecorder } from "../../core/lessons/LessonRecorder"
 import { Lesson } from "../../core/lessons/types"
+import { IPostHook } from "../engine/types"
 
 /**
  * SharedBrainHook - User Story 3
@@ -20,7 +21,8 @@ import { Lesson } from "../../core/lessons/types"
  *   - Must only execute if result.intentId exists.
  *   - Uses LessonRecorder.recordWithRetry for atomic, retry-safe appends.
  */
-export class SharedBrainHook {
+export class SharedBrainHook implements IPostHook {
+	id = "shared-brain"
 	private readonly lessonRecorder: LessonRecorder
 
 	constructor(lessonRecorder?: LessonRecorder) {
@@ -32,7 +34,7 @@ export class SharedBrainHook {
 	 * Only triggers for failed tool results that contain governance-related
 	 * error indicators.
 	 */
-	async execute(result: ToolResult): Promise<void> {
+	async execute(result: ToolResult, _engine: HookEngine): Promise<void> {
 		try {
 			// Only process failures — successful results have no governance lesson
 			if (result.success) return

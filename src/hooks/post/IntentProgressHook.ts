@@ -1,12 +1,14 @@
-import { ToolResult } from "../HookEngine"
+import { ToolResult, HookEngine } from "../HookEngine"
 import { OrchestrationService } from "../../services/orchestration/OrchestrationService"
 import { AgentTraceEntry } from "../../services/orchestration/types"
+import { IPostHook } from "../engine/types"
 import * as crypto from "crypto"
 
-export class IntentProgressHook {
+export class IntentProgressHook implements IPostHook {
+	id = "intent-progress"
 	constructor(private orchestrationService: OrchestrationService) {}
 
-	async execute(result: ToolResult): Promise<void> {
+	async execute(result: ToolResult, _engine: HookEngine): Promise<void> {
 		if (!result.intentId || !result.success) return
 
 		try {
