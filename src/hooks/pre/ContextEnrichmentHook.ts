@@ -32,12 +32,18 @@ export class ContextEnrichmentHook {
 		const sharedBrain = await this.orchestrationService.loadSharedBrain()
 		context.shared_brain = sharedBrain
 
+		const { randomUUID } = await import("crypto")
 		// Log context enrichment to the trace
 		await this.orchestrationService
 			.logTrace({
+				trace_id: randomUUID(),
 				timestamp: new Date().toISOString(),
-				agent_id: "roo-code-agent",
+				actor: "roo-code-agent",
 				intent_id: intentId,
+				mutation_class: "N/A",
+				ranges: { file: "n/a", content_hash: "n/a", start_line: 0, end_line: 0 },
+				summary: `Loaded context for intent ${intentId}`,
+				contributor: { entity_type: "AI", model_identifier: "roo-code" },
 				state: "REASONING",
 				action_type: "CONTEXT_LOAD",
 				payload: {

@@ -84,5 +84,25 @@ describe("HookEngine Traceability Enforcement (US1, US2)", () => {
 				expect(response.action).toBe("CONTINUE")
 			}
 		})
+
+		it("T009: populates contributor field in logTrace calls for denials (US2)", async () => {
+			mockOrchestrationService.validateScope.mockResolvedValue({ allowed: false, reason: "Out of scope" })
+			const req: ToolRequest = {
+				toolName: "write_to_file",
+				params: { path: "test.ts", content: "..." },
+				intentId: "REQ-123",
+			}
+
+			await hookEngine.preToolUse(req)
+
+			expect(mockOrchestrationService.logTrace).toHaveBeenCalledWith(
+				expect.objectContaining({
+					contributor: {
+						entity_type: "AI",
+						model_identifier: "roo-code",
+					},
+				}),
+			)
+		})
 	})
 })

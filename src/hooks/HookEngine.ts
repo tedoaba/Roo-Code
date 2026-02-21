@@ -161,6 +161,7 @@ export class HookEngine {
 						},
 						actor: "roo-code-agent",
 						summary: `Stale write rejected for ${error.file_path}: expected ${error.expected_hash}, actual ${error.actual_hash}`,
+						contributor: { entity_type: "AI", model_identifier: "roo-code" },
 						metadata: {
 							session_id: "current",
 							expected_hash: error.expected_hash,
@@ -178,7 +179,7 @@ export class HookEngine {
 							error_type: "STALE_FILE",
 							output_summary: error.message,
 						},
-					} as any)
+					})
 					.catch(() => {})
 
 				// Step 2: Serialize to pure JSON StaleFileErrorPayload (FR-003/FR-004)
@@ -231,6 +232,7 @@ export class HookEngine {
 							},
 							actor: "roo-code-agent",
 							summary: `Scope Violation for ${filePath}`,
+							contributor: { entity_type: "AI", model_identifier: "roo-code" },
 							metadata: {
 								session_id: "current",
 							},
@@ -243,7 +245,7 @@ export class HookEngine {
 								status: "DENIED",
 								output_summary: scopeResult.reason || "Scope violation",
 							},
-						} as any)
+						})
 						.catch(() => {})
 
 					return {
@@ -291,6 +293,7 @@ export class HookEngine {
 						},
 						actor: "roo-code-agent",
 						summary: budgetResult.reason || "Budget exceeded",
+						contributor: { entity_type: "AI", model_identifier: "roo-code" },
 						metadata: {
 							session_id: "current",
 						},
@@ -300,7 +303,7 @@ export class HookEngine {
 							status: "DENIED",
 							output_summary: budgetResult.reason || "Budget exceeded",
 						},
-					} as any)
+					})
 					.catch(() => {})
 
 				return {
@@ -388,8 +391,9 @@ export class HookEngine {
 				trace_id: (await import("crypto")).randomUUID(),
 				timestamp: new Date().toISOString(),
 				actor: "roo-code-agent",
-				intent_id: result.intentId,
+				intent_id: result.intentId || null,
 				mutation_class: result.params.mutation_class || "N/A",
+				contributor: { entity_type: "AI", model_identifier: "roo-code" },
 				action_type: "TOOL_EXECUTION",
 				payload: {
 					tool_name: result.toolName,
@@ -409,7 +413,7 @@ export class HookEngine {
 					end_line: -1,
 				},
 				metadata: { session_id: "current" },
-			} as any) // Use any temporarily as OrchestrationService.logTrace expects old schema
+			})
 			.catch((err) => console.error("Failed to log post-tool trace:", err))
 
 		// US1/US2: Verification Failure Detection Hook (Automated Lesson Recording)

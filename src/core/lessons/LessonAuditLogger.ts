@@ -25,7 +25,9 @@ export class LessonAuditLogger {
 			type: "create",
 			target: "AGENT.md",
 			summary: `Recorded lesson learned for failure in ${lesson.file}: ${lesson.type}`,
+			contributor: { entity_type: "AI", model_identifier: "roo-code" },
 			metadata: {
+				session_id: "current",
 				failure_type: lesson.type,
 				file: lesson.file,
 				signature: lesson.signature,
@@ -52,7 +54,9 @@ export class LessonAuditLogger {
 			},
 			actor,
 			summary: `Duplicate lesson detected for ${lesson.file}. No write performed.`,
+			contributor: { entity_type: "AI", model_identifier: "roo-code" },
 			metadata: {
+				session_id: "current",
 				signature: lesson.signature,
 				intent_id: lesson.intent_id,
 				is_duplicate: true,

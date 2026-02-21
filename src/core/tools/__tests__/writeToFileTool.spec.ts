@@ -74,6 +74,17 @@ vi.mock("vscode", () => ({
 	},
 }))
 
+vi.mock("../../mutation/MutationClassifier", () => ({
+	MutationClassifier: {
+		getInstance: vi.fn().mockImplementation(() => ({
+			classify: vi.fn().mockImplementation(async (prev, next, path) => ({
+				classification: "AST_REFACTOR",
+				reason: "Mocked classification",
+			})),
+		})),
+	},
+}))
+
 vi.mock("../../ignore/RooIgnoreController", () => ({
 	RooIgnoreController: class {
 		initialize() {
@@ -81,6 +92,14 @@ vi.mock("../../ignore/RooIgnoreController", () => ({
 		}
 		validateAccess() {
 			return true
+		}
+	},
+}))
+
+vi.mock("../../protected/RooProtectedController", () => ({
+	RooProtectedController: class {
+		isWriteProtected() {
+			return false
 		}
 	},
 }))
@@ -134,6 +153,12 @@ describe("writeToFileTool", () => {
 		}
 		mockCline.rooIgnoreController = {
 			validateAccess: vi.fn().mockReturnValue(true),
+		}
+		mockCline.rooProtectedController = {
+			isWriteProtected: vi.fn().mockReturnValue(false),
+		}
+		mockCline.orchestrationService = {
+			logMutation: vi.fn().mockResolvedValue("mock-hash"),
 		}
 		mockCline.diffViewProvider = {
 			editType: undefined,

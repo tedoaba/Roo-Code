@@ -29,7 +29,13 @@ describe("AgentTraceHook (US1)", () => {
 	})
 
 	it("US1: generates a trace with basic fields on write in new schema", async () => {
-		await hook.execute("intent_123", testFilePath, "request_456")
+		await hook.execute({
+			intentId: "intent_123",
+			filePath: testFilePath,
+			requestId: "request_456",
+			mutationClass: "file_mutation",
+			summary: "test mutation",
+		})
 
 		const content = await fs.readFile(ledgerPath, "utf8")
 		const lines = content.trim().split("\n")
@@ -38,29 +44,41 @@ describe("AgentTraceHook (US1)", () => {
 		const entry = JSON.parse(lines[0])
 
 		expect(entry).toHaveProperty("timestamp")
-		expect(entry.agentId).toBe("roo-code")
-		expect(entry.intentId).toBe("intent_123")
-		expect(entry.mutation.target).toBe(testFilePath)
-		expect(entry.mutation.type).toBe("write")
-		expect(entry.attribution).toBe("agent")
+		expect(entry.actor).toBe("roo-code")
+		expect(entry.intent_id).toBe("intent_123")
+		expect(entry.ranges.file).toBe(testFilePath)
 		expect(entry.metadata.requestId).toBe("request_456")
+		expect(entry.contributor.entity_type).toBe("AI")
 	})
 
 	it("US1: computes SHA-256 hash for the mutation", async () => {
-		await hook.execute("intent_789", testFilePath, "request_abc")
+		await hook.execute({
+			intentId: "intent_789",
+			filePath: testFilePath,
+			requestId: "request_abc",
+			mutationClass: "file_mutation",
+			summary: "test mutation",
+		})
 
 		const content = await fs.readFile(ledgerPath, "utf8")
 		const lines = content.trim().split("\n")
 		const entry = JSON.parse(lines[0])
 
-		expect(entry.mutation.hash).toBeDefined()
+		expect(entry.ranges.content_hash).toBeDefined()
 		// SHA-256 for "Hello Trace"
-		expect(entry.mutation.hash).toBe("dffa5b4982065eb91f477bb117d0a7bb6723dfad620823c169bcbab93722440d")
+		expect(entry.ranges.content_hash).toBe("dffa5b4982065eb91f477bb117d0a7bb6723dfad620823c169bcbab93722440d")
 	})
 
 	it("US1: prevents duplicate entries for the same event", async () => {
-		await hook.execute("intent_123", testFilePath, "request_456")
-		await hook.execute("intent_123", testFilePath, "request_456") // Duplicate call
+		const params = {
+			intentId: "intent_123",
+			filePath: testFilePath,
+			requestId: "request_456",
+			mutationClass: "file_mutation",
+			summary: "test mutation",
+		}
+		await hook.execute(params)
+		await hook.execute(params) // Duplicate call
 
 		const content = await fs.readFile(ledgerPath, "utf8")
 		const lines = content.trim().split("\n")
@@ -73,10 +91,18 @@ describe("AgentTraceHook (US1)", () => {
 		const invalidFilePath = path.join(os.tmpdir(), "does-not-exist.txt")
 
 		// This should not throw
-		await expect(hook.execute("intent_bad", invalidFilePath, "request_bad")).resolves.not.toThrow()
+		await expect(
+			hook.execute({
+				intentId: "intent_bad",
+				filePath: invalidFilePath,
+				requestId: "request_bad",
+				mutationClass: "file_mutation",
+				summary: "test mutation",
+			}),
+		).resolves.not.toThrow()
 
 		const content = await fs.readFile(ledgerPath, "utf8")
 		const entry = JSON.parse(content.trim())
-		expect(entry.mutation.hash).toBe("n/a")
+		expect(entry.ranges.content_hash).toBe("n/a")
 	})
 })

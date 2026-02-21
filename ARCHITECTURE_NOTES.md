@@ -630,6 +630,38 @@ active_intents:
 
 ```json
 {
+	"trace_id": "uuid-v4",
+	"timestamp": "2026-02-16T12:00:00Z",
+	"mutation_class": "file_mutation",
+	"intent_id": "INT-001",
+	"related": ["INT-001", "REQ-001"],
+	"ranges": {
+		"file": "src/auth/middleware.ts",
+		"start_line": 15,
+		"end_line": 45,
+		"content_hash": "sha256:a8f5f167f44f4964e6c998dee827110c"
+	},
+	"actor": "agent-builder-01",
+	"summary": "Updated JWT validation logic",
+	"contributor": {
+		"entity_type": "AI",
+		"model_identifier": "claude-3-5-sonnet"
+	},
+	"state": "ACTION",
+	"action_type": "write_to_file",
+	"metadata": {
+		"session_id": "session-123",
+		"vcs_ref": "git_sha_hash"
+	}
+}
+```
+
+**Future Evolution (Nested Actions):**
+
+While the current schema is flat to prioritize simplicity and fast alignment, the architecture may evolve to support multi-file atomic operations using a nested structure:
+
+```json
+{
 	"id": "uuid-v4",
 	"timestamp": "2026-02-16T12:00:00Z",
 	"event_type": "file_mutation",
@@ -650,19 +682,10 @@ active_intents:
 						{
 							"start_line": 15,
 							"end_line": 45,
-							"content_hash": "sha256:a8f5f167f44f4964e6c998dee827110c"
+							"content_hash": "sha256:a8f5..."
 						}
 					],
-					"related": [
-						{
-							"type": "specification",
-							"value": "REQ-001"
-						},
-						{
-							"type": "intent",
-							"value": "INT-001"
-						}
-					]
+					"related": [{ "type": "intent", "value": "INT-001" }]
 				}
 			]
 		}
@@ -670,11 +693,13 @@ active_intents:
 }
 ```
 
+_This nested schema is preserved as a documented target for when the Hook Engine needs to support multi-file transactions natively._
+
 **Critical Design Properties:**
 
-- **Spatial Independence via Content Hashing:** The `content_hash` (SHA-256) is computed over the **modified code block content**, not the line numbers. If lines move due to upstream edits, the hash remains valid. This decouples the trace from positional instability.
-- **The Golden Thread to SpecKit:** The `related[]` array links each code mutation back to specification requirements (`REQ-*`) and intents (`INT-*`), creating a traceable chain from business requirement → intent → code change.
-- **Contributor Attribution:** Every trace records whether the change was made by an AI agent (with model identifier) or a human, enabling provenance tracking.
+- **Spatial Independence via Content Hashing:** The `ranges.content_hash` (SHA-256) is computed over the **modified code block content** (within `ranges`), not purely line numbers. If lines move due to upstream edits, the hash remains valid. This decouples the trace from positional instability.
+- **The Golden Thread to SpecKit:** The flat `related[]` array links each code mutation back to specification requirements (e.g., `REQ-*`) and intents (`INT-*`), creating a traceable chain from business requirement → intent → code change.
+- **Contributor Attribution:** Every trace records whether the change was made by an AI agent (with model identifier) or a human via the top-level structured `contributor` object, enabling clear provenance tracking.
 
 **When `agent_trace.jsonl` Is Written:**
 
@@ -720,7 +745,7 @@ active_intents:
 - **Related Specs:** REQ-005
 ```
 
-### 7.4 `AGENT.md` / `CLAUDE.md` — The Shared Brain
+### 7.4 `AGENTS.md` / `CLAUDE.md` — The Shared Brain
 
 **Purpose:** A persistent knowledge base shared across parallel agent sessions (Architect, Builder, Tester). Contains "Lessons Learned," project-specific stylistic rules, and architectural decisions. This is how parallel agents maintain shared consciousness without explicit coordination.
 
@@ -735,9 +760,9 @@ active_intents:
 
 **Strategy note:** Rather than modifying `CLAUDE.md` on disk for every LLM call, the governance layer SHALL:
 
-1. **Read** `AGENT.md`/`CLAUDE.md` from disk as a base knowledge source
+1. **Read** `AGENTS.md`/`CLAUDE.md` from disk as a base knowledge source
 2. **Inject** governance-specific context (active intent constraints, scope boundaries) dynamically through the `addCustomInstructions()` pipeline at INJ-1
-3. **Append** to `AGENT.md`/`CLAUDE.md` on disk only for durable cross-session knowledge (lessons learned, decisions)
+3. **Append** to `AGENTS.md`/`CLAUDE.md` on disk only for durable cross-session knowledge (lessons learned, decisions)
 
 This preserves the original file content for human readability while allowing per-request governance instructions to be computed dynamically based on current orchestration state.
 

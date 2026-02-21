@@ -1,5 +1,6 @@
-import { ExecutionState, AgentTraceEntry, COMMAND_CLASSIFICATION } from "../../services/orchestration/types"
+import { AgentTraceEntry, ExecutionState } from "../../contracts/AgentTrace"
 import { OrchestrationService } from "../../services/orchestration/OrchestrationService"
+import { COMMAND_CLASSIFICATION } from "../../services/orchestration/types"
 
 /**
  * Three-State Execution Flow State Machine (T006)
@@ -79,6 +80,7 @@ export class StateMachine {
 				},
 				actor: "roo-code-agent",
 				summary: `Transitioned from ${previousState} to ${newState}`,
+				contributor: { entity_type: "AI", model_identifier: "roo-code" },
 				state: newState,
 				action_type: "STATE_TRANSITION",
 				payload: {
@@ -91,7 +93,7 @@ export class StateMachine {
 				metadata: {
 					session_id: this.sessionId,
 				},
-			} as any)
+			})
 			.catch((err) => console.error("Failed to log state transition:", err))
 
 		return { success: true }

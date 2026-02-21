@@ -3892,7 +3892,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				disabledTools: state?.disabledTools,
 				modelInfo,
 				includeAllToolsWithRestrictions: false,
-				currentState: this.hookEngine.getCurrentState(),
+				currentState: this.hookEngine?.getCurrentState() || "ACTION",
 			})
 			allTools = toolsResult.tools
 		}
@@ -4121,7 +4121,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 						disabledTools: state?.disabledTools,
 						modelInfo,
 						includeAllToolsWithRestrictions: false,
-						currentState: this.hookEngine.getCurrentState(),
+						currentState: this.hookEngine?.getCurrentState() || "ACTION",
 					})
 					contextMgmtTools = toolsResult.tools
 				}
@@ -4286,7 +4286,7 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				disabledTools: state?.disabledTools,
 				modelInfo,
 				includeAllToolsWithRestrictions: supportsAllowedFunctionNames,
-				currentState: this.hookEngine.getCurrentState(),
+				currentState: this.hookEngine?.getCurrentState() || "ACTION",
 			})
 			allTools = toolsResult.tools
 			allowedFunctionNames = toolsResult.allowedFunctionNames

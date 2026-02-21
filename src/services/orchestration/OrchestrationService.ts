@@ -331,6 +331,7 @@ export class OrchestrationService {
 			},
 			actor: "roo-code-agent",
 			summary: `Wrote to ${filePath}`,
+			contributor: { entity_type: "AI", model_identifier: "roo-code" },
 			action_type: "TOOL_EXECUTION",
 			payload: {
 				tool_name: "write_to_file",
@@ -344,7 +345,7 @@ export class OrchestrationService {
 			metadata: {
 				session_id: "current",
 			},
-		} as any)
+		})
 
 		// Update intent_map.md
 		await this.updateIntentMap(filePath, intentId, hash)

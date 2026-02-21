@@ -1,5 +1,5 @@
 import { OrchestrationService } from "../../../services/orchestration/OrchestrationService"
-import { AgentTraceEntry } from "../../../services/orchestration/types"
+import { AgentTraceEntry } from "../../../contracts/AgentTrace"
 
 export async function getIntentHandshakeSection(
 	orchestrationService: OrchestrationService,

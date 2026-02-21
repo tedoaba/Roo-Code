@@ -85,5 +85,21 @@ describe("StateMachine: Relaxed Handshake Analysis (FR-009)", () => {
 				expect(result.allowed).toBe(true)
 			})
 		})
+
+		describe("logTrace validation", () => {
+			it("T010: populates contributor field in logTrace during state transitions (US2)", async () => {
+				await stateMachine.transitionTo("REASONING")
+
+				expect(mockOrchestrationService.logTrace).toHaveBeenCalledWith(
+					expect.objectContaining({
+						contributor: {
+							entity_type: "AI",
+							model_identifier: "roo-code",
+						},
+						state: "REASONING",
+					}),
+				)
+			})
+		})
 	})
 })
