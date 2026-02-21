@@ -35,7 +35,27 @@ export interface ITurnContext {
 	getBaseline(filePath: string): string | undefined
 
 	/**
+	 * Initializes a new turn. Clears any existing snapshot data.
+	 */
+	startTurn(): void
+
+	/**
+	 * Ends the current turn. Clears snapshot data and releases resources.
+	 */
+	endTurn(): void
+
+	/**
+	 * Capture and retrieve the initial hash of a file for the current turn.
+	 * Implements the "Compute-If-Absent" pattern for atomic concurrent access.
+	 *
+	 * @param filePath - Absolute path to the file.
+	 * @returns Promise resolving to the SHA-256 hash or null if file is unreadable.
+	 */
+	get_initial_hash(filePath: string): Promise<string | null>
+
+	/**
 	 * Clear all stored hashes. Called at the start of every turn.
+	 * @deprecated Use startTurn() instead.
 	 */
 	reset(): void
 }

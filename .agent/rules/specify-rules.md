@@ -4,6 +4,9 @@ Auto-generated from all feature plans. Last updated: 2026-02-18
 
 ## Active Technologies
 
+- TypeScript 5.0+ + `fs/promises`, SHA-256 Utility (`src/utils/hashing.ts`) (010-turn-hash-snapshot)
+- In-memory `Map<string, string | Promise<string | null>>` (010-turn-hash-snapshot)
+
 - TypeScript 5.x + `crypto` (standard library), `HookEngine`, `LedgerManager`. (009-optimistic-locking-guard)
 - In-memory `TurnContext` (transient) for baseline hashes; `.orchestration/agent_trace.jsonl` (persistent) for audit records. (009-optimistic-locking-guard)
 
@@ -42,11 +45,11 @@ General: Follow standard conventions
 
 ## Recent Changes
 
+- 010-turn-hash-snapshot: Added TypeScript 5.0+ + `fs/promises`, SHA-256 Utility (`src/utils/hashing.ts`)
+
 - 009-optimistic-locking-guard: Added TypeScript 5.x + `crypto` (standard library), `HookEngine`, `LedgerManager`.
 
 - 008-req-id-trace-injection: Added TypeScript 5.x + None (built-in orchestration hooks)
-
-- 007-agent-trace-ledger: Added TypeScript (Node.js 18+) + Node.js `fs/promises`, `crypto` (for SHA-256 hashing)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
