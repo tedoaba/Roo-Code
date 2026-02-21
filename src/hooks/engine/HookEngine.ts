@@ -181,7 +181,7 @@ export class HookEngine {
 			const summary = recentHistory
 				.map(
 					(h) =>
-						`[${h.timestamp}] ${h.action_type}: ${h.payload.tool_name || "unknown"} → ${h.result.status}`,
+						`[${h.timestamp}] ${h.action_type}: ${h.payload?.tool_name || "unknown"} → ${h.result?.status || "unknown"}`,
 				)
 				.join("\n")
 

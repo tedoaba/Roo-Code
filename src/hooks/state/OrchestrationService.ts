@@ -113,7 +113,14 @@ export class OrchestrationService {
 		try {
 			const content = await fs.readFile(this.intentsFile, "utf8")
 			const data = yaml.load(content) as ActiveIntentsFile
-			return data.active_intents || data.intents || []
+			const rawIntents = data.active_intents || data.intents || []
+			return rawIntents.map((intent: any) => ({
+				...intent,
+				constraints: intent.constraints || [],
+				owned_scope: intent.owned_scope || [],
+				acceptance_criteria: intent.acceptance_criteria || [],
+				related_specs: intent.related_specs || [],
+			})) as ActiveIntent[]
 		} catch (error: any) {
 			if (error.code === "ENOENT") {
 				return []

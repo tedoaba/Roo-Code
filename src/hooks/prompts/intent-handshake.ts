@@ -15,15 +15,16 @@ WARNING: Intent details not found. Please re-select a valid intent using 'select
 		}
 
 		const { intent, history } = context
-		const constraints = intent.constraints.map((c: string) => `- ${c}`).join("\n")
-		const scope = intent.owned_scope.map((s: string) => `- ${s}`).join("\n")
-		const acceptance = intent.acceptance_criteria.map((a: string) => `- ${a}`).join("\n")
+		const constraints = (intent.constraints || []).map((c: string) => `- ${c}`).join("\n")
+		const scope = (intent.owned_scope || []).map((s: string) => `- ${s}`).join("\n")
+		const acceptance = (intent.acceptance_criteria || []).map((a: string) => `- ${a}`).join("\n")
 
-		const historyText = history
+		const historyText = (history || [])
 			.slice(-5)
 			.map((t: AgentTraceEntry) => {
-				const details = t.action_type === "TOOL_EXECUTION" ? `${t.payload.tool_name}` : t.action_type
-				return `[${t.timestamp}] ${details}: ${t.result.output_summary}`
+				const details =
+					t.action_type === "TOOL_EXECUTION" ? `${t.payload?.tool_name || "unknown tool"}` : t.action_type
+				return `[${t.timestamp}] ${details}: ${t.result?.output_summary || "No summary available"}`
 			})
 			.join("\n")
 

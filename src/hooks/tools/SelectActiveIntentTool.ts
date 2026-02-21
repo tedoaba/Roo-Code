@@ -91,18 +91,21 @@ export class SelectActiveIntentTool extends BaseTool<"select_active_intent"> {
 				`${context.intent.status}`,
 				``,
 				`## Constraints`,
-				...context.intent.constraints.map((c: string) => `- ${c}`),
+				...(context.intent.constraints || []).map((c: string) => `- ${c}`),
 				``,
 				`## Scope (Allowed Files)`,
-				...context.intent.owned_scope.map((s: string) => `- ${s}`),
+				...(context.intent.owned_scope || []).map((s: string) => `- ${s}`),
 				``,
 				`## Acceptance Criteria`,
-				...context.intent.acceptance_criteria.map((a: string) => `- ${a}`),
+				...(context.intent.acceptance_criteria || []).map((a: string) => `- ${a}`),
 				``,
 				`## Recent History`,
-				...context.history
+				...(context.history || [])
 					.slice(-5)
-					.map((h: AgentTraceEntry) => `- [${h.timestamp}] ${h.result.output_summary}`),
+					.map(
+						(h: AgentTraceEntry) =>
+							`- [${h.timestamp}] ${h.result?.output_summary || "No summary available"}`,
+					),
 				``,
 				...(sharedBrain ? [`## Shared Brain (Project Guidelines)`, sharedBrain.slice(0, 1500), ``] : []),
 				`You are now working within this intent. Adhere strictly to the constraints and scope.`,

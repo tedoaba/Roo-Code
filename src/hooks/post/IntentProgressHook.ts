@@ -61,9 +61,9 @@ export class IntentProgressHook implements IPostHook {
 			result.output || "",
 			result.summary || "",
 			result.fileContent || "",
-			...traceEntries.map((entry) => entry.result.output_summary || ""),
+			...traceEntries.map((entry) => entry.result?.output_summary || ""),
 			...traceEntries.map((entry) => {
-				const params = entry.payload?.tool_input as any
+				const params = entry.payload?.tool_input || entry.payload?.arguments || {}
 				return typeof params === "object" ? JSON.stringify(params) : String(params || "")
 			}),
 		]
