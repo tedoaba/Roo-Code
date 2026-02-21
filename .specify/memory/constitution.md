@@ -64,7 +64,7 @@ Every mutation event SHALL be recorded in the append-only audit ledger (`.orches
 
 ### Invariant 4: Single Source of Orchestration Truth
 
-There SHALL exist exactly one authoritative orchestration state at any point in time, stored in the `.orchestration/` sidecar directory. This state — comprising `active_intents.yaml` (intent specifications), `agent_trace.jsonl` (audit ledger), `intent_map.md` (spatial mapping), and `AGENT.md`/`CLAUDE.md` (shared brain) — SHALL be the sole arbiter of: which intents are active, which agents are authorized, which scopes are locked, and which operations are permitted. No component SHALL maintain shadow state that contradicts or supplements the orchestration state without synchronization. Only the Hook Engine SHALL read from or write to the `.orchestration/` directory (see `ARCHITECTURE_NOTES.md` §7).
+There SHALL exist exactly one authoritative orchestration state at any point in time, stored in the `.orchestration/` sidecar directory. This state — comprising `active_intents.yaml` (intent specifications), `agent_trace.jsonl` (audit ledger), `intent_map.md` (spatial mapping), and `AGENTS.md`/`CLAUDE.md` (shared brain) — SHALL be the sole arbiter of: which intents are active, which agents are authorized, which scopes are locked, and which operations are permitted. No component SHALL maintain shadow state that contradicts or supplements the orchestration state without synchronization. Only the Hook Engine SHALL read from or write to the `.orchestration/` directory (see `ARCHITECTURE_NOTES.md` §7).
 
 ### Invariant 5: Agent Isolation
 
@@ -356,7 +356,7 @@ This appendix maps each constitutional law to its concrete architectural impleme
 | **Law 4.1** (Least Privilege)                | Three-domain privilege separation + `owned_scope` filtering                 | §6.1, §8.2           |
 | **Law 4.2** (Privilege Grant Authority)      | Hook Engine `OrchestrationState` manager                                    | §6.3                 |
 | **Law 5.2** (Atomic State Transitions)       | Optimistic locking with content hash comparison                             | §9.1                 |
-| **Part VI** (Living Knowledge)               | `AGENT.md`/`CLAUDE.md` Shared Brain pattern                                 | §7.4                 |
+| **Part VI** (Living Knowledge)               | `AGENTS.md`/`CLAUDE.md` Shared Brain pattern                                | §7.4                 |
 
 ---
 
