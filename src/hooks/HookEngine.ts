@@ -271,12 +271,28 @@ export class HookEngine {
 	 * 2. Audit ledger logging (T020)
 	 * 3. Intent map updates (T022)
 	 */
-	async postToolUse(result: ToolResult): Promise<void> {
+	async postToolUse(result: ToolResult, requestId?: string): Promise<void> {
 		if (!result.intentId) return
 
 		// For file-destructive tools, compute hash and update intent map
 		if (result.success && result.filePath && result.fileContent && this.isDestructiveTool(result.toolName)) {
 			await this.orchestrationService.logMutation(result.intentId, result.filePath, result.fileContent)
+		}
+
+		// Agent Trace Hook integration (US1/US2/US3)
+		if (
+			result.success &&
+			result.filePath &&
+			(result.toolName === "write_to_file" || this.isFileDestructiveTool(result.toolName))
+		) {
+			try {
+				const { AgentTraceHook } = await import("./post/AgentTraceHook")
+				const traceHook = new AgentTraceHook()
+				// We fall back to intentId if requestId is missing as a basic mapping mechanism
+				await traceHook.execute(result.intentId, result.filePath, requestId || result.intentId)
+			} catch (err) {
+				console.error("[HookEngine] Failed to execute AgentTraceHook:", err)
+			}
 		}
 
 		// Log general tool execution trace
