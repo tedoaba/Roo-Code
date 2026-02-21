@@ -180,7 +180,7 @@ The system enforces strict privilege separation across three domains: the **Webv
 
 ### Law 4.1 — Principle of Least Privilege
 
-Every agent SHALL be granted the minimum set of permissions required to fulfill its declared intent. Permissions SHALL be scoped to the `owned_scope` of the agent's active intent. During the Reasoning Intercept (State 2), the agent's tool access is restricted to `select_active_intent` only. During Contextualized Action (State 3), tools are restored but filtered to the intent's `owned_scope`. Blanket permissions are prohibited.
+Every agent SHALL be granted the minimum set of permissions required to fulfill its declared intent. Permissions SHALL be scoped to the `owned_scope` of the agent's active intent. During the Reasoning Intercept (State 2), the agent's tool access is restricted to `select_active_intent` and strictly read-only (`SAFE`) tools intended for context gathering (enforcing the Relaxed Handshake update). During Contextualized Action (State 3), tools are restored but filtered to the intent's `owned_scope`. Blanket permissions are prohibited.
 
 ### Law 4.2 — Privilege Grant Authority
 

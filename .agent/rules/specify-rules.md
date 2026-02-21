@@ -4,6 +4,8 @@ Auto-generated from all feature plans. Last updated: 2026-02-18
 
 ## Active Technologies
 
+- N/A (Stateless functional filtering based on existing state) (016-proactive-tool-filtering)
+
 - TypeScript 5.x (VS Code extension) + Anthropic SDK, OpenAI types, vscode API (015-prellm-compaction-wiring)
 - `.orchestration/` sidecar directory (JSONL, YAML) (015-prellm-compaction-wiring)
 
@@ -60,11 +62,11 @@ General: Follow standard conventions
 
 ## Recent Changes
 
+- 016-proactive-tool-filtering: Added TypeScript 5.x + VS Code Extension API
+
 - 015-prellm-compaction-wiring: Added TypeScript 5.x (VS Code extension) + Anthropic SDK, OpenAI types, vscode API
 
 - 014-relaxed-handshake-analysis: Added TypeScript / Node.js + VS Code Extension API, Orchestration Service, State Machine, Hook Engine
-
-- 013-verification-failure-hook: Added TypeScript / Node.js 20+ + Node.js `fs`, `path`, `crypto`. Existing `LessonRecorder`.
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
