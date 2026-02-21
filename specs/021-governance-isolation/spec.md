@@ -135,8 +135,8 @@ As a CI/CD pipeline maintainer, I want the codebase structured such that a lint 
 
 - **SC-001**: 100% of governance modules identified in the Architecture Alignment Report (G-006) exist at their documented `src/hooks/` target paths.
 - **SC-002**: 100% of original locations contain only re-export shims with `@deprecated` annotations — zero governance logic remains directly in `src/core/`, `src/services/`, `src/utils/`, or `src/errors/` (beyond re-exports).
-- **SC-003**: All existing tests pass after each individual module move with zero test modifications required (backward compatibility via re-exports).
-- **SC-004**: All existing tests pass after the complete migration with zero test modifications required.
+- **SC-003**: All existing tests pass after each individual module move. Tests that remain at their original locations require zero modifications (backward compatibility via re-exports). Co-located tests that move alongside their modules have their imports updated per FR-021.
+- **SC-004**: All existing tests pass after the complete migration with zero regressions.
 - **SC-005**: The `src/hooks/` directory structure matches the §6.3 documented layout, including all required subdirectories: `engine/`, `pre/`, `post/`, `state/`, `state/lessons/`, `tools/`, `prompts/`, `contracts/`, `errors/`.
 - **SC-006**: A developer can locate any governance module by browsing `src/hooks/` without needing to search `src/core/`, `src/services/`, `src/utils/`, or `src/errors/`.
 - **SC-007**: The migration guide document is complete with all old → new path mappings and is accessible in the feature directory.
@@ -145,7 +145,7 @@ As a CI/CD pipeline maintainer, I want the codebase structured such that a lint 
 ## Assumptions
 
 - The `src/hooks/engine/HookRegistry.ts` and `src/hooks/engine/types.ts` files already exist at the correct target location and do not need to be moved.
-- Existing test files import modules using path aliases or relative paths that will resolve via re-exports; no test file modifications are required.
+- External test files (e.g., integration tests in `src/hooks/__tests__/`, `src/test/`) import modules using paths that resolve via re-exports; no modifications are required for tests that remain in place. Co-located tests that move with their modules will have imports updated per FR-021.
 - The Architecture document §6.3 is the authoritative source for the target directory structure.
 - Circular dependencies between governance modules and non-governance modules in `src/core/` can be resolved through the re-export shim strategy without requiring additional refactoring.
 - The TypeScript compiler and bundler configuration supports re-exports without performance degradation or import resolution issues.

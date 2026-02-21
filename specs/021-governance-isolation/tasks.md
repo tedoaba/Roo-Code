@@ -76,7 +76,7 @@
 - [ ] T023 [P] [US1] Copy `src/core/concurrency/__tests__/OptimisticGuard.test.ts` to `src/hooks/state/__tests__/OptimisticGuard.test.ts`, update test imports — per FR-021
 - [ ] T024 [P] [US1] Copy `src/core/concurrency/__tests__/TurnLifecycle.test.ts` to `src/hooks/state/__tests__/TurnLifecycle.test.ts`, update test imports — per FR-021
 - [ ] T025 [US2] Verify all tests pass after TurnContext, OptimisticGuard, and TurnLifecycle moves — per FR-016. Run `npx vitest run`
-- [ ] T026 [US1] Copy `src/services/orchestration/OrchestrationService.ts` to `src/hooks/state/OrchestrationService.ts`, update internal imports to canonical paths (note: this file imports from `./types` which stays in services/ — update to reference `./types` unchanged OR the already-moved `../contracts/AgentTrace`) — per FR-010, FR-019
+- [ ] T026 [US1] Copy `src/services/orchestration/OrchestrationService.ts` to `src/hooks/state/OrchestrationService.ts`, update internal imports to canonical paths. Keep the `./types` import pointing to `../../services/orchestration/types` (NOT moved — contains non-governance `COMMAND_CLASSIFICATION`). Update any imports of already-moved modules (e.g., `AgentTrace`) to their new canonical `src/hooks/` paths — per FR-010, FR-019
 - [ ] T027 [US1] Replace `src/services/orchestration/OrchestrationService.ts` with a re-export shim containing `@deprecated` JSDoc tag — per FR-014
 - [ ] T028 [US2] Verify all tests pass after OrchestrationService move — per FR-016. Run `npx vitest run`
 - [ ] T029 [US1] Copy `src/utils/orchestration/LedgerManager.ts` to `src/hooks/state/LedgerManager.ts`, update internal imports to canonical paths — per FR-011, FR-019
