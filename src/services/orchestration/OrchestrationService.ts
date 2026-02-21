@@ -323,9 +323,19 @@ export class OrchestrationService {
 
 		// Log to agent_trace.jsonl
 		await this.logTrace({
+			trace_id: crypto.randomUUID(),
 			timestamp: new Date().toISOString(),
-			agent_id: "roo-code-agent",
+			mutation_class: "INTENT_EVOLUTION",
 			intent_id: intentId,
+			related: [intentId],
+			ranges: {
+				file: filePath,
+				content_hash: `sha256:${hash}`,
+				start_line: 1,
+				end_line: -1,
+			},
+			actor: "roo-code-agent",
+			summary: `Wrote to ${filePath}`,
 			action_type: "TOOL_EXECUTION",
 			payload: {
 				tool_name: "write_to_file",
@@ -339,7 +349,7 @@ export class OrchestrationService {
 			metadata: {
 				session_id: "current",
 			},
-		})
+		} as any)
 
 		// Update intent_map.md
 		await this.updateIntentMap(filePath, intentId, hash)

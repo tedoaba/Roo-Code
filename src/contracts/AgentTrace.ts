@@ -3,34 +3,36 @@
  * Follows Invariant 3 of the System Constitution.
  */
 export interface AgentTraceEntry {
-	/** ISO-8601 timestamp of the mutation */
+	trace_id: string
 	timestamp: string
+	mutation_class: string
+	intent_id: string | null
+	related: string[]
 
-	/** Identity string of the agent that performed the mutation */
-	agentId: string
-
-	/** The identifier of the intent that authorized this mutation */
-	intentId: string
-
-	/** Mutation details */
-	mutation: {
-		/** Type of operation performed (e.g., 'write', 'delete') */
-		type: "write" | "delete" | "rename" | "create"
-
-		/** Path to the file or artifact modified, relative to project root */
-		target: string
-
+	/** Spatial hashing and range data */
+	ranges: {
+		/** Path to the file modified, relative to project root */
+		file: string
 		/** Cryptographic hash (SHA-256) of the resulting content */
-		hash: string
+		content_hash: string
+		/** Starting line of change (1-indexed) */
+		start_line: number
+		/** Ending line of change (inclusive) */
+		end_line: number
 	}
 
-	/** The Git revision ID or internal system revision at the time of mutation */
-	vcsRevision: string
+	/** Identity of the contributor (human or system process) */
+	actor: string
 
-	/** Identity of the contributor (human or system process) - Invariant 3 */
-	attribution: string
+	/** Brief summary of the change */
+	summary: string
 
-	/** Optional metadata, such as tool names or execution stats */
+	state?: string
+	action_type?: string
+	payload?: any
+	result?: any
+
+	/** Optional extra metadata */
 	metadata?: Record<string, any>
 }
 

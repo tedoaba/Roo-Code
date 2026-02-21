@@ -25,38 +25,29 @@ export type IntentStatus = ActiveIntent["status"]
 export type ExecutionState = "REQUEST" | "REASONING" | "ACTION"
 
 export interface AgentTraceEntry {
+	trace_id: string
 	timestamp: string
-	agent_id: string
+	mutation_class: string
 	intent_id: string | null
+	related: string[]
+	ranges: {
+		file: string
+		content_hash: string
+		start_line: number
+		end_line: number
+	}
+	actor: string
+	summary: string
+	// Existing fields for orchestration
 	state?: ExecutionState
-	action_type:
-		| "TOOL_EXECUTION"
-		| "CONTEXT_LOAD"
-		| "INTENT_SELECTION"
-		| "SCOPE_VIOLATION"
-		| "BUDGET_EXHAUSTED"
-		| "STATE_TRANSITION"
-		| "ERROR"
-	payload: {
-		tool_name?: string
-		tool_input?: any
-		target_files?: string[]
-		command?: string
-		reasoning?: string
-		hash?: string
-		symbols?: string[]
-	}
-	result: {
-		status: "SUCCESS" | "FAILURE" | "DENIED"
-		output_summary: string
-		content_hash?: string
-		error_message?: string
-	}
-	related?: string[]
+	action_type?: string
+	payload?: any
+	result?: any
 	metadata: {
 		vcs_ref?: string
 		session_id: string
 		contributor?: string
+		[key: string]: any
 	}
 }
 

@@ -1,6 +1,7 @@
 import { OrchestrationService } from "../services/orchestration/OrchestrationService"
 import { StateMachine } from "../core/state/StateMachine"
 import { HookResponse, CommandClassification } from "../services/orchestration/types"
+import { TraceabilityError } from "../errors/TraceabilityError"
 
 /**
  * Hook Engine - The Sole Execution Gateway (T007)
@@ -28,6 +29,8 @@ export interface ToolResult {
 	output?: string
 	filePath?: string
 	fileContent?: string
+	mutationClass?: string
+	summary?: string
 }
 
 /** Tracks consecutive identical tool calls for circuit breaking */
@@ -137,16 +140,21 @@ export class HookEngine {
 			return { action: "CONTINUE", classification }
 		}
 
-		// T007/T015: No Active Intent block (FR-008)
-		// All destructive tools are denied if no intent is active
-		if (!req.intentId && this.isDestructiveTool(req.toolName)) {
-			return {
-				action: "DENY",
-				classification,
-				reason: "Error: No active intent. Please execute select_active_intent before modifying code.",
-				details: `Tool '${req.toolName}' requires an active intent but none is selected.`,
-				recovery_hint:
-					"Use the 'select_active_intent' tool to select or create an intent before performing destructive operations.",
+		// US1/US2: Traceability Enforcement (Law 3.3.1)
+		// All destructive tools MUST have a valid REQ-ID intent identifier.
+		if (this.isDestructiveTool(req.toolName)) {
+			if (req.intentId === undefined || req.intentId === null) {
+				throw new TraceabilityError(
+					`[Traceability Requirement Violation] Tool '${req.toolName}' is classified as DESTRUCTIVE and requires an active traceability identifier (intentId), but none was provided.`,
+				)
+			}
+
+			// Validate REQ-ID format (US2)
+			const reqIdRegex = /^REQ-[a-zA-Z0-9\-]+$/
+			if (!reqIdRegex.test(req.intentId)) {
+				throw new TraceabilityError(
+					`[Invalid Traceability Identifier Format] The provided intentId '${req.intentId}' does not follow the required project standard (must match /^REQ-[a-zA-Z0-9\-]+$/).`,
+				)
 			}
 		}
 
@@ -167,14 +175,27 @@ export class HookEngine {
 				}
 
 				const scopeResult = await this.orchestrationService.validateScope(req.intentId, filePath)
+				const { randomUUID } = await import("crypto")
 				if (!scopeResult.allowed) {
 					// Log scope violation
 					await this.orchestrationService
 						.logTrace({
+							trace_id: randomUUID(),
 							timestamp: new Date().toISOString(),
-							agent_id: "roo-code-agent",
+							mutation_class: "N/A",
 							intent_id: req.intentId,
-							state: this.stateMachine.getCurrentState(),
+							related: [req.intentId],
+							ranges: {
+								file: filePath,
+								content_hash: "n/a",
+								start_line: 0,
+								end_line: 0,
+							},
+							actor: "roo-code-agent",
+							summary: `Scope Violation for ${filePath}`,
+							metadata: {
+								session_id: "current",
+							},
 							action_type: "SCOPE_VIOLATION",
 							payload: {
 								tool_name: req.toolName,
@@ -184,9 +205,7 @@ export class HookEngine {
 								status: "DENIED",
 								output_summary: scopeResult.reason || "Scope violation",
 							},
-							related: [req.intentId],
-							metadata: { session_id: "current" },
-						})
+						} as any)
 						.catch(() => {})
 
 					return {
@@ -218,21 +237,32 @@ export class HookEngine {
 		if (req.intentId) {
 			const budgetResult = await this.orchestrationService.updateBudget(req.intentId)
 			if (!budgetResult.withinBudget) {
+				const { randomUUID } = await import("crypto")
 				await this.orchestrationService
 					.logTrace({
+						trace_id: randomUUID(),
 						timestamp: new Date().toISOString(),
-						agent_id: "roo-code-agent",
+						mutation_class: "N/A",
 						intent_id: req.intentId,
-						state: this.stateMachine.getCurrentState(),
+						related: [req.intentId],
+						ranges: {
+							file: "n/a",
+							content_hash: "n/a",
+							start_line: 0,
+							end_line: 0,
+						},
+						actor: "roo-code-agent",
+						summary: budgetResult.reason || "Budget exceeded",
+						metadata: {
+							session_id: "current",
+						},
 						action_type: "BUDGET_EXHAUSTED",
 						payload: { tool_name: req.toolName },
 						result: {
 							status: "DENIED",
 							output_summary: budgetResult.reason || "Budget exceeded",
 						},
-						related: [req.intentId],
-						metadata: { session_id: "current" },
-					})
+					} as any)
 					.catch(() => {})
 
 				return {
@@ -288,8 +318,19 @@ export class HookEngine {
 			try {
 				const { AgentTraceHook } = await import("./post/AgentTraceHook")
 				const traceHook = new AgentTraceHook()
+
+				// Extract mutation info from tool params or result
+				const mutationClass = result.mutationClass || result.params.mutation_class || "INTENT_EVOLUTION"
+				const summary = result.summary || `Agent mutation via ${result.toolName}`
+
 				// We fall back to intentId if requestId is missing as a basic mapping mechanism
-				await traceHook.execute(result.intentId, result.filePath, requestId || result.intentId)
+				await traceHook.execute({
+					intentId: result.intentId,
+					filePath: result.filePath,
+					requestId: requestId || result.intentId,
+					mutationClass,
+					summary,
+				})
 			} catch (err) {
 				console.error("[HookEngine] Failed to execute AgentTraceHook:", err)
 			}
@@ -298,10 +339,11 @@ export class HookEngine {
 		// Log general tool execution trace
 		await this.orchestrationService
 			.logTrace({
+				trace_id: (await import("crypto")).randomUUID(),
 				timestamp: new Date().toISOString(),
-				agent_id: "roo-code-agent",
+				actor: "roo-code-agent",
 				intent_id: result.intentId,
-				state: this.stateMachine.getCurrentState(),
+				mutation_class: result.params.mutation_class || "N/A",
 				action_type: "TOOL_EXECUTION",
 				payload: {
 					tool_name: result.toolName,
@@ -313,8 +355,15 @@ export class HookEngine {
 					output_summary: result.output?.slice(0, 200) || "(no output)",
 				},
 				related: [result.intentId],
+				summary: result.summary || `Executed tool ${result.toolName}`,
+				ranges: {
+					file: result.filePath || "n/a",
+					content_hash: "n/a",
+					start_line: 1,
+					end_line: -1,
+				},
 				metadata: { session_id: "current" },
-			})
+			} as any) // Use any temporarily as OrchestrationService.logTrace expects old schema
 			.catch((err) => console.error("Failed to log post-tool trace:", err))
 	}
 

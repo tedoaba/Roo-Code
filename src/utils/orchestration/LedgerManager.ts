@@ -46,14 +46,15 @@ export class LedgerManager implements ILedgerManager {
 	 * Integrates with SHA-256 hashing.
 	 */
 	async recordMutation(params: {
-		agentId: string
+		actor: string
 		intentId: string
+		mutationClass: string
 		type: "write" | "delete" | "rename" | "create"
 		target: string
-		vcsRevision: string
-		attribution: string
+		summary: string
 		metadata?: Record<string, any>
 	}): Promise<void> {
+		const { randomUUID } = await import("crypto")
 		let hash = "n/a"
 		if (params.type !== "delete") {
 			try {
@@ -65,16 +66,19 @@ export class LedgerManager implements ILedgerManager {
 		}
 
 		const entry: AgentTraceEntry = {
+			trace_id: randomUUID(),
 			timestamp: new Date().toISOString(),
-			agentId: params.agentId,
-			intentId: params.intentId,
-			mutation: {
-				type: params.type,
-				target: params.target,
-				hash: hash,
+			mutation_class: params.mutationClass,
+			intent_id: params.intentId,
+			related: [params.intentId],
+			ranges: {
+				file: params.target,
+				content_hash: hash,
+				start_line: 1, // Default for full file write
+				end_line: -1, // -1 denotes EOF/complete file
 			},
-			vcsRevision: params.vcsRevision,
-			attribution: params.attribution,
+			actor: params.actor,
+			summary: params.summary,
 			metadata: params.metadata,
 		}
 
