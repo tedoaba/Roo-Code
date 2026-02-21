@@ -1,0 +1,32 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "StaleFileErrorPayload",
+	"description": "The exact JSON object returned by file mutation tools when a stale write is rejected due to hash mismatch.",
+	"type": "object",
+	"properties": {
+		"error_type": {
+			"type": "string",
+			"const": "STALE_FILE",
+			"description": "Unique identifier for this error type, used for routing."
+		},
+		"file_path": {
+			"type": "string",
+			"description": "Absolute path to the file experiencing the conflict."
+		},
+		"expected_hash": {
+			"type": "string",
+			"description": "The SHA-256 hash the Agent expected before writing."
+		},
+		"actual_hash": {
+			"type": "string",
+			"description": "The real SHA-256 hash currently on disk. Will be 'DELETED' if the file no longer exists."
+		},
+		"resolution": {
+			"type": "string",
+			"const": "RE_READ_REQUIRED",
+			"description": "Explicit instructions for the controller to automatically re-read the file before attempting another operation."
+		}
+	},
+	"required": ["error_type", "file_path", "expected_hash", "actual_hash", "resolution"],
+	"additionalProperties": false
+}

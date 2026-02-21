@@ -1,3 +1,6 @@
+// Re-export the StaleFileErrorPayload for consumer convenience
+export type { StaleFileErrorPayload } from "../../hooks/errors/StaleWriteError"
+
 /**
  * Result of an optimistic lock verification check.
  */
