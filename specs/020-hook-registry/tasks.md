@@ -69,7 +69,13 @@
 - [ ] T013 [P] [US2] Extract Mutation Logging logic to `src/hooks/post/MutationLogHook.ts`
 - [ ] T014 [P] [US2] Extract Turn Context update logic to `src/hooks/post/TurnContextHook.ts`
 - [ ] T015 [P] [US2] Extract General Trace logging to `src/hooks/post/GeneralTraceHook.ts`
-- [ ] T016 [US2] Add unit tests for post-hook error isolation and sequential execution in `tests/hooks/HookRegistry.test.ts`
+- [ ] T016 [P] [US2] Extract Read-File Baseline logic to `src/hooks/post/ReadFileBaselineHook.ts`
+- [ ] T017 [P] [US2] Extract Agent Trace logic to `src/hooks/post/AgentTraceHook.ts`
+- [ ] T018 [P] [US2] Extract Verification Failure logic to `src/hooks/post/VerificationFailureHook.ts`
+- [ ] T019 [P] [US2] Extract Intent Progress logic to `src/hooks/post/IntentProgressHook.ts`
+- [ ] T020 [P] [US2] Extract Scope Drift logic to `src/hooks/post/ScopeDriftHook.ts`
+- [ ] T021 [P] [US2] Extract Shared Brain logic to `src/hooks/post/SharedBrainHook.ts`
+- [ ] T022 [US2] Add unit tests for post-hook error isolation and sequential execution in `tests/hooks/HookRegistry.test.ts`
 
 **Checkpoint**: At this point, the registry can handle all existing post-execution audit and logging logic.
 
@@ -83,10 +89,10 @@
 
 ### Implementation for User Story 5
 
-- [ ] T017 [US5] Instantiate and populate `HookRegistry` in `src/hooks/HookEngine.ts` constructor with all extracted hooks
-- [ ] T018 [US5] Refactor `HookEngine.preToolUse()` to delegate to `this.registry.executePre()`
-- [ ] T019 [US5] Refactor `HookEngine.postToolUse()` to delegate to `this.registry.executePost()`
-- [ ] T020 [US5] Verify behavioral equivalence by running `npm test tests/hooks/HookEngine.test.ts`
+- [ ] T023 [US5] Instantiate and populate `HookRegistry` in `src/hooks/HookEngine.ts` constructor with all extracted hooks
+- [ ] T024 [US5] Refactor `HookEngine.preToolUse()` to delegate to `this.registry.executePre()`
+- [ ] T025 [US5] Refactor `HookEngine.postToolUse()` to delegate to `this.registry.executePost()`
+- [ ] T026 [US5] Verify behavioral equivalence by running `npm test tests/hooks/HookEngine.test.ts`
 
 **Checkpoint**: The system is now architecture-complete and backward compatible.
 
@@ -100,9 +106,9 @@
 
 ### Implementation for US3, US4, US6
 
-- [ ] T021 [P] [US3] Implement and test `deregister()` in `src/hooks/engine/HookRegistry.ts`
-- [ ] T022 [P] [US4] Implement and test `getRegisteredHooks()` in `src/hooks/engine/HookRegistry.ts`
-- [ ] T023 [US6] Create integration tests showing registration of a mock hook replacing a default one in `tests/hooks/HookEngineMocking.test.ts`
+- [ ] T027 [P] [US3] Implement and test `deregister()` in `src/hooks/engine/HookRegistry.ts`
+- [ ] T028 [P] [US4] Implement and test `getRegisteredHooks()` in `src/hooks/engine/HookRegistry.ts`
+- [ ] T029 [US6] Create integration tests showing registration of a mock hook replacing a default one in `tests/hooks/HookEngineMocking.test.ts`
 
 ---
 
@@ -110,10 +116,11 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T024 [P] Update internal documentation and comments to reflect the new registry architecture
-- [ ] T025 Performance audit of hook execution overhead across all stories
-- [ ] T026 Final code coverage report for `src/hooks/engine/HookRegistry.ts` (target 90%+)
-- [ ] T027 Run full `quickstart.md` validation scenarios
+- [ ] T030 [P] Update internal documentation and comments to reflect the new registry architecture
+- [ ] T031 Performance audit of hook execution overhead across all stories
+- [ ] T032 Final code coverage report for `src/hooks/engine/HookRegistry.ts` (target 90%+)
+- [ ] T033 Run full `quickstart.md` validation scenarios
+- [ ] T034 Verify HookEngine.ts line count reduction target (SC-003: >= 40%)
 
 ---
 

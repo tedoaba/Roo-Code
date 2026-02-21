@@ -125,7 +125,7 @@ As a test author, I should be able to register mock hooks in the registry for in
 ### Functional Requirements
 
 - **FR-001**: The system MUST provide a `HookRegistry` class located at `src/hooks/engine/HookRegistry.ts`.
-- **FR-002**: The system MUST support two execution phases: `PRE` (ordered, short-circuiting) and `POST` (unordered, fire-and-forget with error catching).
+- **FR-002**: The system MUST support two execution phases: `PRE` (ordered, short-circuiting) and `POST` (sequential, fire-and-forget with error catching).
 - **FR-003**: The system MUST provide a `register(phase: "PRE" | "POST", hook: IHook, options?: { priority?: number })` method for adding hooks to the registry.
 - **FR-004**: The system MUST provide a `deregister(phase: "PRE" | "POST", hookId: string)` method for removing hooks by identifier.
 - **FR-005**: Pre-hooks MUST execute in ascending priority order (lower number = higher priority = runs first).
