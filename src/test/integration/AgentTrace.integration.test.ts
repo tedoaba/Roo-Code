@@ -57,10 +57,11 @@ describe("Agent Trace Integration", () => {
 	})
 
 	it("should record a trace entry when a destructive tool succeeds", async () => {
+		const uniqueIntentId = `intent-integration-test-${Date.now()}-${Math.random()}`
 		const result: ToolResult = {
 			toolName: "write_to_file",
 			params: { path: testFilePath, content: "const x = 2;" },
-			intentId: "intent-integration-test",
+			intentId: uniqueIntentId,
 			success: true,
 			filePath: testFilePath,
 			fileContent: "const x = 2;",
@@ -77,7 +78,7 @@ describe("Agent Trace Integration", () => {
 		const lines = content.trim().split("\n")
 
 		// Find the line relevant to our test (in case there are other traces)
-		const ourTrace = lines.map((l) => JSON.parse(l)).find((t) => t.intent_id === "intent-integration-test")
+		const ourTrace = lines.map((l) => JSON.parse(l)).find((t) => t.intent_id === uniqueIntentId)
 
 		expect(ourTrace).toBeDefined()
 		expect(ourTrace.ranges.file).toBe(testFilePath)

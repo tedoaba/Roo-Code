@@ -309,7 +309,9 @@ describe("CustomModesManager - YAML Edge Cases", () => {
 
 			// Should show schema validation error
 			expect(modes).toHaveLength(0)
-			expect(vscode.window.showErrorMessage).toHaveBeenCalledWith("customModes.errors.schemaValidationError")
+			expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+				expect.stringMatching(/customModes\.errors\.schemaValidationError/),
+			)
 		})
 	})
 

@@ -29,13 +29,23 @@ describe("AgentTraceHook (US1)", () => {
 	})
 
 	it("US1: generates a trace with basic fields on write in new schema", async () => {
-		await hook.execute({
-			intentId: "intent_123",
-			filePath: testFilePath,
-			requestId: "request_456",
-			mutationClass: "file_mutation",
-			summary: "test mutation",
-		})
+		const mockEngine = {
+			isFileDestructiveTool: () => true,
+		} as any
+
+		await hook.execute(
+			{
+				toolName: "write_to_file",
+				params: {},
+				success: true,
+				intentId: "intent_123",
+				filePath: testFilePath,
+				mutationClass: "file_mutation",
+				summary: "test mutation",
+			},
+			mockEngine,
+			"request_456",
+		)
 
 		const content = await fs.readFile(ledgerPath, "utf8")
 		const lines = content.trim().split("\n")
@@ -52,13 +62,23 @@ describe("AgentTraceHook (US1)", () => {
 	})
 
 	it("US1: computes SHA-256 hash for the mutation", async () => {
-		await hook.execute({
-			intentId: "intent_789",
-			filePath: testFilePath,
-			requestId: "request_abc",
-			mutationClass: "file_mutation",
-			summary: "test mutation",
-		})
+		const mockEngine = {
+			isFileDestructiveTool: () => true,
+		} as any
+
+		await hook.execute(
+			{
+				toolName: "write_to_file",
+				params: {},
+				success: true,
+				intentId: "intent_789",
+				filePath: testFilePath,
+				mutationClass: "file_mutation",
+				summary: "test mutation",
+			},
+			mockEngine,
+			"request_abc",
+		)
 
 		const content = await fs.readFile(ledgerPath, "utf8")
 		const lines = content.trim().split("\n")
@@ -70,15 +90,22 @@ describe("AgentTraceHook (US1)", () => {
 	})
 
 	it("US1: prevents duplicate entries for the same event", async () => {
-		const params = {
+		const mockEngine = {
+			isFileDestructiveTool: () => true,
+		} as any
+
+		const result = {
+			toolName: "write_to_file",
+			params: {},
+			success: true,
 			intentId: "intent_123",
 			filePath: testFilePath,
-			requestId: "request_456",
 			mutationClass: "file_mutation",
 			summary: "test mutation",
 		}
-		await hook.execute(params)
-		await hook.execute(params) // Duplicate call
+
+		await hook.execute(result, mockEngine, "request_456")
+		await hook.execute(result, mockEngine, "request_456") // Duplicate call
 
 		const content = await fs.readFile(ledgerPath, "utf8")
 		const lines = content.trim().split("\n")
@@ -86,19 +113,29 @@ describe("AgentTraceHook (US1)", () => {
 	})
 
 	it("US1: fails safely without throwing exceptions on internal error", async () => {
+		const mockEngine = {
+			isFileDestructiveTool: () => true,
+		} as any
+
 		// Pass an invalid file path that will cause LedgerManager to warn and proceed with hash "n/a"
 		// or at least not crash the hook's execution.
 		const invalidFilePath = path.join(os.tmpdir(), "does-not-exist.txt")
 
 		// This should not throw
 		await expect(
-			hook.execute({
-				intentId: "intent_bad",
-				filePath: invalidFilePath,
-				requestId: "request_bad",
-				mutationClass: "file_mutation",
-				summary: "test mutation",
-			}),
+			hook.execute(
+				{
+					toolName: "write_to_file",
+					params: {},
+					success: true,
+					intentId: "intent_bad",
+					filePath: invalidFilePath,
+					mutationClass: "file_mutation",
+					summary: "test mutation",
+				},
+				mockEngine,
+				"request_bad",
+			),
 		).resolves.not.toThrow()
 
 		const content = await fs.readFile(ledgerPath, "utf8")
