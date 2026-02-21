@@ -4,6 +4,9 @@ Auto-generated from all feature plans. Last updated: 2026-02-18
 
 ## Active Technologies
 
+- TypeScript (VSCode extension project) + `vscode`, `js-yaml`, `minimatch`, `ignore`, `crypto` (021-governance-isolation)
+- File-system based (`.orchestration/` sidecar directory) (021-governance-isolation)
+
 - TypeScript (Node.js) + OrchestrationService, StateMachine (020-hook-registry)
 - N/A (In-memory registry) (020-hook-registry)
 
@@ -75,10 +78,10 @@ General: Follow standard conventions
 
 ## Recent Changes
 
+- 021-governance-isolation: Added TypeScript (VSCode extension project) + `vscode`, `js-yaml`, `minimatch`, `ignore`, `crypto`
+
 - 020-hook-registry: Added TypeScript (Node.js) + OrchestrationService, StateMachine
 - 020-hook-registry: Added [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
-
-- 019-post-hooks-impl: Added TypeScript / Node.js + None new required (uses existing HookEngine structure and OrchestrationService).
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

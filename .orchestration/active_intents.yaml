@@ -1,16 +1,35 @@
-intents:
-    - id: "test-intent-1"
-      name: "Test Intent"
-      description: "A dummy intent for testing the handshake protocol."
-      status: IN_PROGRESS
-      constraints:
-          - "Must not edit outside of src/test/"
-      owned_scope:
-          - "**/*.test.ts"
-      acceptance_criteria:
-          - "Handshake works."
-      related_specs:
-          - "specs/001-intent-handshake/spec.md"
-      assigned_agent: "human"
-      created_at: "2026-02-17T00:00:00Z"
-      updated_at: "2026-02-17T00:00:00Z"
+active_intents:
+  - id: REQ-WEATHER-API-001
+    name: FastAPI Weather Service
+    description: Create a weather API with FastAPI that returns mock weather data.
+    status: COMPLETED
+    owned_scope:
+      - main.py
+      - requirements.txt
+      - app/**/*
+      - tests/**/*
+      - .orchestration/**/*
+    acceptance_criteria:
+      - GET /weather/{city} returns a mock JSON response
+      - FastAPI app is runnable
+    created_at: '2026-02-21T19:56:46Z'
+    updated_at: '2026-02-21T19:56:46Z'
+    constraints: []
+    related_specs: []
+  - id: REQ-WEATHER-API-002
+    name: FastAPI Weather Service Implementation
+    description: Create a weather API with FastAPI that returns mock weather data.
+    status: IN_PROGRESS
+    owned_scope:
+      - main.py
+      - requirements.txt
+      - app/**/*
+      - tests/**/*
+      - .orchestration/**/*
+    acceptance_criteria:
+      - GET /weather/{city} returns a mock JSON response
+      - FastAPI app is runnable
+    created_at: '2026-02-21T19:56:46Z'
+    updated_at: '2026-02-21T19:56:46Z'
+    constraints: []
+    related_specs: []

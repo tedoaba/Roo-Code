@@ -191,9 +191,8 @@ export class CustomModesManager {
 			}
 
 			const result = customModesSettingsSchema.safeParse(settings)
-
 			if (!result.success) {
-				console.error(`[CustomModesManager] Schema validation failed for ${filePath}:`, result.error)
+				console.error(`[CustomModesManager] Schema validation failed for ${filePath}: ${result.error.message}`)
 
 				// Show user-friendly error for .roomodes files
 				if (filePath.endsWith(ROOMODES_FILENAME)) {
@@ -367,6 +366,7 @@ export class CustomModesManager {
 
 		// Get modes from .roomodes if it exists.
 		const roomodesPath = await this.getWorkspaceRoomodes()
+
 		const roomodesModes = roomodesPath ? await this.loadModesFromFile(roomodesPath) : []
 
 		// Create maps to store modes by source.

@@ -5,20 +5,20 @@ import { AgentTraceEntry } from "../AgentTrace"
 
 describe("AgentTraceEntry (Canonical definition) - SC-001 Validation", () => {
 	it("SC-001: should have exactly one canonical definition in src/", async () => {
-		const srcDir = path.join(__dirname, "..", "..")
+		const srcDir = path.join(__dirname, "..", "..", "..")
 
 		const typesPath = path.join(srcDir, "services", "orchestration", "types.ts")
 		const typesContent = await fs.readFile(typesPath, "utf8")
 		expect(typesContent).not.toMatch(/export interface AgentTraceEntry\s*\{/)
 
-		const contractsPath = path.join(srcDir, "contracts", "AgentTrace.ts")
+		const contractsPath = path.join(srcDir, "hooks", "contracts", "AgentTrace.ts")
 		const contractsContent = await fs.readFile(contractsPath, "utf8")
 		expect(contractsContent).toMatch(/export interface AgentTraceEntry\s*\{/)
 	})
 
 	it("FR-008: should keep ILedgerManager co-located in contracts", async () => {
-		const srcDir = path.join(__dirname, "..", "..")
-		const contractsPath = path.join(srcDir, "contracts", "AgentTrace.ts")
+		const srcDir = path.join(__dirname, "..", "..", "..")
+		const contractsPath = path.join(srcDir, "hooks", "contracts", "AgentTrace.ts")
 		const contractsContent = await fs.readFile(contractsPath, "utf8")
 		expect(contractsContent).toMatch(/export interface ILedgerManager\s*\{/)
 	})
