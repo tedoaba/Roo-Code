@@ -429,6 +429,33 @@ export class HookEngine {
 				console.error("[HookEngine] Failed to execute VerificationFailureHook:", err)
 			}
 		}
+
+		// US1: Intent Progress Evaluation
+		try {
+			const { IntentProgressHook } = await import("./post/IntentProgressHook")
+			const progressHook = new IntentProgressHook(this.orchestrationService)
+			await progressHook.execute(result)
+		} catch (err) {
+			console.error("[HookEngine] Failed to execute IntentProgressHook:", err)
+		}
+
+		// US2: Scope Drift Detection
+		try {
+			const { ScopeDriftDetectionHook } = await import("./post/ScopeDriftDetectionHook")
+			const driftHook = new ScopeDriftDetectionHook(this.orchestrationService)
+			await driftHook.execute(result)
+		} catch (err) {
+			console.error("[HookEngine] Failed to execute ScopeDriftDetectionHook:", err)
+		}
+
+		// US3: Shared Brain Governance Lessons
+		try {
+			const { SharedBrainHook } = await import("./post/SharedBrainHook")
+			const brainHook = new SharedBrainHook()
+			await brainHook.execute(result)
+		} catch (err) {
+			console.error("[HookEngine] Failed to execute SharedBrainHook:", err)
+		}
 	}
 
 	// ── PreLLMRequest Hook (T027) ──

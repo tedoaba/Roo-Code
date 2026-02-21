@@ -434,6 +434,27 @@ export class OrchestrationService {
 		return null
 	}
 
+	/**
+	 * Get all file paths tracked in intent_map.md as absolute paths.
+	 */
+	async getMappedPaths(): Promise<string[]> {
+		const mappedPaths: string[] = []
+		try {
+			const content = await fs.readFile(this.intentMapFile, "utf8")
+			const lines = content.split("\n")
+
+			for (const line of lines) {
+				const match = line.match(/\|\s*`([^`]+)`/)
+				if (match && match[1] && !match[1].includes("File Path")) {
+					mappedPaths.push(path.join(this.workspaceRoot, match[1]))
+				}
+			}
+		} catch {
+			// File doesn't exist → no mapped paths
+		}
+		return mappedPaths
+	}
+
 	// ── T017: Shared Brain Loading ──
 
 	/**
@@ -519,9 +540,21 @@ export class OrchestrationService {
 	}
 
 	/**
+	 * Update the status of an intent and save.
+	 */
+	async updateIntentStatus(intentId: string, status: IntentStatus): Promise<void> {
+		const intents = await this.getActiveIntents()
+		const intent = intents.find((i) => i.id === intentId)
+		if (intent) {
+			intent.status = status
+			await this.saveIntents(intents)
+		}
+	}
+
+	/**
 	 * Save the intents array back to the YAML file.
 	 */
-	private async saveIntents(intents: ActiveIntent[]): Promise<void> {
+	public async saveIntents(intents: ActiveIntent[]): Promise<void> {
 		const content = yaml.dump({ active_intents: intents })
 		await fs.writeFile(this.intentsFile, content, "utf8")
 	}
