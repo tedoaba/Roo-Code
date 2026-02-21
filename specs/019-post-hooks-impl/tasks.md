@@ -31,7 +31,7 @@ There are no blocking foundational prerequisites required for this feature, as e
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T001 [P] [US1] Create unit tests (≥3 tests) for IntentProgressHook in src/hooks/post/**tests**/IntentProgressHook.spec.ts
+- [ ] T001 [P] [US1] Create unit tests (≥3 tests) for IntentProgressHook in src/hooks/post/**tests**/IntentProgressHook.spec.ts, ensuring coverage for mocked failure conditions to guarantee graceful degradation.
 
 ### Implementation for User Story 1
 
@@ -52,7 +52,7 @@ There are no blocking foundational prerequisites required for this feature, as e
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [P] [US2] Create unit tests (≥3 tests) for ScopeDriftDetectionHook in src/hooks/post/**tests**/ScopeDriftDetectionHook.spec.ts
+- [ ] T004 [P] [US2] Create unit tests (≥3 tests) for ScopeDriftDetectionHook in src/hooks/post/**tests**/ScopeDriftDetectionHook.spec.ts, ensuring coverage for mocked failure conditions to guarantee graceful degradation.
 
 ### Implementation for User Story 2
 
@@ -73,7 +73,7 @@ There are no blocking foundational prerequisites required for this feature, as e
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [P] [US3] Create unit tests (≥3 tests) for SharedBrainHook in src/hooks/post/**tests**/SharedBrainHook.spec.ts
+- [ ] T007 [P] [US3] Create unit tests (≥3 tests) for SharedBrainHook in src/hooks/post/**tests**/SharedBrainHook.spec.ts, ensuring coverage for mocked failure conditions to guarantee graceful degradation.
 
 ### Implementation for User Story 3
 

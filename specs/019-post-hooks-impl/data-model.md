@@ -24,7 +24,7 @@ These models represent the primary interfaces for the new post-hooks. They integ
 ### 3. `SharedBrainHook`
 
 - **Location**: `src/hooks/post/SharedBrainHook.ts`
-- **Responsibility**: Records lessons in `AGENT.md` for DENY responses or scope conflicts. Note that `VerificationFailureHook` handles test/lint output specifically, while this hook handles broader orchestration violations.
+- **Responsibility**: Records lessons in `AGENTS.md` for DENY responses or scope conflicts. Note that `VerificationFailureHook` handles test/lint output specifically, while this hook handles broader orchestration violations.
 - **Key Methods**:
     - `execute(result: ToolResult): Promise<void>`
     - `private synthesizeGovernanceLesson(toolResult: ToolResult): Lesson | null`
