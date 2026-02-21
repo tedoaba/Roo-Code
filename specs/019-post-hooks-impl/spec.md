@@ -51,12 +51,12 @@ The system records comprehensive lessons to the shared knowledge base for govern
 
 **Why this priority**: Provides comprehensive lesson recording for governance violations and scope conflicts, beyond just verification failures, improving learning over time.
 
-**Independent Test**: Can be fully tested by simulating DENY responses and scope conflicts, verifying that structured lessons are atomically appended to AGENT.md.
+**Independent Test**: Can be fully tested by simulating DENY responses and scope conflicts, verifying that structured lessons are atomically appended to AGENTS.md.
 
 **Acceptance Scenarios**:
 
-1. **Given** a tool execution, **When** a governance violation (DENY response) occurs, **Then** the hook records a lesson in AGENT.md about what triggered the violation and how to avoid it.
-2. **Given** a tool execution, **When** a scope conflict is detected (file ownership contention), **Then** the hook records a coordination note in AGENT.md.
+1. **Given** a tool execution, **When** a governance violation (DENY response) occurs, **Then** the hook records a lesson in AGENTS.md about what triggered the violation and how to avoid it.
+2. **Given** a tool execution, **When** a scope conflict is detected (file ownership contention), **Then** the hook records a coordination note in AGENTS.md.
 3. **Given** a verification failure, **When** the existing VerificationFailureHook records the failure, **Then** the SharedBrainHook does not interfere, handling only the broader trigger set.
 
 ---
@@ -66,7 +66,7 @@ The system records comprehensive lessons to the shared knowledge base for govern
 - What happens when the underlying trace logging fails during a state transition? The hook must catch the error, log it, and fail gracefully without crashing the agent loop.
 - What happens when multiple file mutations occur in a single tool use that spans multiple directories within the scope? The ScopeDriftDetectionHook must correctly evaluate boundary conditions for all paths and log relevant warnings.
 - What happens when multiple hooks trigger concurrently during postToolUse()? Execution must not fail the overall tool return even if one hook encounters an internal exception.
-- What happens when appending to AGENT.md fails due to concurrent access? The system relies on existing atomic append features to ensure safety, or catches and swallows the error if locking totally fails.
+- What happens when appending to AGENTS.md fails due to concurrent access? The system relies on existing atomic append features to ensure safety, or catches and swallows the error if locking totally fails.
 
 ## Requirements _(mandatory)_
 
@@ -94,5 +94,5 @@ The system records comprehensive lessons to the shared knowledge base for govern
 
 - **SC-001**: 100% of satisfied intents automatically transition to COMPLETED without manual intervention, verifiable via trace logs.
 - **SC-002**: Scope drift detection emits a warning for 100% of defined boundary condition triggers without ever blocking execution.
-- **SC-003**: Governance violations and scope conflicts result in successful structured appends to the shared knowledge base 100% of the time, verifiable by checking AGENT.md content.
+- **SC-003**: Governance violations and scope conflicts result in successful structured appends to the shared knowledge base 100% of the time, verifiable by checking AGENTS.md content.
 - **SC-004**: 0% of agent loops crash due to errors originating within the post-hooks when tested against mocked failure conditions.
